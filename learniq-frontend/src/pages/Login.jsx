@@ -37,8 +37,8 @@ function Login() {
         <div className="big-text">Conduct smarter<br /><span>aptitude tests.</span></div>
       </div>
       <div className="form-panel">
-        <h2>Welcome back</h2>
-        <p className="sub">Sign in to your account</p>
+        <h2>Student login</h2>
+        <p className="sub">Sign in to access your tests and results</p>
         <form onSubmit={handleLogin}>
           <div className="form-group">
             <label>Email address</label>
@@ -55,6 +55,9 @@ function Login() {
           </button>
         </form>
         <p className="form-link">No account yet? <Link to="/register">Register here</Link></p>
+        <p className="form-link" style={{marginTop:'8px', color:'#ccc', fontSize:'11px'}}>
+          Institute admin? <Link to="/admin-access" style={{color:'#7c3aed'}}>Admin portal →</Link>
+        </p>
       </div>
     </div>
   )

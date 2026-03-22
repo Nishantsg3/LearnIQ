@@ -14,7 +14,9 @@ function Register() {
     e.preventDefault()
     setLoading(true)
     try {
-      await axios.post('https://learniq-rz0t.onrender.com/api/auth/register', { ...form, role: 'STUDENT' })
+      await axios.post('https://learniq-rz0t.onrender.com/api/auth/register', {
+        ...form, role: 'STUDENT'
+      })
       toast.success('Account created! Please sign in.')
       setTimeout(() => navigate('/login'), 1500)
     } catch (err) {
@@ -29,13 +31,13 @@ function Register() {
       <div className="dark-panel">
         <div>
           <div className="brand">Learn<span>IQ</span></div>
-          <div className="tagline">Join thousands of students<br />preparing with LearnIQ</div>
+          <div className="tagline">Join your institute's aptitude<br />test platform</div>
         </div>
         <div className="big-text">Start your<br /><span>test journey.</span></div>
       </div>
       <div className="form-panel">
         <h2>Create account</h2>
-        <p className="sub">Students register here — admins are added by the institute</p>
+        <p className="sub">Register as a student — admin accounts are provided by your institute</p>
         <form onSubmit={handleRegister}>
           <div className="form-group">
             <label>Full name</label>
@@ -49,8 +51,8 @@ function Register() {
           </div>
           <div className="form-group">
             <label>Password</label>
-            <input type="password" name="password" placeholder="••••••••"
-              value={form.password} onChange={handleChange} required />
+            <input type="password" name="password" placeholder="Min. 6 characters"
+              value={form.password} onChange={handleChange} required minLength={6} />
           </div>
           <button className="btn-primary" type="submit" disabled={loading}>
             {loading ? 'Creating account...' : 'Create account'}
