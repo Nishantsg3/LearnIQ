@@ -138,7 +138,7 @@ function AdminLogin() {
                 )}
 
                 <p style={{ textAlign: 'center', marginTop: '16px', fontSize: '12px' }}>
-                    <Link to="/login" style={{ color: '#555', fontWeight: '500' }}>
+                    <Link to="/login" style={{ color: '#7c3aed', fontWeight: '500' }}>
                         ← Back to student login
                     </Link>
                 </p>
