@@ -14,7 +14,7 @@ function Register() {
     e.preventDefault()
     setLoading(true)
     try {
-      await axios.post('http://localhost:8080/api/auth/register', { ...form, role: 'STUDENT' })
+      await axios.post('https://learniq-rz0t.onrender.com/api/auth/register', { ...form, role: 'STUDENT' })
       toast.success('Account created! Please sign in.')
       setTimeout(() => navigate('/login'), 1500)
     } catch (err) {
