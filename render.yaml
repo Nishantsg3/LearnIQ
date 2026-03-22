@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: learniq-frontend
+    env: static
+    buildCommand: cd learniq-frontend && npm install && npm run build
+    staticPublishPath: learniq-frontend/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
