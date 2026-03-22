@@ -5,18 +5,17 @@ import toast from 'react-hot-toast'
 
 const INSTITUTE_CODE = 'LEARNIQ@ADMIN2026'
 
-function AdminLogin() {
+function AdminRegister() {
   const [step, setStep] = useState(1)
   const [code, setCode] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [form, setForm] = useState({ name: '', email: '', password: '' })
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
   const handleCodeVerify = (e) => {
     e.preventDefault()
     if (code === INSTITUTE_CODE) {
-      toast.success('Code verified!')
+      toast.success('Code verified! Set up admin account.')
       setStep(2)
     } else {
       toast.error('Invalid institute code')
@@ -24,23 +23,19 @@ function AdminLogin() {
     }
   }
 
-  const handleLogin = async (e) => {
+  const handleChange = e => setForm({ ...form, [e.target.name]: e.target.value })
+
+  const handleRegister = async (e) => {
     e.preventDefault()
     setLoading(true)
     try {
-      const res = await axios.post('https://learniq-rz0t.onrender.com/api/auth/login', { email, password })
-      if (res.data.role !== 'ADMIN') {
-        toast.error('Access denied. Admin credentials required.')
-        setLoading(false)
-        return
-      }
-      localStorage.setItem('token', res.data.token)
-      localStorage.setItem('role', res.data.role)
-      localStorage.setItem('name', res.data.name)
-      toast.success('Welcome, Admin!')
-      navigate('/admin-dashboard')
-    } catch {
-      toast.error('Invalid credentials')
+      await axios.post('https://learniq-rz0t.onrender.com/api/auth/register', {
+        ...form, role: 'ADMIN'
+      })
+      toast.success('Admin account created!')
+      setTimeout(() => navigate('/admin-access'), 1500)
+    } catch (err) {
+      toast.error(err.response?.data || 'Registration failed')
     } finally {
       setLoading(false)
     }
@@ -58,8 +53,8 @@ function AdminLogin() {
           </div>
         </div>
         <div className="big-text" style={{color:'#fff'}}>
-          Manage tests.<br />
-          <span style={{color:'#7c3aed'}}>Track results.</span>
+          Create admin<br />
+          <span style={{color:'#7c3aed'}}>credentials.</span>
         </div>
       </div>
 
@@ -67,7 +62,7 @@ function AdminLogin() {
         <div style={{display:'flex', alignItems:'center', gap:'8px', marginBottom:'20px'}}>
           <div style={{width:'6px', height:'6px', borderRadius:'50%', background:'#7c3aed'}}></div>
           <span style={{fontSize:'11px', color:'#999', letterSpacing:'.06em', textTransform:'uppercase'}}>
-            Admin Portal · Step {step} of 2
+            Admin Setup · Step {step} of 2
           </span>
         </div>
 
@@ -75,7 +70,7 @@ function AdminLogin() {
           <>
             <h2 style={{color:'#111'}}>Institute verification</h2>
             <p className="sub" style={{color:'#666'}}>
-              Enter the secret code provided by your institute to proceed
+              Enter the institute secret code to create an admin account
             </p>
             <form onSubmit={handleCodeVerify}>
               <div className="form-group">
@@ -105,18 +100,30 @@ function AdminLogin() {
                 ✓ Institute code verified
               </span>
             </div>
-            <h2 style={{color:'#111'}}>Admin sign in</h2>
+            <h2 style={{color:'#111'}}>Create admin account</h2>
             <p className="sub" style={{color:'#666'}}>
-              Enter your administrator credentials
+              This account will have full admin access
             </p>
-            <form onSubmit={handleLogin}>
+            <form onSubmit={handleRegister}>
+              <div className="form-group">
+                <label>Full name</label>
+                <input
+                  type="text"
+                  name="name"
+                  placeholder="Admin full name"
+                  value={form.name}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
               <div className="form-group">
                 <label>Admin email</label>
                 <input
                   type="email"
+                  name="email"
                   placeholder="admin@institute.com"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
+                  value={form.email}
+                  onChange={handleChange}
                   required
                 />
               </div>
@@ -124,26 +131,27 @@ function AdminLogin() {
                 <label>Password</label>
                 <input
                   type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
+                  name="password"
+                  placeholder="Min. 6 characters"
+                  value={form.password}
+                  onChange={handleChange}
                   required
+                  minLength={6}
                 />
               </div>
               <button className="btn-primary" type="submit" disabled={loading}>
-                {loading ? 'Verifying...' : 'Access dashboard'}
+                {loading ? 'Creating...' : 'Create admin account'}
               </button>
             </form>
           </>
         )}
 
         <p style={{textAlign:'center', marginTop:'16px', fontSize:'12px'}}>
-          <Link to="/login" style={{color:'#999'}}>← Back to student login</Link>
+          <Link to="/admin-access" style={{color:'#999'}}>← Back to admin login</Link>
         </p>
       </div>
     </div>
   )
 }
 
-export default AdminLogin
-// The secret code is `LEARNIQ@ADMIN2026` — only share this with your mentor and actual admins.
+export default AdminRegister
