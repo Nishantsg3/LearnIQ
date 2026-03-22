@@ -58,7 +58,7 @@ function Login() {
           No account yet? <Link to="/register" style={{ color: '#7c3aed' }}>Register here</Link>
         </p>
         <p style={{ textAlign: 'center', marginTop: '8px', fontSize: '11px' }}>
-          <Link to="/admin-access" style={{ color: '#555', fontWeight: '500' }}>
+          <Link to="/admin-access" style={{ color: '#7c3aed', fontWeight: '500' }}>
             Institute admin portal →
           </Link>
         </p>
