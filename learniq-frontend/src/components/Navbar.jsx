@@ -1,66 +1,44 @@
+import { Link } from 'react-router-dom'
 import { getUserName, getUserRole, logout } from '../utils/auth'
 
 function getInitials(name) {
   if (!name) return 'U'
-  return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+  return name.split(' ').map((part) => part[0]).join('').toUpperCase().slice(0, 2)
 }
-
-const NavLink = ({ label, active }) => (
-  <span style={{
-    fontSize: '13px',
-    padding: '6px 12px',
-    borderRadius: '6px',
-    color: active ? '#111' : '#888',
-    background: active ? '#f3f4f6' : 'transparent',
-    fontWeight: active ? '500' : '400',
-    cursor: 'pointer',
-    transition: 'all .15s',
-    userSelect: 'none',
-  }}
-  onMouseEnter={e => { if (!active) { e.target.style.background = '#f9fafb'; e.target.style.color = '#555' }}}
-  onMouseLeave={e => { if (!active) { e.target.style.background = 'transparent'; e.target.style.color = '#888' }}}
-  >
-    {label}
-  </span>
-)
 
 const Navbar = () => {
   const name = getUserName()
   const role = getUserRole()
 
   const adminLinks = [
-    { label: 'Dashboard', active: true },
-    { label: 'Manage Tests', active: false },
-    { label: 'Question Bank', active: false },
-    { label: 'Schedule', active: false },
-    { label: 'Results', active: false },
+    { label: 'Dashboard', path: '/admin-dashboard' },
+    { label: 'Global Bank', path: '/admin/bank' }
   ]
-
   const studentLinks = [
-    { label: 'My Tests', active: true },
-    { label: 'Results', active: false },
-    { label: 'Profile', active: false },
+    { label: 'My Tests', path: '/student-dashboard' }
   ]
-
   const links = role === 'ADMIN' ? adminLinks : studentLinks
 
   return (
-    <div className="navbar">
-      <div style={{display:'flex', alignItems:'center', gap:'28px'}}>
+    <header className="navbar">
+      <div className="navbar-main">
         <div className="brand">Learn<span>IQ</span></div>
-        <nav style={{display:'flex', gap:'2px'}}>
-          {links.map((link, i) => (
-            <NavLink key={i} label={link.label} active={link.active} />
+        <nav className="navbar-links">
+          {links.map((link) => (
+            <Link key={link.label} to={link.path} className={`nav-chip ${window.location.pathname === link.path ? 'active' : ''}`}>
+              {link.label}
+            </Link>
           ))}
         </nav>
       </div>
+
       <div className="navbar-right">
         <div className="avatar">{getInitials(name)}</div>
         <span className="user-name">{name}</span>
         <span className="role-badge">{role === 'ADMIN' ? 'Admin' : 'Student'}</span>
         <button className="signout-btn" onClick={logout}>Sign out</button>
       </div>
-    </div>
+    </header>
   )
 }
 
