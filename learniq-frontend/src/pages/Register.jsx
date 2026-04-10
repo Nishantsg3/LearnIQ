@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { User, Mail, Lock, ArrowRight, UserPlus2 } from 'lucide-react';
-import api from '../utils/api';
+import { User, Mail, Lock, ArrowRight } from 'lucide-react';
 import AuthLayout from '../components/AuthLayout';
 
 function Register() {
@@ -19,29 +18,44 @@ function Register() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+
   const handleRegister = async (e) => {
     e.preventDefault();
-    
-    if (formData.password !== formData.confirmPassword) {
-      return toast.error('Passwords do not match');
-    }
-    if (formData.password.length < 8) {
-      return toast.error('Password must be at least 8 characters');
-    }
+    console.log("HANDLE REGISTER TRIGGERED");
+    console.log("REGISTER CLICKED");
 
-    setLoading(true);
     try {
-      await api.post('/auth/register', {
-        name: formData.name,
-        email: formData.email,
-        password: formData.password
-      });
-      toast.success('Registration successful. Please verify OTP.');
-      navigate('/verify-otp', { state: { email: formData.email } });
+      console.log("SENDING REQUEST...");
+
+      const res = await fetch(
+        "https://learniq-rz0t.onrender.com/api/v1/auth/register",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: formData.name,
+            email: formData.email,
+            password: formData.password,
+          }),
+        }
+      );
+
+      const data = await res.json();
+
+      console.log("RESPONSE:", data);
+
+      if (!res.ok) {
+        throw new Error(data.message || "Registration failed");
+      }
+
+      alert("SUCCESS");
+
+      navigate("/login");
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Registration failed');
-    } finally {
-      setLoading(false);
+      console.error("ERROR:", err);
+      alert(err.message);
     }
   };
 
@@ -112,9 +126,10 @@ function Register() {
           </div>
 
           <button 
-            type="submit" 
+            type="submit"
             disabled={loading}
-            className="w-full btn-primary py-3.5 group mt-4"
+            onClick={() => console.log("BUTTON CLICKED")}
+            className="w-full btn-primary py-3.5 group mt-4 flex items-center justify-center gap-2"
           >
             {loading ? 'Creating account...' : 'Create account'}
             {!loading && <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />}
