@@ -1,151 +1,102 @@
-import { useState } from 'react'
-import axios from 'axios'
-import { useNavigate, Link } from 'react-router-dom'
-import toast from 'react-hot-toast'
-
-const INSTITUTE_CODE = 'LEARNIQ@ADMIN2026'
+import { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { ShieldCheck, Lock, ArrowRight } from 'lucide-react';
+import api from '../utils/api';
+import { useAuth } from '../context/AuthContext';
+import AuthLayout from '../components/AuthLayout';
 
 function AdminLogin() {
-    const [step, setStep] = useState(1)
-    const [code, setCode] = useState('')
-    const [email, setEmail] = useState('')
-    const [password, setPassword] = useState('')
-    const [loading, setLoading] = useState(false)
-    const navigate = useNavigate()
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const { login } = useAuth();
 
-    const handleCodeVerify = (e) => {
-        e.preventDefault()
-        if (code === INSTITUTE_CODE) {
-            toast.success('Code verified!')
-            setStep(2)
-        } else {
-            toast.error('Invalid institute code')
-            setCode('')
-        }
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const res = await api.post('/auth/admin-login', { email, password });
+      login({
+        token: res.data.token,
+        name: res.data.name,
+        role: res.data.role
+      });
+      toast.success('Admin access granted');
+      navigate('/admin-dashboard');
+
+    } catch (err) {
+      toast.error('Unauthorized: Invalid admin credentials');
+    } finally {
+      setLoading(false);
     }
+  };
 
-    const handleLogin = async (e) => {
-        e.preventDefault()
-        setLoading(true)
-        try {
-            const res = await axios.post('https://learniq-rz0t.onrender.com/api/auth/login', { email, password })
-            if (res.data.role !== 'ADMIN') {
-                toast.error('Access denied. Admin credentials required.')
-                setLoading(false)
-                return
-            }
-            localStorage.setItem('token', res.data.token)
-            localStorage.setItem('role', res.data.role)
-            localStorage.setItem('name', res.data.name)
-            toast.success('Welcome, Admin!')
-            navigate('/admin-dashboard')
-        } catch {
-            toast.error('Invalid credentials')
-        } finally {
-            setLoading(false)
-        }
-    }
-
-    return (
-        <div className="split-layout">
-            <div className="dark-panel" style={{ background: '#0a0a0a' }}>
-                <div>
-                    <div className="brand" style={{ color: '#fff' }}>
-                        Learn<span style={{ color: '#7c3aed' }}>IQ</span>
-                    </div>
-                    <div className="tagline" style={{ color: '#888' }}>
-                        Institute administration portal<br />Restricted access only
-                    </div>
-                </div>
-                <div className="big-text" style={{ color: '#fff' }}>
-                    Manage tests.<br />
-                    <span style={{ color: '#7c3aed' }}>Track results.</span>
-                </div>
-            </div>
-
-            <div className="form-panel">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
-                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#7c3aed' }}></div>
-                    <span style={{ fontSize: '11px', color: '#999', letterSpacing: '.06em', textTransform: 'uppercase' }}>
-                        Admin Portal · Step {step} of 2
-                    </span>
-                </div>
-
-                {step === 1 ? (
-                    <>
-                        <h2 style={{ color: '#111' }}>Institute verification</h2>
-                        <p className="sub" style={{ color: '#666' }}>
-                            Enter the secret code provided by your institute to proceed
-                        </p>
-                        <form onSubmit={handleCodeVerify}>
-                            <div className="form-group">
-                                <label>Institute secret code</label>
-                                <input
-                                    type="password"
-                                    placeholder="Enter secret code"
-                                    value={code}
-                                    onChange={e => setCode(e.target.value)}
-                                    required
-                                    autoComplete="off"
-                                />
-                            </div>
-                            <button className="btn-primary" type="submit">
-                                Verify code
-                            </button>
-                        </form>
-                    </>
-                ) : (
-                    <>
-                        <div style={{
-                            display: 'flex', alignItems: 'center', gap: '8px',
-                            background: '#f0fdf4', border: '1px solid #bbf7d0',
-                            borderRadius: '8px', padding: '10px 14px', marginBottom: '20px'
-                        }}>
-                            <span style={{ color: '#16a34a', fontSize: '12px', fontWeight: '500' }}>
-                                ✓ Institute code verified
-                            </span>
-                        </div>
-                        <h2 style={{ color: '#111' }}>Admin sign in</h2>
-                        <p className="sub" style={{ color: '#666' }}>
-                            Enter your administrator credentials
-                        </p>
-                        <form onSubmit={handleLogin}>
-                            <div className="form-group">
-                                <label>Admin email</label>
-                                <input
-                                    type="email"
-                                    placeholder="admin@institute.com"
-                                    value={email}
-                                    onChange={e => setEmail(e.target.value)}
-                                    required
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label>Password</label>
-                                <input
-                                    type="password"
-                                    placeholder="••••••••"
-                                    value={password}
-                                    onChange={e => setPassword(e.target.value)}
-                                    required
-                                />
-                            </div>
-                            <button className="btn-primary" type="submit" disabled={loading}>
-                                {loading ? 'Verifying...' : 'Access dashboard'}
-                            </button>
-                        </form>
-                    </>
-                )}
-
-                <p style={{ textAlign: 'center', marginTop: '16px', fontSize: '12px' }}>
-                    <Link to="/login" style={{ color: '#7c3aed', fontWeight: '500' }}>
-                        ← Back to student login
-                    </Link>
-                </p>
-            </div>
+  return (
+    <AuthLayout 
+      headline="Administrative Console." 
+      tagline="Secure access for assessment administrators and proctors."
+    >
+      <div className="card-base p-8 lg:p-10">
+        <div className="mb-8">
+          <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-indigo-600 text-white mb-4">
+             <ShieldCheck size={20} />
+          </div>
+          <h2 className="text-2xl font-bold text-slate-50">Admin access</h2>
+          <p className="text-slate-500 text-sm mt-1">Authorized personnel only</p>
         </div>
-    )
+
+        <form onSubmit={handleLogin} className="space-y-6">
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Admin Email</label>
+            <div className="relative">
+              <Lock size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+              <input
+                type="email"
+                className="input-base pl-11"
+                placeholder="admin@company.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Password</label>
+            <div className="relative">
+              <Lock size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+              <input
+                type="password"
+                className="input-base pl-11"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+          </div>
+
+          <button 
+            type="submit" 
+            disabled={loading}
+            className="w-full btn-primary py-3.5 group mt-2"
+          >
+            {loading ? 'Verifying...' : 'Login as Admin'}
+            {!loading && <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />}
+          </button>
+        </form>
+
+        <div className="mt-8 pt-6 border-t border-[#1f2937] text-center">
+          <Link to="/login" className="text-sm font-semibold text-indigo-400 hover:underline">
+            Return to user login
+          </Link>
+        </div>
+      </div>
+    </AuthLayout>
+  );
 }
 
-export default AdminLogin
-// The secret code is `LEARNIQ@ADMIN2026` — only share this with your mentor and actual admins.
+export default AdminLogin;

@@ -1,67 +1,134 @@
-import { useState } from 'react'
-import axios from 'axios'
-import { useNavigate, Link } from 'react-router-dom'
-import toast from 'react-hot-toast'
+import { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { User, Mail, Lock, ArrowRight, UserPlus2 } from 'lucide-react';
+import api from '../utils/api';
+import AuthLayout from '../components/AuthLayout';
 
 function Register() {
-  const [form, setForm] = useState({ name: '', email: '', password: '' })
-  const [loading, setLoading] = useState(false)
-  const navigate = useNavigate()
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: ''
+  });
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
-  const handleChange = e => setForm({ ...form, [e.target.name]: e.target.value })
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
   const handleRegister = async (e) => {
-    e.preventDefault()
-    setLoading(true)
-    try {
-      await axios.post('https://learniq-rz0t.onrender.com/api/auth/register', {
-        ...form, role: 'STUDENT'
-      })
-      toast.success('Account created! Please sign in.')
-      setTimeout(() => navigate('/login'), 1500)
-    } catch (err) {
-      toast.error(err.response?.data || 'Registration failed')
-    } finally {
-      setLoading(false)
+    e.preventDefault();
+    
+    if (formData.password !== formData.confirmPassword) {
+      return toast.error('Passwords do not match');
     }
-  }
+    if (formData.password.length < 8) {
+      return toast.error('Password must be at least 8 characters');
+    }
+
+    setLoading(true);
+    try {
+      await api.post('/auth/register', {
+        name: formData.name,
+        email: formData.email,
+        password: formData.password
+      });
+      toast.success('Registration successful. Please verify OTP.');
+      navigate('/verify-otp', { state: { email: formData.email } });
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Registration failed');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="split-layout">
-      <div className="dark-panel">
-        <div>
-          <div className="brand">Learn<span>IQ</span></div>
-          <div className="tagline">Join your institute's aptitude<br />test platform</div>
+    <AuthLayout 
+      headline="Grow your potential." 
+      tagline="Join thousands of students preparing for their dream careers with LearnIQ."
+    >
+      <div className="card-base p-8 lg:p-10">
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-slate-50">Create account</h2>
+          <p className="text-slate-500 text-sm mt-1">Start your assessment journey today</p>
         </div>
-        <div className="big-text">Start your<br /><span>test journey.</span></div>
-      </div>
-      <div className="form-panel">
-        <h2>Create account</h2>
-        <p className="sub">Register as a student — admin accounts are provided by your institute</p>
-        <form onSubmit={handleRegister}>
-          <div className="form-group">
-            <label>Full name</label>
-            <input type="text" name="name" placeholder="Your full name"
-              value={form.name} onChange={handleChange} required />
+
+        <form onSubmit={handleRegister} className="space-y-5">
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
+            <div className="relative">
+              <User size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+              <input
+                name="name" type="text" required
+                className="input-base pl-11"
+                placeholder="John Doe"
+                value={formData.name} onChange={handleChange}
+              />
+            </div>
           </div>
-          <div className="form-group">
-            <label>Email address</label>
-            <input type="email" name="email" placeholder="you@example.com"
-              value={form.email} onChange={handleChange} required />
+          
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Email address</label>
+            <div className="relative">
+              <Mail size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+              <input
+                name="email" type="email" required
+                className="input-base pl-11"
+                placeholder="name@company.com"
+                value={formData.email} onChange={handleChange}
+              />
+            </div>
           </div>
-          <div className="form-group">
-            <label>Password</label>
-            <input type="password" name="password" placeholder="Min. 6 characters"
-              value={form.password} onChange={handleChange} required minLength={6} />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Password</label>
+              <div className="relative">
+                <Lock size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                <input
+                  name="password" type="password" required
+                  className="input-base pl-11"
+                  placeholder="••••••••"
+                  value={formData.password} onChange={handleChange}
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Confirm</label>
+              <div className="relative">
+                <Lock size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                <input
+                  name="confirmPassword" type="password" required
+                  className="input-base pl-11"
+                  placeholder="••••••••"
+                  value={formData.confirmPassword} onChange={handleChange}
+                />
+              </div>
+            </div>
           </div>
-          <button className="btn-primary" type="submit" disabled={loading}>
+
+          <button 
+            type="submit" 
+            disabled={loading}
+            className="w-full btn-primary py-3.5 group mt-4"
+          >
             {loading ? 'Creating account...' : 'Create account'}
+            {!loading && <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />}
           </button>
         </form>
-        <p className="form-link">Already have an account? <Link to="/login">Sign in</Link></p>
+
+        <div className="mt-8 pt-6 border-t border-[#1f2937] text-center">
+          <p className="text-sm text-slate-500 font-medium">
+            Already have an account? <Link to="/login" className="text-indigo-400 font-bold hover:underline transition-all">Sign in</Link>
+          </p>
+        </div>
       </div>
-    </div>
-  )
+    </AuthLayout>
+  );
 }
 
-export default Register
+export default Register;
