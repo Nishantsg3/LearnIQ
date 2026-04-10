@@ -50,12 +50,13 @@ public class AuthController {
 
         String otp = generateOtp();
 
+        // Bypassing OTP for faster registration (Temporary)
         User user = User.builder()
                 .name(request.name().trim())
                 .email(request.email().trim().toLowerCase())
                 .password(passwordEncoder.encode(request.password()))
                 .role(User.Role.STUDENT)
-                .isVerified(false)
+                .isVerified(true) // 🔥 Auto-verify
                 .otp(otp)
                 .otpExpiry(LocalDateTime.now().plusMinutes(5))
                 .build();
@@ -63,24 +64,21 @@ public class AuthController {
         userRepository.save(user);
 
         System.out.println("\n=============================================");
-        System.out.println("  DEVELOPMENT MODE: OTP INTERCEPTED");
+        System.out.println("  OTP BYPASSED: User marked as Verified");
         System.out.println("  Email: " + user.getEmail());
-        System.out.println("  OTP: " + otp);
         System.out.println("=============================================\n");
 
-        // Send OTP via Email
+        /* 
+        // Skip Email Sending (Bypassed)
         try {
             emailService.sendRegistrationOtpEmail(user.getEmail(), otp);
         } catch (Exception e) {
-            System.err.println("Warning: Email could not be sent (No valid App Password). Use the console OTP above.");
+            // Log error
         }
+        */
 
         Map<String, String> response = new LinkedHashMap<>();
-        response.put("message", "Registration initialized. Please verify OTP sent to email.");
-        if (!"prod".equalsIgnoreCase(appEnv)) {
-            response.put("otp", otp);
-        }
-
+        response.put("message", "Registration successful! You can now log in immediately.");
         return ResponseEntity.ok(response);
     }
 
@@ -242,9 +240,11 @@ public class AuthController {
             return ResponseEntity.badRequest().body(Map.of("message", "Invalid credentials"));
         }
         
+        /* 
         if (!user.isVerified()) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", "Please verify your email before logging in."));
         }
+        */
 
         if (expectedRole == User.Role.STUDENT && user.getRole() == User.Role.ADMIN) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", "Use the admin login portal"));
