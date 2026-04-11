@@ -76,8 +76,10 @@ const StudentDashboard = () => {
     return map;
   }, [attempts]);
 
-  // LIVE: status=LIVE only (strictly no DRAFT)
-  const liveTests = useMemo(() => tests.filter(t => t.status === 'LIVE'), [tests]);
+  // LIVE: status=LIVE only, and NOT already attempted
+  const liveTests = useMemo(() => tests.filter(t =>
+    t.status === 'LIVE' && !attemptedTestIds.has(t.id)
+  ), [tests, attemptedTestIds]);
 
   // UPCOMING: status=SCHEDULED
   const upcomingTests = useMemo(() => tests.filter(t => t.status === 'SCHEDULED'), [tests]);
@@ -110,22 +112,22 @@ const StudentDashboard = () => {
         throw new Error('Invalid response from server');
       }
 
-      const { attemptId } = res.data;
-
-      // 🔥 Navigate safely
-      navigate(`/attempt/${attemptId}`);
+      navigate(`/attempt/${res.data.attemptId}`);
 
     } catch (err) {
+      // 409 = already completed — redirect to results
+      if (err.response?.status === 409 && err.response?.data?.attemptId) {
+        toast('Already completed — showing your result.', { icon: 'ℹ️' });
+        navigate(`/results/${err.response.data.attemptId}`);
+        return;
+      }
+
       console.error("Start test error:", err);
-
-      const msg =
-        err.response?.data?.message ||
-        err.message ||
-        'Failed to start test session';
-
+      const msg = err.response?.data?.message || err.message || 'Failed to start test session';
       toast.error(msg);
     }
   };
+
 
   if (loading) return (
     <div className="flex items-center justify-center h-[60vh]">
@@ -191,7 +193,7 @@ const StudentDashboard = () => {
                       </div>
                     </div>
                     <button onClick={() => startTest(test.id)} className="btn-primary py-2 px-6 text-xs">
-                      Engage
+                      Start Assessment
                     </button>
                   </div>
                 ))}
@@ -257,9 +259,7 @@ const StudentDashboard = () => {
 
       {currentTab === 'live' && (
         <div className="dashboard-grid">
-              {liveTests.map(test => {
-                const alreadyAttempted = test.sectionType === 'MAIN' && completedAttemptByTestId[test.id];
-                return (
+              {liveTests.map(test => (
                 <div key={test.id} className="card-base p-6 space-y-6 flex flex-col hover:border-indigo-500/50">
                   <div className="flex justify-between items-start">
                     <span className="badge badge-success">Active</span>
@@ -273,21 +273,11 @@ const StudentDashboard = () => {
                     <span className="flex items-center gap-1.5 border-r border-[#1f2937] pr-5"><Clock size={14} className="text-indigo-400" /> {test.durationMinutes}M</span>
                     <span className="flex items-center gap-1.5"><FileText size={14} className="text-indigo-400" /> {test.questionCount} Qs</span>
                   </div>
-                  {alreadyAttempted ? (
-                    <button
-                      onClick={() => navigate(`/results/${completedAttemptByTestId[test.id]}`)}
-                      className="w-full btn-secondary py-3 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
-                    >
-                      ✓ View Result
-                    </button>
-                  ) : (
-                    <button onClick={() => startTest(test.id)} className="w-full btn-primary py-3">
-                      Start Assessment
-                    </button>
-                  )}
+                  <button onClick={() => startTest(test.id)} className="w-full btn-primary py-3">
+                    Start Assessment
+                  </button>
                 </div>
-              )})}
-          {liveTests.length === 0 && (
+              ))}          {liveTests.length === 0 && (
             <div className="col-span-full empty-state-card">
               <AlertCircle size={40} className="text-[#1f2937] mx-auto mb-4" />
               <h3 className="font-bold text-slate-500 uppercase tracking-widest">No live tests available</h3>

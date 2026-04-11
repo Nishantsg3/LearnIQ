@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { 
@@ -7,10 +7,8 @@ import {
   ChevronLeft, 
   CheckCircle2, 
   AlertCircle,
-  HelpCircle,
   ArrowLeft,
-  Activity,
-  Award
+  Activity
 } from 'lucide-react';
 import api from '../utils/api';
 
@@ -25,13 +23,28 @@ const TestAttempt = () => {
   const [submitting, setSubmitting] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
 
+  // Use ref to avoid stale closure in timer
+  const answersRef = useRef({});
+  const submittingRef = useRef(false);
+
+  const updateAnswers = (newAnswers) => {
+    answersRef.current = newAnswers;
+    setAnswers(newAnswers);
+  };
+
   const fetchData = useCallback(async () => {
     try {
-      // 1. Fetch Attempt Details (Includes questions and time)
       const res = await api.get(`/attempts/${attemptId}`);
       const data = res.data;
       
       if (!data) throw new Error('Attempt not found');
+
+      // If already submitted, redirect to results
+      if (data.status === 'SUBMITTED') {
+        toast('This assessment is already completed.', { icon: 'ℹ️' });
+        navigate(`/results/${attemptId}`);
+        return;
+      }
 
       if (data.status !== 'IN_PROGRESS') {
         toast.error('This assessment session is no longer active.');
@@ -59,27 +72,40 @@ const TestAttempt = () => {
     fetchData();
   }, [fetchData]);
 
-  // Timer Logic
+  // ─── Timer Auto-Submit (fixed: uses ref to avoid stale closure) ───────────
   useEffect(() => {
     if (remainingTime === null || remainingTime <= 0) return;
+
     const interval = setInterval(() => {
       setRemainingTime(prev => {
         if (prev <= 1) {
           clearInterval(interval);
-          handleSubmit(null, true); // Auto-submit on time out
+          // Auto-submit using ref values (not stale state)
+          if (!submittingRef.current) {
+            submittingRef.current = true;
+            api.post(`/attempts/${attemptId}/submit`, answersRef.current)
+              .then(res => {
+                toast.success('Time up — assessment auto-submitted');
+                navigate(`/results/${res.data.id}`);
+              })
+              .catch(() => {
+                toast.error('Auto-submit failed. Returning to dashboard.');
+                navigate('/student-dashboard');
+              });
+          }
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
+
     return () => clearInterval(interval);
-  }, [remainingTime]);
+  }, [remainingTime, attemptId, navigate]);
 
   const handleSubmit = async (e, isAuto = false) => {
     if (e) e.preventDefault();
-    if (submitting) return;
+    if (submittingRef.current) return;
 
-    // Reject manually if timer expired
     if (!isAuto && remainingTime <= 0) {
       toast.error('Submission rejected: Time limit exceeded');
       navigate('/student-dashboard');
@@ -88,9 +114,10 @@ const TestAttempt = () => {
 
     if (!isAuto && !window.confirm('Final submission? You will not be able to modify your responses after this.')) return;
 
+    submittingRef.current = true;
     setSubmitting(true);
     try {
-      const res = await api.post(`/attempts/${attemptId}/submit`, answers);
+      const res = await api.post(`/attempts/${attemptId}/submit`, answersRef.current);
       toast.success('Assessment completed');
       navigate(`/results/${res.data.id}`); 
     } catch (err) {
@@ -100,6 +127,7 @@ const TestAttempt = () => {
         navigate('/student-dashboard');
       }
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   };
@@ -123,7 +151,7 @@ const TestAttempt = () => {
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-slate-50">
-      {/* Precision Header */}
+      {/* Header */}
       <nav className="sticky top-0 z-50 bg-[#020617] border-b border-[#1f2937] px-8 py-5">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-6">
@@ -137,14 +165,14 @@ const TestAttempt = () => {
             <div className="h-8 w-[1px] bg-[#1f2937]"></div>
             <div>
                <h2 className="text-lg font-bold text-slate-50 tracking-tight">Technical Assessment</h2>
-               <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">{questions.length} Items Indexed</p>
+               <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">{questions.length} Questions</p>
             </div>
           </div>
 
           <div className="flex items-center gap-10">
             <div className={`flex items-center gap-3 px-5 py-2.5 rounded-xl border-2 font-black tabular-nums transition-all ${remainingTime < 300 ? 'bg-rose-500/10 text-rose-400 border-rose-500/30 animate-pulse' : 'bg-slate-900 border-[#1f2937] text-slate-200'}`}>
                <Clock size={16} className={remainingTime < 300 ? 'text-rose-400' : 'text-indigo-400'}/>
-               <span className="text-sm tracking-widest">{formatTime(remainingTime)}</span>
+               <span className="text-sm tracking-widest">{formatTime(remainingTime ?? 0)}</span>
             </div>
             
             <button 
@@ -152,20 +180,20 @@ const TestAttempt = () => {
               disabled={submitting}
               className="btn-primary py-2.5 px-8 text-sm"
             >
-              {submitting ? 'Finalizing...' : 'Final Submission'}
+              {submitting ? 'Submitting...' : 'Submit Test'}
             </button>
           </div>
         </div>
       </nav>
 
-      {/* Main Experience Grid */}
+      {/* Main Grid */}
       <div className="max-w-7xl mx-auto px-8 py-12 grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
         
-        {/* Navigation Grid */}
+        {/* Question Navigator */}
         <aside className="lg:col-span-3 card-base p-8 space-y-8 bg-[#111827]/50">
            <div className="flex items-center gap-3">
               <Activity size={16} className="text-indigo-400" />
-              <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Item Matrix</h4>
+              <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Question Grid</h4>
            </div>
            
            <div className="grid grid-cols-5 gap-3">
@@ -188,12 +216,15 @@ const TestAttempt = () => {
               })}
            </div>
            
-           <div className="pt-8 border-t border-[#1f2937] space-y-4">
-              <div className="flex items-center gap-3 text-slate-600">
-                 <AlertCircle size={14} className="flex-shrink-0" />
-                 <p className="text-[9px] font-bold leading-relaxed uppercase tracking-widest">
-                   Integrity check active. Activity is logged.
-                 </p>
+           <div className="pt-8 border-t border-[#1f2937] space-y-3">
+              <div className="flex items-center gap-2 text-[10px] font-black text-slate-600 uppercase tracking-widest">
+                <span className="w-3 h-3 rounded bg-emerald-500/30 inline-block"></span> Answered
+              </div>
+              <div className="flex items-center gap-2 text-[10px] font-black text-slate-600 uppercase tracking-widest">
+                <span className="w-3 h-3 rounded bg-slate-800 inline-block"></span> Not answered
+              </div>
+              <div className="flex items-center gap-2 text-[10px] font-black text-slate-600 uppercase tracking-widest">
+                <span className="w-3 h-3 rounded bg-indigo-600 inline-block"></span> Current
               </div>
            </div>
         </aside>
@@ -201,6 +232,7 @@ const TestAttempt = () => {
         {/* Workspace */}
         <main className="lg:col-span-9 space-y-8">
            <div className="card-base p-12 lg:p-16 min-h-[600px] flex flex-col justify-between relative bg-slate-900/40">
+              {/* Progress bar */}
               <div className="absolute top-0 left-0 w-full h-1 bg-slate-800">
                  <div 
                    className="h-full bg-indigo-600 transition-all duration-500" 
@@ -210,7 +242,7 @@ const TestAttempt = () => {
 
               <div>
                 <div className="mb-12">
-                  <span className="badge badge-primary">Segment {currentIndex + 1} / {questions.length}</span>
+                  <span className="badge badge-primary">Question {currentIndex + 1} / {questions.length}</span>
                 </div>
 
                 <h3 className="text-3xl font-bold text-slate-50 leading-[1.4] mb-16 tracking-tight">
@@ -219,12 +251,13 @@ const TestAttempt = () => {
 
                 <div className="grid grid-cols-1 gap-5">
                   {['A', 'B', 'C', 'D'].map(opt => {
-                    const optionText = currentQ[`option${opt}`];
+                    const optionText = currentQ?.[`option${opt}`];
+                    if (!optionText) return null;
                     const isSelected = answers[currentQ.id] === opt;
                     return (
                       <button 
                         key={opt}
-                        onClick={() => setAnswers(c => ({...c, [currentQ.id]: opt}))}
+                        onClick={() => updateAnswers({...answersRef.current, [currentQ.id]: opt})}
                         className={`w-full flex items-center gap-6 p-6 rounded-2xl border-2 transition-all text-left group relative overflow-hidden
                           ${isSelected 
                             ? 'bg-indigo-600/10 border-indigo-500 text-indigo-50 shadow-md' 
@@ -232,7 +265,7 @@ const TestAttempt = () => {
                           }
                         `}
                       >
-                        <span className={`w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black transition-all
+                        <span className={`w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black transition-all flex-shrink-0
                           ${isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-500 group-hover:bg-slate-700 group-hover:text-slate-300'}
                         `}>
                           {opt}
@@ -253,28 +286,28 @@ const TestAttempt = () => {
                 <button 
                   disabled={currentIndex === 0}
                   onClick={() => setCurrentIndex(c => c - 1)}
-                  className="btn-secondary py-3 px-8 text-xs disabled:opacity-20 translate-all"
+                  className="btn-secondary py-3 px-8 text-xs disabled:opacity-20"
                 >
-                  <ChevronLeft size={16} /> Previous Page
+                  <ChevronLeft size={16} /> Previous
                 </button>
                 
-                <div className="text-[10px] font-black text-slate-600 uppercase tracking-[0.3em]">
-                   Iterative Evaluation Mode
-                </div>
+                <span className="text-[10px] font-black text-slate-600 uppercase tracking-[0.3em]">
+                  {Object.keys(answers).length} / {questions.length} answered
+                </span>
 
                 {currentIndex < questions.length - 1 ? (
                   <button 
                     onClick={() => setCurrentIndex(c => c + 1)}
                     className="btn-primary py-3 px-10 text-xs"
                   >
-                    Next Question <ChevronRight size={16} />
+                    Next <ChevronRight size={16} />
                   </button>
                 ) : (
                   <button 
                     onClick={handleSubmit} disabled={submitting}
                     className="btn-primary bg-emerald-600 hover:bg-emerald-700 py-3 px-10 text-xs shadow-lg shadow-emerald-600/20 border-none"
                   >
-                    {submitting ? 'Transmitting...' : 'Final Submission'}
+                    {submitting ? 'Submitting...' : 'Submit Test'}
                   </button>
                 )}
               </div>
