@@ -30,6 +30,7 @@ function App() {
         style: { fontSize: '13px', borderRadius: '8px', background: '#333', color: '#fff' }
       }} />
       <Routes>
+        {/* Public routes */}
         <Route path="/" element={<Navigate to="/login" />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
@@ -37,31 +38,36 @@ function App() {
         <Route path="/admin-access" element={<AdminLogin />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
-        
+
+        {/* ── STUDENT ROUTES (requiredRole="STUDENT") ─────────────────────── */}
+        {/* Admin trying these → /admin-dashboard */}
         <Route path="/student-dashboard" element={
-          <ProtectedRoute role="STUDENT">{withLayout(<StudentDashboard />)}</ProtectedRoute>
+          <ProtectedRoute requiredRole="STUDENT">{withLayout(<StudentDashboard />)}</ProtectedRoute>
         } />
-        
+
         <Route path="/attempt/:attemptId" element={
-          <ProtectedRoute role="STUDENT"><TestAttempt /></ProtectedRoute>
+          <ProtectedRoute requiredRole="STUDENT"><TestAttempt /></ProtectedRoute>
         } />
-        
+
         <Route path="/results/:attemptId" element={
-          <ProtectedRoute role="STUDENT">{withLayout(<TestResultView />)}</ProtectedRoute>
+          <ProtectedRoute requiredRole="STUDENT">{withLayout(<TestResultView />)}</ProtectedRoute>
         } />
-        
+
+        {/* ── ADMIN ROUTES (requiredRole="ADMIN") ──────────────────────────── */}
+        {/* Student trying these → /student-dashboard */}
         <Route path="/admin-dashboard" element={
-          <ProtectedRoute role="ADMIN">{withLayout(<AdminDashboard />)}</ProtectedRoute>
+          <ProtectedRoute requiredRole="ADMIN">{withLayout(<AdminDashboard />)}</ProtectedRoute>
         } />
-        
+
         <Route path="/admin/tests/:testId/questions" element={
-          <ProtectedRoute role="ADMIN">{withLayout(<QuestionManager />)}</ProtectedRoute>
+          <ProtectedRoute requiredRole="ADMIN">{withLayout(<QuestionManager />)}</ProtectedRoute>
         } />
-        
+
         <Route path="/admin/bank" element={
-          <ProtectedRoute role="ADMIN">{withLayout(<QuestionBank />)}</ProtectedRoute>
+          <ProtectedRoute requiredRole="ADMIN">{withLayout(<QuestionBank />)}</ProtectedRoute>
         } />
-        
+
+        {/* Catch-all */}
         <Route path="*" element={<Navigate to="/login" />} />
       </Routes>
     </BrowserRouter>
