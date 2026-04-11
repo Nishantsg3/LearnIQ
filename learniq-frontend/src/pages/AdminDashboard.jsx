@@ -14,7 +14,9 @@ import {
   Calendar,
   BarChart3,
   Play,
-  LayoutDashboard
+  LayoutDashboard,
+  Zap,
+  ZapOff
 } from 'lucide-react';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
@@ -76,8 +78,8 @@ const AdminDashboard = () => {
 
   const filteredTests = useMemo(() => {
     if (activeTab === 'live') return tests.filter(t => t.status === 'LIVE');
-    if (activeTab === 'scheduled') return tests.filter(t => t.status === 'SCHEDULED' || t.status === 'DRAFT');
-    if (activeTab === 'completed') return tests.filter(t => t.status === 'COMPLETED');
+    if (activeTab === 'scheduled') return tests.filter(t => t.status === 'SCHEDULED');
+    if (activeTab === 'draft') return tests.filter(t => t.status === 'DRAFT');
     return tests;
   }, [tests, activeTab]);
 
@@ -122,6 +124,21 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleStatusToggle = async (test) => {
+    const newStatus = test.status === 'LIVE' ? 'DRAFT' : 'LIVE';
+    const label = newStatus === 'LIVE' ? 'Going Live...' : 'Deactivating...';
+    const tid = toast.loading(label);
+    try {
+      await api.put(`/admin/tests/${test.id}/status`, { status: newStatus });
+      setTests(prev => prev.map(t => t.id === test.id ? { ...t, status: newStatus } : t));
+      toast.success(`Test is now ${newStatus}`, { id: tid });
+      console.log(`[Admin] Test ${test.id} status changed to ${newStatus}`);
+    } catch (err) {
+      console.error('[Admin] Status toggle failed:', err);
+      toast.error('Failed to update status', { id: tid });
+    }
+  };
+
   if (loading) return (
     <div className="flex items-center justify-center h-[60vh]">
       <div className="w-8 h-8 border-4 border-[#1f2937] border-t-indigo-600 rounded-full animate-spin"></div>
@@ -135,7 +152,7 @@ const AdminDashboard = () => {
         {[
           { id: 'live', label: 'Live' },
           { id: 'scheduled', label: 'Scheduled' },
-          { id: 'completed', label: 'Completed' },
+          { id: 'draft', label: 'Drafts' },
         ].map(tab => (
           <div 
             key={tab.id}
@@ -227,7 +244,6 @@ const AdminDashboard = () => {
                   <option value="DRAFT">DRAFT</option>
                   <option value="SCHEDULED">SCHEDULED</option>
                   <option value="LIVE">LIVE</option>
-                  <option value="COMPLETED">COMPLETED</option>
                 </select>
               </div>
             </div>
@@ -291,6 +307,21 @@ const AdminDashboard = () => {
                   </div>
                   
                   <div className="flex gap-2">
+                    {/* Go Live / Deactivate Toggle */}
+                    {(test.status === 'DRAFT' || test.status === 'LIVE') && (
+                      <button
+                        onClick={() => handleStatusToggle(test)}
+                        className={`p-2.5 border rounded-lg transition-all text-xs font-black uppercase tracking-widest flex items-center gap-1.5 px-3 ${
+                          test.status === 'LIVE'
+                            ? 'bg-rose-500/10 border-rose-500/30 text-rose-400 hover:bg-rose-500/20'
+                            : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20'
+                        }`}
+                        title={test.status === 'LIVE' ? 'Deactivate' : 'Go Live'}
+                      >
+                        {test.status === 'LIVE' ? <ZapOff size={14} /> : <Zap size={14} />}
+                        {test.status === 'LIVE' ? 'Deactivate' : 'Go Live'}
+                      </button>
+                    )}
                     <button 
                       onClick={() => navigate(`/admin/tests/${test.id}/questions`)}
                       className="p-2.5 bg-slate-900 border border-[#1f2937] text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-all"

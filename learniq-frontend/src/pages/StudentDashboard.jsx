@@ -67,10 +67,17 @@ const StudentDashboard = () => {
 
   const attemptedTestIds = useMemo(() => new Set(attempts.map(a => a.testId)), [attempts]);
 
-  // LIVE: status=LIVE AND (PRACTICE OR (MAIN AND unattempted))
-  const liveTests = useMemo(() => tests.filter(t =>
-    t.status === 'LIVE' && (t.sectionType === 'PRACTICE' || !attemptedTestIds.has(t.id))
-  ), [tests, attemptedTestIds]);
+  // Map testId -> attemptId for already-completed attempts (to link to results)
+  const completedAttemptByTestId = useMemo(() => {
+    const map = {};
+    attempts.forEach(a => {
+      if (a.scorePercent !== -1) map[a.testId] = a.id;
+    });
+    return map;
+  }, [attempts]);
+
+  // LIVE: status=LIVE only (strictly no DRAFT)
+  const liveTests = useMemo(() => tests.filter(t => t.status === 'LIVE'), [tests]);
 
   // UPCOMING: status=SCHEDULED
   const upcomingTests = useMemo(() => tests.filter(t => t.status === 'SCHEDULED'), [tests]);
@@ -250,25 +257,36 @@ const StudentDashboard = () => {
 
       {currentTab === 'live' && (
         <div className="dashboard-grid">
-          {liveTests.map(test => (
-            <div key={test.id} className="card-base p-6 space-y-6 flex flex-col hover:border-indigo-500/50">
-              <div className="flex justify-between items-start">
-                <span className="badge badge-success">Active</span>
-                <span className="badge badge-primary">{test.category}</span>
-              </div>
-              <div className="flex-1">
-                <h3 className="text-xl font-bold text-slate-50 leading-tight">{test.title}</h3>
-                <p className="text-sm text-slate-500 mt-2 line-clamp-2 leading-relaxed">{test.description || 'Professional technical assessment for ' + test.category}</p>
-              </div>
-              <div className="flex items-center gap-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.1em] pt-2">
-                <span className="flex items-center gap-1.5 border-r border-[#1f2937] pr-5"><Clock size={14} className="text-indigo-400" /> {test.durationMinutes}M</span>
-                <span className="flex items-center gap-1.5"><FileText size={14} className="text-indigo-400" /> {test.questionCount} Qs</span>
-              </div>
-              <button onClick={() => startTest(test.id)} className="w-full btn-primary py-3">
-                Start Assessment
-              </button>
-            </div>
-          ))}
+              {liveTests.map(test => {
+                const alreadyAttempted = test.sectionType === 'MAIN' && completedAttemptByTestId[test.id];
+                return (
+                <div key={test.id} className="card-base p-6 space-y-6 flex flex-col hover:border-indigo-500/50">
+                  <div className="flex justify-between items-start">
+                    <span className="badge badge-success">Active</span>
+                    <span className="badge badge-primary">{test.category}</span>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold text-slate-50 leading-tight">{test.title}</h3>
+                    <p className="text-sm text-slate-500 mt-2 line-clamp-2 leading-relaxed">{test.description || 'Professional technical assessment for ' + test.category}</p>
+                  </div>
+                  <div className="flex items-center gap-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.1em] pt-2">
+                    <span className="flex items-center gap-1.5 border-r border-[#1f2937] pr-5"><Clock size={14} className="text-indigo-400" /> {test.durationMinutes}M</span>
+                    <span className="flex items-center gap-1.5"><FileText size={14} className="text-indigo-400" /> {test.questionCount} Qs</span>
+                  </div>
+                  {alreadyAttempted ? (
+                    <button
+                      onClick={() => navigate(`/results/${completedAttemptByTestId[test.id]}`)}
+                      className="w-full btn-secondary py-3 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
+                    >
+                      ✓ View Result
+                    </button>
+                  ) : (
+                    <button onClick={() => startTest(test.id)} className="w-full btn-primary py-3">
+                      Start Assessment
+                    </button>
+                  )}
+                </div>
+              )})}
           {liveTests.length === 0 && (
             <div className="col-span-full empty-state-card">
               <AlertCircle size={40} className="text-[#1f2937] mx-auto mb-4" />
