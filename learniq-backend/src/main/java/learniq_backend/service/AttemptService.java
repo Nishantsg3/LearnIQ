@@ -27,6 +27,16 @@ public class AttemptService {
         Test test = testRepository.findById(testId)
                 .orElseThrow(() -> new RuntimeException("Test not found"));
 
+        // Block re-attempt: if already SUBMITTED, return that attempt
+        Optional<TestAttempt> submittedOpt =
+                testAttemptRepository.findFirstByUserEmailAndTestIdAndStatusOrderByStartedAtDesc(
+                        userEmail, testId, TestAttempt.Status.SUBMITTED);
+
+        if (submittedOpt.isPresent()) {
+            // Return existing completed attempt (frontend should redirect to results)
+            return submittedOpt.get();
+        }
+
         Optional<TestAttempt> existingOpt =
                 testAttemptRepository.findFirstByUserEmailAndTestIdAndStatusOrderByStartedAtDesc(
                         userEmail, testId, TestAttempt.Status.IN_PROGRESS);
@@ -196,6 +206,30 @@ public class AttemptService {
             }
         }
 
+        // Build answerReviews for SUBMITTED attempts (for result page)
+        List<TestAttemptResponse.AnswerReview> answerReviews = null;
+        if (attempt.getStatus() == TestAttempt.Status.SUBMITTED && attempt.getTest() != null) {
+            List<Question> allQuestions = questionRepository.findByTestId(attempt.getTest().getId());
+            Map<Long, AttemptAnswer> answerMap = new HashMap<>();
+            if (attempt.getAnswers() != null) {
+                attempt.getAnswers().forEach(a -> answerMap.put(a.getQuestionId(), a));
+            }
+            answerReviews = allQuestions.stream().map(q -> {
+                AttemptAnswer ans = answerMap.get(q.getId());
+                return TestAttemptResponse.AnswerReview.builder()
+                        .questionId(q.getId())
+                        .questionText(q.getQuestionText())
+                        .optionA(q.getOptionA())
+                        .optionB(q.getOptionB())
+                        .optionC(q.getOptionC())
+                        .optionD(q.getOptionD())
+                        .selectedOption(ans != null ? ans.getSelectedOption() : null)
+                        .correctAnswer(q.getCorrectAnswer())
+                        .correct(ans != null && ans.isCorrect())
+                        .build();
+            }).collect(Collectors.toList());
+        }
+
         return TestAttemptResponse.builder()
                 .id(attempt.getId())
                 .testId(testId)
@@ -204,10 +238,12 @@ public class AttemptService {
                 .scorePercent(attempt.getScorePercent())
                 .correctCount(attempt.getCorrectCount())
                 .wrongCount(attempt.getWrongCount())
+                .totalQuestions(attempt.getTotalQuestions())
                 .submittedAt(attempt.getSubmittedAt())
                 .status(attempt.getStatus() != null ? attempt.getStatus().name() : null)
                 .questions(questions)
                 .remainingTime(remainingTime)
+                .answerReviews(answerReviews)
                 .build();
     }
 }

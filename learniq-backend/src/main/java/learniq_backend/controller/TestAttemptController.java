@@ -32,6 +32,14 @@ public class TestAttemptController {
 
         TestAttempt attempt = attemptService.startOrResumeAttempt(userEmail, request.getTestId());
 
+        // If already submitted, block re-attempt and return existing attempt ID
+        if (attempt.getStatus() == TestAttempt.Status.SUBMITTED) {
+            return ResponseEntity.status(409).body(Map.of(
+                "message", "You have already completed this test.",
+                "attemptId", attempt.getId()
+            ));
+        }
+
         return ResponseEntity.ok(Map.of("attemptId", attempt.getId()));
     }
 

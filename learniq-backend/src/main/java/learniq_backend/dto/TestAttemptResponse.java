@@ -15,8 +15,26 @@ public class TestAttemptResponse {
     private int scorePercent;
     private int correctCount;
     private int wrongCount;
+    private int totalQuestions;
     private LocalDateTime submittedAt;
     private String status;
     private List<learniq_backend.controller.QuestionController.QuestionAttemptView> questions;
     private Long remainingTime;
+
+    // For result review — populated on SUBMITTED attempts
+    private List<AnswerReview> answerReviews;
+
+    @Data
+    @Builder
+    public static class AnswerReview {
+        private Long questionId;
+        private String questionText;
+        private String optionA;
+        private String optionB;
+        private String optionC;
+        private String optionD;
+        private String selectedOption;
+        private String correctAnswer;
+        private boolean correct;
+    }
 }
