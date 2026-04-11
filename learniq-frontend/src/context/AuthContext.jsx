@@ -27,21 +27,23 @@ export const AuthProvider = ({ children }) => {
 
     try {
       const res = await api.get('/auth/me');
+      const backendRole = res.data.role;
 
-      // 🔥 ALWAYS trust backend response only
-      setUser({
-        name: res.data.name,
-        role: res.data.role,
-      });
+      // Cross-tab contamination guard:
+      // If the locally stored role doesn't match what the backend says, wipe it.
+      const storedUser = authUtils.getUser();
+      if (storedUser?.role && storedUser.role !== backendRole) {
+        console.warn('[Auth] Role mismatch detected — clearing contaminated session.');
+        logout();
+        return;
+      }
 
-      setRole(res.data.role);
+      setUser({ name: res.data.name, role: backendRole });
+      setRole(backendRole);
       setIsAuthenticated(true);
 
-      // 🔥 OPTIONAL: sync local storage (safe)
-      authUtils.setSession(token, {
-        name: res.data.name,
-        role: res.data.role,
-      });
+      // Sync localStorage with backend-verified data
+      authUtils.setSession(token, { name: res.data.name, role: backendRole });
 
     } catch (err) {
       console.error('Auth initialization failed:', err);
@@ -56,19 +58,20 @@ export const AuthProvider = ({ children }) => {
   }, [initializeAuth]);
 
   const login = (userData) => {
+    // CRITICAL: Wipe any existing session before writing new one.
+    // This prevents cross-role contamination (e.g. admin overwriting student token).
+    localStorage.clear();
+
     authUtils.setSession(userData.token, {
       name: userData.name,
       role: userData.role,
     });
 
-    // 🔥 Immediately set state
-    setUser({
-      name: userData.name,
-      role: userData.role,
-    });
-
+    setUser({ name: userData.name, role: userData.role });
     setRole(userData.role);
     setIsAuthenticated(true);
+
+    console.log(`[Auth] New session started — role: ${userData.role}`);
   };
 
   return (
