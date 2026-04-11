@@ -37,6 +37,7 @@ const StudentDashboard = () => {
   const [tests, setTests] = useState([]);
   const [attempts, setAttempts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [startingTestId, setStartingTestId] = useState(null);
 
   const fetchData = useCallback(async (isSilent = false) => {
     if (!isSilent) setLoading(true);
@@ -105,6 +106,8 @@ const StudentDashboard = () => {
   // ONLY REPLACE THIS FUNCTION inside your file
 
   const startTest = async (testId) => {
+    if (startingTestId) return; // prevent double-click
+    setStartingTestId(testId);
     try {
       const res = await api.post('/attempts/start', { testId });
 
@@ -122,16 +125,44 @@ const StudentDashboard = () => {
         return;
       }
 
-      console.error("Start test error:", err);
-      const msg = err.response?.data?.message || err.message || 'Failed to start test session';
+      console.error('Start test error:', err);
+      const msg = err.response?.data?.message || err.message || 'Failed to start test';
       toast.error(msg);
+    } finally {
+      setStartingTestId(null);
     }
   };
 
 
+  // Skeleton loader
   if (loading) return (
-    <div className="flex items-center justify-center h-[60vh]">
-      <div className="w-8 h-8 border-4 border-[#1f2937] border-t-indigo-600 rounded-full animate-spin"></div>
+    <div className="space-y-12">
+      <div className="tab-container">
+        {['Overview', 'Live Tests', 'Upcoming', 'My Attempts', 'Missed'].map(t => (
+          <div key={t} className="tab-item opacity-40">{t}</div>
+        ))}
+      </div>
+      <div className="dashboard-grid">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="card-base p-6 flex items-center gap-5 animate-pulse">
+            <div className="w-12 h-12 rounded-xl bg-slate-800" />
+            <div className="space-y-2 flex-1">
+              <div className="h-2 bg-slate-800 rounded w-24" />
+              <div className="h-5 bg-slate-800 rounded w-12" />
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="dashboard-grid">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="card-base p-6 animate-pulse space-y-5">
+            <div className="h-3 bg-slate-800 rounded w-16" />
+            <div className="h-6 bg-slate-800 rounded w-3/4" />
+            <div className="h-3 bg-slate-800 rounded w-1/2" />
+            <div className="h-10 bg-slate-800 rounded w-full mt-4" />
+          </div>
+        ))}
+      </div>
     </div>
   );
 
@@ -192,8 +223,15 @@ const StudentDashboard = () => {
                         <span className="badge badge-primary">{test.category}</span>
                       </div>
                     </div>
-                    <button onClick={() => startTest(test.id)} className="btn-primary py-2 px-6 text-xs">
-                      Start Assessment
+                    <button
+                      onClick={() => startTest(test.id)}
+                      disabled={startingTestId === test.id}
+                      className="btn-primary py-2 px-6 text-xs disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      {startingTestId === test.id
+                        ? <><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Starting...</>
+                        : 'Start Assessment'
+                      }
                     </button>
                   </div>
                 ))}
@@ -273,16 +311,26 @@ const StudentDashboard = () => {
                     <span className="flex items-center gap-1.5 border-r border-[#1f2937] pr-5"><Clock size={14} className="text-indigo-400" /> {test.durationMinutes}M</span>
                     <span className="flex items-center gap-1.5"><FileText size={14} className="text-indigo-400" /> {test.questionCount} Qs</span>
                   </div>
-                  <button onClick={() => startTest(test.id)} className="w-full btn-primary py-3">
-                    Start Assessment
+                  <button
+                    onClick={() => startTest(test.id)}
+                    disabled={startingTestId === test.id}
+                    className="w-full btn-primary py-3 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {startingTestId === test.id
+                      ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Starting...</>
+                      : 'Start Assessment'
+                    }
                   </button>
                 </div>
-              ))}          {liveTests.length === 0 && (
-            <div className="col-span-full empty-state-card">
-              <AlertCircle size={40} className="text-[#1f2937] mx-auto mb-4" />
-              <h3 className="font-bold text-slate-500 uppercase tracking-widest">No live tests available</h3>
-            </div>
-          )}
+              ))}
+
+              {liveTests.length === 0 && (
+                <div className="col-span-full empty-state-card flex flex-col items-center gap-3">
+                  <AlertCircle size={40} className="text-slate-700" />
+                  <h3 className="font-bold text-slate-500 uppercase tracking-widest">No live tests available</h3>
+                  <p className="text-slate-600 text-xs font-medium">Check back soon — tests go live when the admin activates them.</p>
+                </div>
+              )}
         </div>
       )}
 
