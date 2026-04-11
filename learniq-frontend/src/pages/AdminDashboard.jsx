@@ -49,6 +49,7 @@ const AdminDashboard = () => {
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
   const [activeTab, setActiveTab] = useState('live');
 
   const [dashboardStats, setDashboardStats] = useState({
@@ -113,14 +114,17 @@ const AdminDashboard = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Permanent delete? This cannot be undone.')) return;
+    if (!window.confirm('Permanently delete this test? This cannot be undone.')) return;
+    setDeletingId(id);
     try {
       await api.delete(`/tests/${id}`);
-      toast.success('Test removed');
+      toast.success('Test deleted successfully');
       if (editingId === id) { setEditingId(null); setForm(emptyForm); }
       await fetchData();
     } catch (err) {
-      toast.error('Failed to delete test');
+      toast.error('Failed to delete test — try again');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -139,9 +143,34 @@ const AdminDashboard = () => {
     }
   };
 
+  // Skeleton loader
   if (loading) return (
-    <div className="flex items-center justify-center h-[60vh]">
-      <div className="w-8 h-8 border-4 border-[#1f2937] border-t-indigo-600 rounded-full animate-spin"></div>
+    <div className="space-y-12">
+      <div className="tab-container">
+        {['Live', 'Scheduled', 'Drafts'].map(t => (
+          <div key={t} className="tab-item opacity-40">{t}</div>
+        ))}
+      </div>
+      <div className="dashboard-grid">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="card-base p-6 flex items-center gap-5 animate-pulse">
+            <div className="w-12 h-12 rounded-xl bg-slate-800" />
+            <div className="space-y-2 flex-1">
+              <div className="h-2 bg-slate-800 rounded w-16" />
+              <div className="h-5 bg-slate-800 rounded w-10" />
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="grid grid-cols-1 gap-6">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="card-base p-6 animate-pulse space-y-4">
+            <div className="h-5 bg-slate-800 rounded w-1/2" />
+            <div className="h-3 bg-slate-800 rounded w-1/3" />
+            <div className="h-3 bg-slate-800 rounded w-1/4" />
+          </div>
+        ))}
+      </div>
     </div>
   );
 
@@ -150,9 +179,9 @@ const AdminDashboard = () => {
       {/* Tab Navigation */}
       <div className="tab-container">
         {[
-          { id: 'live', label: 'Live' },
-          { id: 'scheduled', label: 'Scheduled' },
-          { id: 'draft', label: 'Drafts' },
+          { id: 'live', label: 'Live', count: tests.filter(t => t.status === 'LIVE').length },
+          { id: 'scheduled', label: 'Scheduled', count: tests.filter(t => t.status === 'SCHEDULED').length },
+          { id: 'draft', label: 'Drafts', count: tests.filter(t => t.status === 'DRAFT').length },
         ].map(tab => (
           <div 
             key={tab.id}
@@ -160,6 +189,7 @@ const AdminDashboard = () => {
             className={`tab-item ${activeTab === tab.id ? 'tab-item-active' : ''}`}
           >
             {tab.label}
+            {tab.count > 0 && <span className="ml-1.5 opacity-50 font-bold">({tab.count})</span>}
           </div>
         ))}
       </div>
@@ -264,7 +294,7 @@ const AdminDashboard = () => {
                 type="submit" disabled={saving}
                 className="flex-1 btn-primary py-3.5"
               >
-                {saving ? 'Saving...' : editingId ? 'Update Test' : 'Create Library Entry'}
+                {saving ? 'Saving...' : editingId ? 'Update Test' : 'Create Test'}
               </button>
               {editingId && (
                 <button 
@@ -338,10 +368,13 @@ const AdminDashboard = () => {
                     </button>
                     <button 
                       onClick={() => handleDelete(test.id)}
-                      className="p-2.5 bg-slate-900 border border-[#1f2937] text-rose-500 hover:bg-rose-500/10 rounded-lg transition-all"
+                      disabled={deletingId === test.id}
+                      className="p-2.5 bg-slate-900 border border-[#1f2937] text-rose-500 hover:bg-rose-500/10 rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                       title="Delete"
                     >
-                      <Trash2 size={16} />
+                      {deletingId === test.id
+                        ? <div className="w-4 h-4 border-2 border-rose-500/30 border-t-rose-500 rounded-full animate-spin" />
+                        : <Trash2 size={16} />}
                     </button>
                   </div>
                 </div>
@@ -359,9 +392,16 @@ const AdminDashboard = () => {
             ))}
             
             {filteredTests.length === 0 && (
-              <div className="empty-state-card py-24">
-                 <AlertCircle className="mx-auto text-[#1f2937] mb-4" size={48} />
-                 <p className="text-slate-500 font-black uppercase tracking-widest">No {activeTab} records found</p>
+              <div className="empty-state-card py-24 flex flex-col items-center gap-3">
+                 <AlertCircle className="text-slate-700" size={48} />
+                 <p className="text-slate-500 font-black uppercase tracking-widest">
+                   No {activeTab} tests
+                 </p>
+                 <p className="text-slate-600 text-xs font-medium">
+                   {activeTab === 'live' && 'Go Live on a draft test to have it appear here.'}
+                   {activeTab === 'scheduled' && 'Create a test with SCHEDULED status to see it here.'}
+                   {activeTab === 'draft' && 'Create a new test — it starts as a draft.'}
+                 </p>
               </div>
             )}
           </div>
