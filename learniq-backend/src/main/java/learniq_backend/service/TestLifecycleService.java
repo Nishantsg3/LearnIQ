@@ -17,39 +17,41 @@ import java.util.Optional;
 public class TestLifecycleService {
 
     private final TestRepository testRepository;
+    private final TestAttemptRepository testAttemptRepository;
+    private final AttemptService attemptService;
 
     /**
      * Centralized logic to sync a test's status based on time.
      * 1. SCHEDULED -> LIVE   when now >= scheduledAt (and set startedAt = now)
-     * 2. LIVE      -> COMPLETED when now >= startedAt + duration
-     * 3. Safety Check: If status is LIVE and startedAt is missing, fix it.
+     * 2. LIVE      -> COMPLETED when now >= endTime (MAIN tests only)
+     * 3. Move to History: When status is COMPLETED, set archived=true and active=false
      */
     @Transactional
     public Test syncTestLifecycle(Test test) {
         LocalDateTime now = LocalDateTime.now();
         boolean changed = false;
 
-        // 1. Promote SCHEDULED -> LIVE
+        // 1. Promote SCHEDULED -> ACTIVE
         if ("SCHEDULED".equalsIgnoreCase(test.getStatus())
                 && test.getScheduledAt() != null
                 && !test.getScheduledAt().isAfter(now)) {
-            test.setStatus("LIVE");
-            test.setStartedAt(now); // Set exact moment it turned live
+            test.setStatus("ACTIVE");
+            test.setStartedAt(now); 
             changed = true;
         }
 
-        // 2. Safety Check: If LIVE but startedAt was never set (avoid runtime crashes)
-        if ("LIVE".equalsIgnoreCase(test.getStatus()) && test.getStartedAt() == null) {
-            test.setStartedAt(now);
-            changed = true;
-        }
+        // 2. Auto-close ACTIVE -> ARCHIVED (ONLY for MAIN tests)
+        if ("MAIN".equalsIgnoreCase(test.getTestType()) && !"ARCHIVED".equalsIgnoreCase(test.getStatus())) {
+            LocalDateTime endAt = test.getEndTime();
+            
+            if (endAt == null && test.getStartTime() != null) {
+                endAt = test.getStartTime().plusMinutes(test.getDurationMinutes());
+            }
 
-        // 3. Auto-close LIVE -> COMPLETED
-        if ("LIVE".equalsIgnoreCase(test.getStatus()) && test.getStartedAt() != null) {
-            LocalDateTime endAt = test.getStartedAt().plusMinutes(test.getDurationMinutes());
-            if (!now.isBefore(endAt)) {
-                test.setStatus("COMPLETED");
+            if (endAt != null && !now.isBefore(endAt)) {
+                test.setStatus("ARCHIVED");
                 changed = true;
+                System.out.println("[LIFECYCLE] Test ID " + test.getId() + " (" + test.getTitle() + ") marked as ARCHIVED.");
             }
         }
 
@@ -57,13 +59,46 @@ public class TestLifecycleService {
     }
 
     /**
-     * Syncs ALL tests (used by the background scheduler)
+     * Syncs ALL tests every minute via background scheduler
      */
+    @org.springframework.scheduling.annotation.Scheduled(fixedRate = 60000)
     @Transactional
     public void syncAllTests() {
-        List<Test> tests = testRepository.findAll();
-        for (Test test : tests) {
-            syncTestLifecycle(test);
+        // Only scan assessments that aren't already archived
+        List<Test> tests = testRepository.findAll().stream()
+                .filter(t -> !"ARCHIVED".equalsIgnoreCase(t.getStatus()))
+                .toList();
+                
+        if (!tests.isEmpty()) {
+            System.out.println("[LIFECYCLE] Scanning " + tests.size() + " assessments for status promotion/expiry...");
+            for (Test test : tests) {
+                syncTestLifecycle(test);
+            }
+        }
+    }
+
+    /**
+     * 🛡️ DETERMINISTIC AUTO-SUBMIT ENGINE
+     * Scans all IN_PROGRESS attempts and forces submission if endTime has passed.
+     * This works REGARDLESS of whether the test is ACTIVE or ARCHIVED.
+     */
+    @Transactional
+    public void syncAllAttempts() {
+        List<TestAttempt> activeAttempts = testAttemptRepository.findAllByStatus(TestAttempt.Status.IN_PROGRESS);
+        LocalDateTime now = LocalDateTime.now();
+        int count = 0;
+
+        for (TestAttempt attempt : activeAttempts) {
+            // If attempt has reached its individual end time (e.g. 60 mins after start)
+            if (attempt.getEndTime() != null && now.isAfter(attempt.getEndTime())) {
+                System.out.println("[AUTO-SUBMIT] Time expired for Attempt " + attempt.getId() + " (User: " + attempt.getUserEmail() + "). Finalizing...");
+                attemptService.finalizeAndSubmit(attempt, null);
+                count++;
+            }
+        }
+
+        if (count > 0) {
+            System.out.println("[AUTO-SUBMIT] Successfully finalized " + count + " expired attempts.");
         }
     }
 }

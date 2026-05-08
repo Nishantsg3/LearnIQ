@@ -31,3 +31,10 @@ build/
 
 ### VS Code ###
 .vscode/
+.env
+.env.*
+*.log
+*.txt
+!HELP.md
+!seed_*.json
+!seed_restoration_delta.json

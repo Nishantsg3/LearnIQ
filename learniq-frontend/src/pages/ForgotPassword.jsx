@@ -25,48 +25,53 @@ function ForgotPassword() {
   };
 
   return (
-    <AuthLayout 
-      headline="Recover access." 
-      tagline="Enter your email and we'll send you instructions to reset your password and secure your account."
-    >
-      <div className="card-base p-8 lg:p-10">
-        <div className="mb-8">
-          <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-indigo-600 text-white mb-4">
-             <KeyRound size={20} />
+    <AuthLayout>
+      <div className="space-y-10">
+        
+        {/* Header */}
+        <div className="space-y-2">
+          <div className="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-[#6366f1] mb-4">
+             <KeyRound size={24} />
           </div>
-          <h2 className="text-2xl font-bold text-slate-50">Forgot password?</h2>
-          <p className="text-slate-500 text-sm mt-1">No worries, we'll send reset instructions.</p>
+          <h2 className="text-6xl font-black text-white uppercase tracking-tight">Recover</h2>
+          <p className="text-zinc-500 font-bold text-xs tracking-widest uppercase mt-4">Reset instructions will be sent</p>
         </div>
 
-        <form onSubmit={handleForgot} className="space-y-6">
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Email address</label>
-            <div className="relative">
-              <Mail size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-              <input
-                type="email"
-                className="input-base pl-11"
-                placeholder="name@company.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
+        {/* Form */}
+        <form onSubmit={handleForgot} className="space-y-8">
+          
+          <div className="space-y-3">
+            <label className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest">Email Address</label>
+            <input
+              type="email"
+              className="w-full bg-[#161618] border border-white/5 rounded-xl px-6 py-5 text-white placeholder:text-zinc-700 outline-none focus:border-[#6366f1]/50 transition-all"
+              placeholder="name@company.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
           </div>
 
           <button 
             type="submit" 
             disabled={loading}
-            className="w-full btn-primary py-3.5 group"
+            className="w-full py-5 bg-[#6366f1] text-white font-bold rounded-xl flex items-center justify-center gap-3 hover:bg-[#4f46e5] transition-all duration-300 group active:scale-[0.98] shadow-xl shadow-indigo-500/20"
           >
-            {loading ? 'Sending...' : 'Send reset instructions'}
-            {!loading && <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />}
+            {loading ? (
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+            ) : (
+              <>
+                <span className="text-lg">Send Instructions</span>
+                <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+              </>
+            )}
           </button>
         </form>
 
-        <div className="mt-8 pt-6 border-t border-[#1f2937] text-center">
-          <Link to="/login" className="text-sm font-semibold text-indigo-400 hover:text-indigo-300 inline-flex items-center gap-2 transition-colors">
-            <ArrowLeft size={16} /> Back to login
+        {/* Footer */}
+        <div className="pt-4 text-center">
+          <Link to="/login" className="text-[11px] font-bold uppercase tracking-widest text-zinc-600 hover:text-white transition-all inline-flex items-center gap-2">
+            <ArrowLeft size={14} /> Back to Login
           </Link>
         </div>
       </div>

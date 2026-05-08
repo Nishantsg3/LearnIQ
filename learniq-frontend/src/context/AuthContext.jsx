@@ -1,87 +1,126 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import api from '../utils/api';
 import * as authUtils from '../utils/auth';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [role, setRole] = useState(null);
-  const [loading, setLoading] = useState(true);
+  // Determine role based on URL (Stable across reloads)
+  const getActiveRole = () => window.location.pathname.startsWith('/admin') ? 'ADMIN' : 'STUDENT';
+  
+  const [user, setUser] = useState(() => authUtils.getUser(getActiveRole()));
+  const [role, setRole] = useState(user?.role || null);
+  const [isInitializing, setIsInitializing] = useState(true);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isOffline, setIsOffline] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const logout = useCallback(() => {
-    authUtils.logout();
+    const activeRole = getActiveRole();
+    authUtils.logout(activeRole);
     setUser(null);
     setRole(null);
     setIsAuthenticated(false);
+    setIsInitializing(false);
+  }, []);
+
+  const updateUser = useCallback((newData) => {
+    const activeRole = getActiveRole();
+    setUser(prev => {
+      const updatedUser = { ...prev, ...newData };
+      const roleKey = activeRole === 'ADMIN' ? 'adminUser' : 'studentUser';
+      localStorage.setItem(roleKey, JSON.stringify(updatedUser));
+      return updatedUser;
+    });
   }, []);
 
   const initializeAuth = useCallback(async () => {
-    const token = authUtils.getToken();
+    const activeRole = getActiveRole();
+    const token = authUtils.getToken(activeRole);
 
     if (!token) {
-      setLoading(false);
+      setUser(null);
+      setRole(null);
+      setIsAuthenticated(false);
+      setIsInitializing(false);
       return;
     }
 
     try {
+      // Use the specific role's token for the /me check
       const res = await api.get('/auth/me');
-      const backendRole = res.data.role;
-
-      // Cross-tab contamination guard:
-      // If the locally stored role doesn't match what the backend says, wipe it.
-      const storedUser = authUtils.getUser();
-      if (storedUser?.role && storedUser.role !== backendRole) {
-        console.warn('[Auth] Role mismatch detected — clearing contaminated session.');
-        logout();
-        return;
+      const backendUser = res.data;
+      
+      // Strict isolation: If we are on admin route, we MUST be an admin
+      if (activeRole === 'ADMIN' && backendUser.role !== 'ADMIN') {
+         console.warn('[AuthContext] Isolation breach: Admin route with Student token');
+         logout();
+         return;
       }
 
-      setUser({ name: res.data.name, role: backendRole });
-      setRole(backendRole);
+      setUser(backendUser);
+      setRole(backendUser.role);
       setIsAuthenticated(true);
-
-      // Sync localStorage with backend-verified data
-      authUtils.setSession(token, { name: res.data.name, role: backendRole });
-
+      setIsOffline(false);
     } catch (err) {
-      console.error('Auth initialization failed:', err);
-      logout();
+      const status = err.response?.status;
+      if (status === 401 || status === 403) {
+          logout();
+      }
     } finally {
-      setLoading(false);
+      setIsInitializing(false);
     }
   }, [logout]);
 
   useEffect(() => {
     initializeAuth();
+
+    const handleStorageChange = (e) => {
+      const activeRole = getActiveRole();
+      const targetTokenKey = activeRole === 'ADMIN' ? 'adminToken' : 'studentToken';
+      
+      // ONLY refresh if the token for OUR role changed (Login/Logout in another tab for same role)
+      // This prevents Student login from affecting Admin tabs
+      if (e.key === targetTokenKey) {
+        console.log(`[AuthContext] Session for ${activeRole} changed elsewhere. Syncing...`);
+        window.location.reload();
+      }
+      
+      // Handle legacy 'token' key if it's cleared (Global logout)
+      if (e.key === 'token' && !e.newValue) {
+        window.location.reload();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, [initializeAuth]);
 
-  const login = (userData) => {
-    // CRITICAL: Wipe any existing session before writing new one.
-    // This prevents cross-role contamination (e.g. admin overwriting student token).
-    localStorage.clear();
-
+  const login = useCallback((userData) => {
     authUtils.setSession(userData.token, {
       name: userData.name,
       role: userData.role,
+      avatar: userData.avatar || null
     });
 
-    setUser({ name: userData.name, role: userData.role });
+    setUser(userData);
     setRole(userData.role);
     setIsAuthenticated(true);
-
-    console.log(`[Auth] New session started — role: ${userData.role}`);
-  };
+    setIsInitializing(false);
+  }, []);
 
   return (
     <AuthContext.Provider value={{
       user,
       role,
-      loading,
+      isInitializing,
+      isLoggingIn,
+      setIsLoggingIn,
+      isOffline,
       isAuthenticated,
       login,
-      logout
+      logout,
+      updateUser
     }}>
       {children}
     </AuthContext.Provider>

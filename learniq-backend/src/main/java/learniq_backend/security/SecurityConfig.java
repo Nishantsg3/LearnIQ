@@ -46,12 +46,12 @@ public class SecurityConfig {
 
                         // QUESTIONS
                         .requestMatchers(HttpMethod.GET, "/api/v1/questions/**").hasAnyRole("ADMIN", "STUDENT")
-                        .requestMatchers(HttpMethod.POST, "/api/v1/questions/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/questions/**").hasAnyRole("ADMIN", "STUDENT")
                         .requestMatchers(HttpMethod.PUT, "/api/v1/questions/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/questions/**").hasRole("ADMIN")
 
-                        // 🔥 FIX: ATTEMPTS (ALLOW STUDENT FULL ACCESS)
-                        .requestMatchers("/api/v1/attempts/**").hasRole("STUDENT")
+                        // 🔥 ATTEMPTS (ALLOW STUDENT & ADMIN ACCESS)
+                        .requestMatchers("/api/v1/attempts/**").hasAnyRole("STUDENT", "ADMIN")
 
                         // ADMIN
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
@@ -71,10 +71,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of(
-                "http://localhost:5173",
-                "https://learniq-frontend.onrender.com"
-        ));
+        configuration.setAllowedOriginPatterns(List.of("*"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);

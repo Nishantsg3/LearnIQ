@@ -1,14 +1,15 @@
 package learniq_backend.service;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Component
 @RequiredArgsConstructor
-@Slf4j
 public class LifecycleScheduler {
+    private static final Logger log = LoggerFactory.getLogger(LifecycleScheduler.class);
 
     private final TestLifecycleService testLifecycleService;
 
@@ -20,5 +21,6 @@ public class LifecycleScheduler {
     public void runLifecycleUpdate() {
         log.info("Running background lifecycle synchronization...");
         testLifecycleService.syncAllTests();
+        testLifecycleService.syncAllAttempts();
     }
 }

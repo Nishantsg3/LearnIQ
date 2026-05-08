@@ -8,3 +8,25 @@ services:
       - type: rewrite
         source: /*
         destination: /index.html
+
+  - type: web
+    name: learniq-backend
+    env: docker
+    dockerContext: learniq-backend
+    dockerfilePath: learniq-backend/Dockerfile
+    plan: free
+    envVars:
+      - key: SPRING_DATASOURCE_URL
+        sync: false
+      - key: SPRING_DATASOURCE_USERNAME
+        sync: false
+      - key: SPRING_DATASOURCE_PASSWORD
+        sync: false
+      - key: APP_JWT_SECRET
+        generateValue: true
+      - key: APP_SEED_ADMIN_EMAIL
+        value: admin@learniq.com
+      - key: APP_SEED_ADMIN_PASSWORD
+        value: admin123
+      - key: APP_SEED_ADMIN_NAME
+        value: "LearnIQ Admin"

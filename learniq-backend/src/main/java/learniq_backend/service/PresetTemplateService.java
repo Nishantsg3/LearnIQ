@@ -38,32 +38,34 @@ public class PresetTemplateService {
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Template not found"));
 
-        Test test = Test.builder()
-                .title(preset.title())
-                .category(preset.category())
-                .sectionType(preset.sectionType())
-                .difficultyLevel(preset.difficultyLevel())
-                .questionCount(preset.questions().size())
-                .durationMinutes(preset.durationMinutes())
-                .scheduledAt("MAIN".equals(preset.sectionType()) ? LocalDateTime.now().plusDays(1) : null)
-                .description("Imported from preset draft bank")
-                .status("MAIN".equals(preset.sectionType()) ? "SCHEDULED" : "DRAFT")
-                .build();
+        Test test = new Test();
+        test.setTitle(preset.title());
+        test.setCategory(preset.category());
+        test.setSectionType(preset.sectionType());
+        test.setDifficultyLevel(preset.difficultyLevel());
+        test.setQuestionCount(preset.questions().size());
+        test.setDurationMinutes(preset.durationMinutes());
+        test.setScheduledAt("MAIN".equals(preset.sectionType()) ? LocalDateTime.now().plusDays(1) : null);
+        test.setDescription("Imported from preset draft bank");
+        test.setStatus("MAIN".equals(preset.sectionType()) ? "SCHEDULED" : "DRAFT");
 
         Test savedTest = testRepository.save(test);
 
         List<Question> questions = preset.questions().stream()
-                .map(item -> Question.builder()
-                        .questionText(item.questionText())
-                        .optionA(item.optionA())
-                        .optionB(item.optionB())
-                        .optionC(item.optionC())
-                        .optionD(item.optionD())
-                        .correctAnswer(item.correctAnswer())
-                        .category(preset.category())
-                        .difficultyLevel(preset.difficultyLevel())
-                        .test(savedTest)
-                        .build())
+                .map(item -> {
+                    Question q = new Question();
+                    q.setQuestionText(item.questionText());
+                    q.setOptionA(item.optionA());
+                    q.setOptionB(item.optionB());
+                    q.setOptionC(item.optionC());
+                    q.setOptionD(item.optionD());
+                    q.setCorrectAnswer(item.correctAnswer());
+                    q.setCategory(preset.category());
+                    q.setDifficultyLevel(preset.difficultyLevel());
+                    if (savedTest.getQuestions() == null) savedTest.setQuestions(new java.util.ArrayList<>());
+                    savedTest.getQuestions().add(q);
+                    return q;
+                })
                 .toList();
 
         questionRepository.saveAll(questions);

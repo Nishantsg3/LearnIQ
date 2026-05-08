@@ -1,53 +1,70 @@
 import api from './api';
 
-// REGISTER USER
-export const register = async (name, email, password) => {
-  console.log("CALLING REGISTER API...");
-  try {
-    const response = await api.post('/auth/register', {
-      name,
-      email,
-      password
-    });
-    console.log("REGISTER RESPONSE SUCCESS:", response.data);
-    return response.data;
-  } catch (err) {
-    console.error("REGISTER API ERROR:", err.response?.data || err.message);
-    throw err;
+export const setSession = (token, user) => {
+  const role = user.role;
+  if (role === 'ADMIN') {
+    localStorage.setItem('adminToken', token);
+    localStorage.setItem('adminUser', JSON.stringify(user));
+  } else {
+    localStorage.setItem('studentToken', token);
+    localStorage.setItem('studentUser', JSON.stringify(user));
   }
 };
 
-// LOGIN USER
-export const login = async (email, password) => {
-  const response = await api.post('/auth/login', {
-    email,
-    password
-  });
-  return response.data;
+export const getToken = (role) => {
+  if (role === 'ADMIN') return localStorage.getItem('adminToken');
+  if (role === 'STUDENT') return localStorage.getItem('studentToken');
+  
+  // Fallback / Auto-detect for existing code
+  const adminToken = localStorage.getItem('adminToken');
+  const studentToken = localStorage.getItem('studentToken');
+  
+  // If we are on an admin route, prioritize adminToken
+  if (window.location.pathname.startsWith('/admin')) {
+    return adminToken || localStorage.getItem('token');
+  }
+  return studentToken || localStorage.getItem('token');
 };
 
-// SESSION MANAGEMENT
-export const setSession = (token, user) => {
-  localStorage.setItem('token', token);
-  localStorage.setItem('user', JSON.stringify(user));
-};
+export const getUser = (role) => {
+  const token = getToken(role);
+  if (!token) return null;
+  
+  let storedUser;
+  if (role === 'ADMIN') storedUser = localStorage.getItem('adminUser');
+  else if (role === 'STUDENT') storedUser = localStorage.getItem('studentUser');
+  else {
+    // Auto-detect
+    if (window.location.pathname.startsWith('/admin')) {
+      storedUser = localStorage.getItem('adminUser');
+    } else {
+      storedUser = localStorage.getItem('studentUser');
+    }
+    // Final fallback to legacy key
+    if (!storedUser) storedUser = localStorage.getItem('user');
+  }
 
-export const getToken = () => localStorage.getItem('token');
-
-export const getUser = () => {
-  const userString = localStorage.getItem('user');
-  if (!userString) return null;
+  if (!storedUser) return null;
   try {
-    return JSON.parse(userString);
-  } catch (e) {
+    return JSON.parse(storedUser);
+  } catch {
     return null;
   }
 };
 
-export const getUserRole = () => getUser()?.role || localStorage.getItem('role');
-export const getUserName = () => getUser()?.name || localStorage.getItem('name');
+export const getUserRole = (role) => getUser(role)?.role || null;
+export const getUserName = (role) => getUser(role)?.name || null;
 
-export const logout = () => {
-  localStorage.clear();
-  window.location.href = '/login';
+export const logout = (role) => {
+  if (role === 'ADMIN') {
+    localStorage.removeItem('adminToken');
+    localStorage.removeItem('adminUser');
+    window.location.href = '/admin-access';
+  } else {
+    localStorage.removeItem('studentToken');
+    localStorage.removeItem('studentUser');
+    localStorage.removeItem('token'); // Cleanup legacy
+    localStorage.removeItem('user'); // Cleanup legacy
+    window.location.href = '/login';
+  }
 };

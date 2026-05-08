@@ -1,412 +1,311 @@
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { 
-  Plus, 
-  Trash2, 
-  Edit3, 
   Database, 
   Users, 
-  Clock,
   FileText,
-  AlertCircle,
-  CheckCircle2,
-  Calendar,
   BarChart3,
-  Play,
-  LayoutDashboard,
   Zap,
-  ZapOff
+  Loader2,
+  TrendingUp,
+  ArrowUpRight
 } from 'lucide-react';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
+import AdminProfileModal from '../components/AdminProfileModal';
 
-const emptyForm = {
-  title: '',
-  category: 'Java',
-  sectionType: 'MAIN',
-  difficultyLevel: 'Medium',
-  scheduledAt: '',
-  description: '',
-  status: 'DRAFT',
-};
-
-const formatDateTime = (value) => {
-  if (!value) return '—';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString('en-IN', {
-    day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
-  });
-};
+const THEME = '#7c3aed';
 
 const AdminDashboard = () => {
   const { user } = useAuth();
-  const adminName = user?.name;
   const navigate = useNavigate();
-  const [tests, setTests] = useState([]);
-  const [form, setForm] = useState(emptyForm);
-  const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [deletingId, setDeletingId] = useState(null);
-  const [activeTab, setActiveTab] = useState('live');
-
   const [dashboardStats, setDashboardStats] = useState({
-    totalTests: 0, totalQuestions: 0, liveTests: 0, totalStudents: 0,
+    totalAssessments: 0,
+    practiceTests: 0,
+    mainTests: 0,
+    studentCount: 0,
+    questionCount: 0
   });
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
     try {
-      const [testsRes, statsRes] = await Promise.all([
-        api.get('/tests'),
-        api.get('/admin/stats'),
+      const [testsRes, questionsRes, studentsRes] = await Promise.all([
+        api.get('/admin/tests'),
+        api.get('/questions/bank'),
+        api.get('/admin/students')
       ]);
-      setTests(testsRes.data);
-      setDashboardStats(statsRes.data);
+
+      const tests = Array.isArray(testsRes.data) ? testsRes.data : [];
+      const questions = Array.isArray(questionsRes.data) ? questionsRes.data : [];
+      const students = Array.isArray(studentsRes.data) ? studentsRes.data : [];
+      
+      // Strict filtering: Synchronized with the 'ARCHIVED' status from the registry
+      const activeTests = tests.filter(t => t.status !== 'ARCHIVED');
+      const practiceTests = activeTests.filter(t => (t.testType || t.type)?.toUpperCase() === "PRACTICE");
+      const mainTests = activeTests.filter(t => (t.testType || t.type)?.toUpperCase() === "MAIN");
+
+      setDashboardStats({
+        totalAssessments: activeTests.length,
+        practiceTests: practiceTests.length,
+        mainTests: mainTests.length,
+        studentCount: students.length,
+        questionCount: questions.length
+      });
     } catch (err) {
-      toast.error('Session expired or access restricted');
+      console.error('[AdminDashboard] Fetch error:', err);
+      if (!isSilent) toast.error('Infrastructure sync failed.');
     } finally {
-      setLoading(false);
+      if (!isSilent) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 30000);
+    const interval = setInterval(() => fetchData(true), 30000);
     return () => clearInterval(interval);
   }, [fetchData]);
 
-  const filteredTests = useMemo(() => {
-    if (activeTab === 'live') return tests.filter(t => t.status === 'LIVE');
-    if (activeTab === 'scheduled') return tests.filter(t => t.status === 'SCHEDULED');
-    if (activeTab === 'draft') return tests.filter(t => t.status === 'DRAFT');
-    return tests;
-  }, [tests, activeTab]);
-
-  const stats = useMemo(() => [
-    { label: 'Assessments', value: dashboardStats.totalTests, icon: <FileText size={20} className="text-indigo-400" /> },
-    { label: 'Bank Size', value: dashboardStats.totalQuestions, icon: <Database size={20} className="text-emerald-400" /> },
-    { label: 'Live Now', value: dashboardStats.liveTests, icon: <Play size={20} className="text-amber-400" /> },
-    { label: 'Total Students', value: dashboardStats.totalStudents, icon: <Users size={20} className="text-violet-400" /> },
+  const navCards = useMemo(() => [
+    { 
+      label: 'Total Assessments', 
+      value: dashboardStats.totalAssessments || 0, 
+      icon: <FileText size={22} />, 
+      accent: '#a78bfa',
+      bg: 'rgba(167,139,250,0.08)',
+      border: 'rgba(167,139,250,0.15)',
+      path: '/admin/tests/active?type=all',
+      description: 'All registered tests'
+    },
+    { 
+      label: 'Practice Tests', 
+      value: dashboardStats.practiceTests || 0, 
+      icon: <Zap size={22} />, 
+      accent: '#34d399',
+      bg: 'rgba(52,211,153,0.08)',
+      border: 'rgba(52,211,153,0.15)',
+      path: '/admin/tests/active?type=practice',
+      description: 'Active practice sessions'
+    },
+    { 
+      label: 'Main Tests', 
+      value: dashboardStats.mainTests || 0, 
+      icon: <BarChart3 size={22} />, 
+      accent: '#fbbf24',
+      bg: 'rgba(251,191,36,0.08)',
+      border: 'rgba(251,191,36,0.15)',
+      path: '/admin/tests/active?type=main',
+      description: 'Scheduled assessments'
+    },
+    { 
+      label: 'Student Registry', 
+      value: dashboardStats.studentCount || 0, 
+      icon: <Users size={22} />, 
+      accent: '#60a5fa',
+      bg: 'rgba(96,165,250,0.08)',
+      border: 'rgba(96,165,250,0.15)',
+      path: '/admin/students',
+      description: 'Enrolled learners'
+    },
+    { 
+      label: 'Question Bank', 
+      value: dashboardStats.questionCount || 0, 
+      icon: <Database size={22} />, 
+      accent: '#c084fc',
+      bg: 'rgba(192,132,252,0.08)',
+      border: 'rgba(192,132,252,0.15)',
+      path: '/admin/questions',
+      description: 'Available questions'
+    },
+    { 
+      label: 'Analytics', 
+      value: 'Live', 
+      icon: <TrendingUp size={22} />, 
+      accent: '#fb7185',
+      bg: 'rgba(251,113,133,0.08)',
+      border: 'rgba(251,113,133,0.15)',
+      path: '/admin/analytics',
+      description: 'Real-time insights'
+    }
   ], [dashboardStats]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      const payload = { ...form, scheduledAt: form.scheduledAt || null };
-      if (editingId) {
-        await api.put(`/tests/${editingId}`, payload);
-        toast.success('Test updated successfully');
-      } else {
-        await api.post('/tests', payload);
-        toast.success('Test created successfully');
-      }
-      setForm(emptyForm);
-      setEditingId(null);
-      await fetchData();
-    } catch (err) {
-      toast.error('Failed to save test configuration');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleDelete = async (id) => {
-    if (!window.confirm('Permanently delete this test? This cannot be undone.')) return;
-    setDeletingId(id);
-    try {
-      await api.delete(`/tests/${id}`);
-      toast.success('Test deleted successfully');
-      if (editingId === id) { setEditingId(null); setForm(emptyForm); }
-      await fetchData();
-    } catch (err) {
-      toast.error('Failed to delete test — try again');
-    } finally {
-      setDeletingId(null);
-    }
-  };
-
-  const handleStatusToggle = async (test) => {
-    const newStatus = test.status === 'LIVE' ? 'DRAFT' : 'LIVE';
-    const label = newStatus === 'LIVE' ? 'Going Live...' : 'Deactivating...';
-    const tid = toast.loading(label);
-    try {
-      await api.put(`/admin/tests/${test.id}/status`, { status: newStatus });
-      setTests(prev => prev.map(t => t.id === test.id ? { ...t, status: newStatus } : t));
-      toast.success(`Test is now ${newStatus}`, { id: tid });
-      console.log(`[Admin] Test ${test.id} status changed to ${newStatus}`);
-    } catch (err) {
-      console.error('[Admin] Status toggle failed:', err);
-      toast.error('Failed to update status', { id: tid });
-    }
-  };
-
-  // Skeleton loader
   if (loading) return (
-    <div className="space-y-12">
-      <div className="tab-container">
-        {['Live', 'Scheduled', 'Drafts'].map(t => (
-          <div key={t} className="tab-item opacity-40">{t}</div>
-        ))}
-      </div>
-      <div className="dashboard-grid">
-        {[...Array(4)].map((_, i) => (
-          <div key={i} className="card-base p-6 flex items-center gap-5 animate-pulse">
-            <div className="w-12 h-12 rounded-xl bg-slate-800" />
-            <div className="space-y-2 flex-1">
-              <div className="h-2 bg-slate-800 rounded w-16" />
-              <div className="h-5 bg-slate-800 rounded w-10" />
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className="grid grid-cols-1 gap-6">
-        {[...Array(3)].map((_, i) => (
-          <div key={i} className="card-base p-6 animate-pulse space-y-4">
-            <div className="h-5 bg-slate-800 rounded w-1/2" />
-            <div className="h-3 bg-slate-800 rounded w-1/3" />
-            <div className="h-3 bg-slate-800 rounded w-1/4" />
-          </div>
-        ))}
-      </div>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: 16 }}>
+      <Loader2 size={36} style={{ color: THEME, animation: 'spin 1s linear infinite' }} />
+      <p style={{ color: '#555', fontSize: 11, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase' }}>
+        Synchronizing systems...
+      </p>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 
   return (
-    <div className="space-y-12">
-      {/* Tab Navigation */}
-      <div className="tab-container">
-        {[
-          { id: 'live', label: 'Live', count: tests.filter(t => t.status === 'LIVE').length },
-          { id: 'scheduled', label: 'Scheduled', count: tests.filter(t => t.status === 'SCHEDULED').length },
-          { id: 'draft', label: 'Drafts', count: tests.filter(t => t.status === 'DRAFT').length },
-        ].map(tab => (
-          <div 
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`tab-item ${activeTab === tab.id ? 'tab-item-active' : ''}`}
-          >
-            {tab.label}
-            {tab.count > 0 && <span className="ml-1.5 opacity-50 font-bold">({tab.count})</span>}
+    <div className="h-full overflow-y-auto pr-2 custom-scrollbar p-8">
+      <div className="animate-in fade-in duration-700 flex flex-col">
+        {/* Page Header - More Compact */}
+        <div style={{ marginBottom: '1.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+            <div style={{ width: 4, height: 22, background: THEME, borderRadius: 4 }} />
+            <h1 style={{
+              color: '#fff',
+              fontWeight: 900,
+              fontSize: 22,
+              letterSpacing: '-0.02em',
+              margin: 0,
+              textTransform: 'uppercase',
+            }}>
+              System Overview
+            </h1>
           </div>
-        ))}
+          <p style={{
+            color: '#444',
+            fontSize: 10,
+            fontWeight: 700,
+            letterSpacing: '0.2em',
+            textTransform: 'uppercase',
+            marginLeft: 14,
+          }}>
+            Governance & Resource Control
+          </p>
+        </div>
+
+        {/* Stats Grid - Compact */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, 1fr)',
+          gap: 12,
+          flex: 1,
+          minHeight: 0 // Allows shrinking
+        }}>
+          {navCards.map((card) => (
+            <StatCard key={card.label} card={card} onClick={() => navigate(card.path)} />
+          ))}
+        </div>
       </div>
 
-      {/* Stats Summary */}
-      <div className="dashboard-grid">
-        {stats.map(s => (
-          <div key={s.label} className="card-base p-6 flex items-center gap-5">
-            <div className="w-12 h-12 rounded-xl bg-slate-900 border border-[#1f2937] flex items-center justify-center">
-              {s.icon}
-            </div>
-            <div>
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{s.label}</p>
-              <p className="text-2xl font-bold text-slate-50 mt-0.5">{s.value}</p>
-            </div>
-          </div>
-        ))}
+      <style>{`
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+      `}</style>
+    </div>
+  );
+};
+
+const StatCard = ({ card, onClick }) => {
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <div
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        background: hovered ? '#161622' : '#0d0d12',
+        border: `1px solid ${hovered ? card.accent + '30' : 'rgba(255,255,255,0.03)'}`,
+        borderRadius: 20,
+        padding: '24px',
+        cursor: 'pointer',
+        transition: 'all 0.3s ease',
+        transform: hovered ? 'translateY(-2px)' : 'translateY(0)',
+        boxShadow: hovered ? `0 15px 35px rgba(0,0,0,0.4)` : 'none',
+        position: 'relative',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center'
+      }}
+    >
+      {/* Large Background Icon (Lits up on hover - No tilt/scale) */}
+      <div style={{
+        position: 'absolute',
+        right: '15%',
+        top: '50%',
+        transform: 'translateY(-50%)',
+        opacity: hovered ? 0.12 : 0.04,
+        color: hovered ? card.accent : '#fff',
+        transition: 'all 0.5s ease',
+        zIndex: 0,
+        pointerEvents: 'none'
+      }}>
+        {React.cloneElement(card.icon, { size: 120 })}
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-12 items-start">
-        
-        {/* Creation Interface */}
-        <section className="xl:col-span-5 card-base p-8 lg:p-10 space-y-8 sticky top-28 bg-[#111827]/50">
-          <div>
-            <h2 className="text-xl font-bold text-slate-50 flex items-center gap-3">
-              <Plus className="text-indigo-500" size={20} />
-              {editingId ? 'Edit Assessment' : 'New Assessment'}
-            </h2>
-            <p className="text-slate-500 text-xs mt-1 font-bold uppercase tracking-widest">Configuration Panel</p>
+      {/* Subtle top accent glow */}
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: '10%',
+        right: '10%',
+        height: 2,
+        background: hovered ? `linear-gradient(90deg, transparent, ${card.accent}, transparent)` : 'transparent',
+        transition: 'all 0.3s ease',
+      }} />
+
+      {/* Content Container */}
+      <div style={{ position: 'relative', zIndex: 10 }}>
+        {/* Icon + Arrow row */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+          <div style={{
+            width: 44,
+            height: 44,
+            borderRadius: 12,
+            background: hovered ? `${card.accent}20` : 'rgba(255,255,255,0.03)',
+            border: `1px solid ${hovered ? card.accent + '40' : 'rgba(255,255,255,0.05)'}`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: hovered ? card.accent : '#444',
+            transition: 'all 0.3s',
+          }}>
+            {card.icon}
           </div>
+          <ArrowUpRight
+            size={16}
+            style={{
+              color: hovered ? card.accent : '#333',
+              opacity: hovered ? 1 : 0.3,
+              transition: 'all 0.3s',
+            }}
+          />
+        </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Title</label>
-              <input 
-                name="title" value={form.title} onChange={(e) => setForm(c => ({...c, title: e.target.value}))}
-                className="input-base"
-                placeholder="e.g. Java Advanced 2024" required
-              />
-            </div>
+        {/* Label */}
+        <p style={{
+          color: '#555',
+          fontSize: 9,
+          fontWeight: 800,
+          letterSpacing: '0.2em',
+          textTransform: 'uppercase',
+          marginBottom: 4,
+        }}>
+          {card.label}
+        </p>
 
-            <div className="grid grid-cols-2 gap-5">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Category</label>
-                <select 
-                  name="category" value={form.category} onChange={(e) => setForm(c => ({...c, category: e.target.value}))}
-                  className="input-base pr-8 appearance-none"
-                >
-                  {['Java', 'Python', '.NET', 'Aptitude', 'Frontend', 'SQL', 'General'].map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Type</label>
-                <select 
-                  name="sectionType" value={form.sectionType} onChange={(e) => setForm(c => ({...c, sectionType: e.target.value}))}
-                  className="input-base pr-8 appearance-none"
-                >
-                  <option value="MAIN">MAIN</option>
-                  <option value="PRACTICE">PRACTICE</option>
-                </select>
-              </div>
-            </div>
+        {/* Value */}
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+          <span style={{
+            color: '#fff',
+            fontSize: 34,
+            fontWeight: 900,
+            lineHeight: 1,
+            letterSpacing: '-0.03em',
+          }}>
+            {card.value}
+          </span>
+        </div>
 
-            <div className="grid grid-cols-2 gap-5">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Difficulty</label>
-                <select 
-                  name="difficultyLevel" value={form.difficultyLevel} onChange={(e) => setForm(c => ({...c, difficultyLevel: e.target.value}))}
-                  className="input-base pr-8 appearance-none"
-                >
-                  <option value="Easy">Easy</option>
-                  <option value="Medium">Medium</option>
-                  <option value="Hard">Hard</option>
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Status</label>
-                <select 
-                  name="status" value={form.status} onChange={(e) => setForm(c => ({...c, status: e.target.value}))}
-                  className="input-base pr-8 appearance-none"
-                >
-                  <option value="DRAFT">DRAFT</option>
-                  <option value="SCHEDULED">SCHEDULED</option>
-                  <option value="LIVE">LIVE</option>
-                </select>
-              </div>
-            </div>
-
-            {form.status === 'SCHEDULED' && (
-               <div className="space-y-2">
-                <label className="text-[10px] font-black text-indigo-400 uppercase tracking-widest ml-1">Launch Time</label>
-                <input 
-                  type="datetime-local" name="scheduledAt" value={form.scheduledAt} onChange={(e) => setForm(c => ({...c, scheduledAt: e.target.value}))}
-                  className="input-base border-indigo-500/50"
-                  required
-                />
-              </div>
-            )}
-
-            <div className="flex gap-4 pt-4">
-              <button 
-                type="submit" disabled={saving}
-                className="flex-1 btn-primary py-3.5"
-              >
-                {saving ? 'Saving...' : editingId ? 'Update Test' : 'Create Test'}
-              </button>
-              {editingId && (
-                <button 
-                  type="button" onClick={() => { setEditingId(null); setForm(emptyForm); }}
-                  className="btn-secondary px-6"
-                >
-                  Cancel
-                </button>
-              )}
-            </div>
-          </form>
-        </section>
-
-        {/* Dynamic Test Inventory */}
-        <section className="xl:col-span-7 space-y-8">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-slate-50 capitalize flex items-center gap-3">
-               <Database size={18} className="text-indigo-400" />
-               {activeTab} Inventory
-            </h2>
-            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest bg-slate-900 px-3 py-1 rounded-full border border-[#1f2937]">{filteredTests.length} total</span>
-          </div>
-
-          <div className="grid grid-cols-1 gap-6">
-            {filteredTests.map(test => (
-              <div key={test.id} className="card-base p-6 hover:border-indigo-500/30 transition-all flex flex-col gap-6">
-                <div className="flex justify-between items-start">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-3">
-                      <h4 className="text-xl font-bold text-slate-50 leading-tight">{test.title}</h4>
-                      <span className={`badge ${test.status === 'LIVE' ? 'badge-success' : 'badge-primary'}`}>{test.status}</span>
-                    </div>
-                    <div className="flex items-center gap-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                      <span>{test.category}</span>
-                      <span>•</span>
-                      <span>{test.sectionType}</span>
-                      <span>•</span>
-                      <span className="text-indigo-400">{test.questionCount} Questions</span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex gap-2">
-                    {/* Go Live / Deactivate Toggle */}
-                    {(test.status === 'DRAFT' || test.status === 'LIVE') && (
-                      <button
-                        onClick={() => handleStatusToggle(test)}
-                        className={`p-2.5 border rounded-lg transition-all text-xs font-black uppercase tracking-widest flex items-center gap-1.5 px-3 ${
-                          test.status === 'LIVE'
-                            ? 'bg-rose-500/10 border-rose-500/30 text-rose-400 hover:bg-rose-500/20'
-                            : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20'
-                        }`}
-                        title={test.status === 'LIVE' ? 'Deactivate' : 'Go Live'}
-                      >
-                        {test.status === 'LIVE' ? <ZapOff size={14} /> : <Zap size={14} />}
-                        {test.status === 'LIVE' ? 'Deactivate' : 'Go Live'}
-                      </button>
-                    )}
-                    <button 
-                      onClick={() => navigate(`/admin/tests/${test.id}/questions`)}
-                      className="p-2.5 bg-slate-900 border border-[#1f2937] text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-all"
-                      title="Library"
-                    >
-                      <Database size={16} />
-                    </button>
-                    <button 
-                      onClick={() => { setEditingId(test.id); setForm({...test, scheduledAt: test.scheduledAt?.slice(0, 16) || ''}); window.scrollTo({top: 0, behavior: 'smooth'}); }}
-                      className="p-2.5 bg-slate-900 border border-[#1f2937] text-indigo-400 hover:bg-blue-500/10 rounded-lg transition-all"
-                      title="Edit"
-                    >
-                      <Edit3 size={16} />
-                    </button>
-                    <button 
-                      onClick={() => handleDelete(test.id)}
-                      disabled={deletingId === test.id}
-                      className="p-2.5 bg-slate-900 border border-[#1f2937] text-rose-500 hover:bg-rose-500/10 rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                      title="Delete"
-                    >
-                      {deletingId === test.id
-                        ? <div className="w-4 h-4 border-2 border-rose-500/30 border-t-rose-500 rounded-full animate-spin" />
-                        : <Trash2 size={16} />}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="pt-5 border-t border-[#1f2937] flex items-center justify-between text-[10px] font-black text-slate-500 uppercase tracking-[0.1em]">
-                   <div className="flex items-center gap-8">
-                      <div className="flex items-center gap-2 font-bold"><Clock size={14} className="text-indigo-400"/> {test.durationMinutes}M</div>
-                      <div className="flex items-center gap-2 font-bold"><Calendar size={14} className="text-indigo-400"/> {formatDateTime(test.scheduledAt || test.startedAt)}</div>
-                   </div>
-                   <button onClick={() => navigate(`/admin/tests/${test.id}/questions`)} className="text-indigo-400 hover:text-indigo-300 transition-colors">
-                      Configure Questions
-                   </button>
-                </div>
-              </div>
-            ))}
-            
-            {filteredTests.length === 0 && (
-              <div className="empty-state-card py-24 flex flex-col items-center gap-3">
-                 <AlertCircle className="text-slate-700" size={48} />
-                 <p className="text-slate-500 font-black uppercase tracking-widest">
-                   No {activeTab} tests
-                 </p>
-                 <p className="text-slate-600 text-xs font-medium">
-                   {activeTab === 'live' && 'Go Live on a draft test to have it appear here.'}
-                   {activeTab === 'scheduled' && 'Create a test with SCHEDULED status to see it here.'}
-                   {activeTab === 'draft' && 'Create a new test — it starts as a draft.'}
-                 </p>
-              </div>
-            )}
-          </div>
-        </section>
-
+        {/* Description */}
+        <p style={{
+          color: hovered ? '#888' : '#333',
+          fontSize: 10,
+          fontWeight: 700,
+          marginTop: 8,
+          letterSpacing: '0.05em',
+          transition: 'all 0.3s',
+        }}>
+          {card.description}
+        </p>
       </div>
     </div>
   );
