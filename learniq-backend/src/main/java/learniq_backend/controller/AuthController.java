@@ -16,7 +16,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
@@ -36,11 +35,14 @@ public class AuthController {
 
     private final UserRepository userRepository;
     private final JwtUtil jwtUtil;
-    private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
+    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
 
     @Value("${app.env:dev}")
     private String appEnv;
+
+    @Value("${app.frontend.url}")
+    private String frontendUrl;
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
@@ -51,15 +53,14 @@ public class AuthController {
         String otp = generateOtp();
 
         // Bypassing OTP for faster registration (Temporary)
-        User user = User.builder()
-                .name(request.name().trim())
-                .email(request.email().trim().toLowerCase())
-                .password(passwordEncoder.encode(request.password()))
-                .role(User.Role.STUDENT)
-                .isVerified(true) // 🔥 Auto-verify
-                .otp(otp)
-                .otpExpiry(LocalDateTime.now().plusMinutes(5))
-                .build();
+        User user = new User();
+        user.setName(request.name().trim());
+        user.setEmail(request.email().trim().toLowerCase());
+        user.setPassword(passwordEncoder.encode(request.password())); // Encoded password
+        user.setRole(User.Role.STUDENT);
+        user.setVerified(true); // 🔥 Auto-verify
+        user.setOtp(otp);
+        user.setOtpExpiry(LocalDateTime.now().plusMinutes(5));
 
         userRepository.save(user);
 
@@ -174,9 +175,8 @@ public class AuthController {
             user.setResetTokenExpiry(LocalDateTime.now().plusMinutes(15));
             userRepository.save(user);
             
-            // Send Reset Link via Email. Adjust the base URL as needed (hardcoded to frontend typical local port for now)
-            // In a real app, this base URL should come from application.properties
-            String resetLink = "http://localhost:5173/reset-password?token=" + token;
+            // Send Reset Link via Email.
+            String resetLink = frontendUrl + "/reset-password?token=" + token;
             emailService.sendResetPasswordEmail(user.getEmail(), resetLink);
         });
 
@@ -195,7 +195,7 @@ public class AuthController {
             return ResponseEntity.badRequest().body(Map.of("message", "Invalid or expired reset token"));
         }
 
-        user.setPassword(passwordEncoder.encode(request.newPassword()));
+        user.setPassword(passwordEncoder.encode(request.newPassword())); // Encoded password
         user.setResetToken(null);
         user.setResetTokenExpiry(null);
         userRepository.save(user);
@@ -232,12 +232,19 @@ public class AuthController {
     private ResponseEntity<?> authenticate(LoginRequest request, User.Role expectedRole) {
         Optional<User> userOpt = userRepository.findByEmail(request.email().trim().toLowerCase());
         if (userOpt.isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Account not found"));
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Invalid email or password"));
         }
 
         User user = userOpt.get();
+        
+        // 🔥 DEBUG LOGS
+        System.out.println("\n--- LOGIN DEBUG ---");
+        System.out.println("LOGIN INPUT: " + request.password());
+        System.out.println("DB PASSWORD: " + user.getPassword());
+        System.out.println("-------------------\n");
+
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Invalid credentials"));
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Invalid email or password"));
         }
         
         /* 

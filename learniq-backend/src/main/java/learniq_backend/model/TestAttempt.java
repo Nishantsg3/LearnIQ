@@ -26,6 +26,13 @@ public class TestAttempt {
     @Column(nullable = false)
     private String userName;
 
+    @ManyToOne(optional = true)
+    @JoinColumn(name = "user_id")
+    private User user;
+
+    public User getUser() { return user; }
+    public void setUser(User user) { this.user = user; }
+
     @ManyToOne(optional = false)
     @JoinColumn(name = "test_id")
     private Test test;
@@ -43,10 +50,16 @@ public class TestAttempt {
     private int scorePercent;
 
     @Column
+    private int attemptedCount;
+
+    @Column
     private LocalDateTime startedAt;
 
     @Column
     private LocalDateTime endTime;
+
+    @Column
+    private Integer remainingSeconds;
 
     @Column
     private LocalDateTime submittedAt;
@@ -54,6 +67,18 @@ public class TestAttempt {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Status status;
+
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private boolean submitted;
+
+    public LocalDateTime getEndTime() { return endTime; }
+    public void setEndTime(LocalDateTime endTime) { this.endTime = endTime; }
+    public Status getStatus() { return status; }
+    public void setStatus(Status status) { this.status = status; }
+    public boolean isSubmitted() { return submitted; }
+    public void setSubmitted(boolean submitted) { this.submitted = submitted; }
+    public Test getTest() { return test; }
+    public void setTest(Test test) { this.test = test; }
 
     // 🔥 CRITICAL FIX
     @OneToMany(
@@ -65,8 +90,31 @@ public class TestAttempt {
     @Builder.Default
     private List<AttemptAnswer> answers = new ArrayList<>();
 
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public String getUserEmail() { return userEmail; }
+    public void setUserEmail(String userEmail) { this.userEmail = userEmail; }
+    public String getUserName() { return userName; }
+    public void setUserName(String userName) { this.userName = userName; }
+    public int getTotalQuestions() { return totalQuestions; }
+    public void setTotalQuestions(int totalQuestions) { this.totalQuestions = totalQuestions; }
+    public int getCorrectCount() { return correctCount; }
+    public void setCorrectCount(int correctCount) { this.correctCount = correctCount; }
+    public int getWrongCount() { return wrongCount; }
+    public void setWrongCount(int wrongCount) { this.wrongCount = wrongCount; }
+    public int getScorePercent() { return scorePercent; }
+    public void setScorePercent(int scorePercent) { this.scorePercent = scorePercent; }
+    public int getAttemptedCount() { return attemptedCount; }
+    public void setAttemptedCount(int attemptedCount) { this.attemptedCount = attemptedCount; }
+    public LocalDateTime getStartedAt() { return startedAt; }
+    public void setStartedAt(LocalDateTime startedAt) { this.startedAt = startedAt; }
+    public LocalDateTime getSubmittedAt() { return submittedAt; }
+    public void setSubmittedAt(LocalDateTime submittedAt) { this.submittedAt = submittedAt; }
+    public List<AttemptAnswer> getAnswers() { return answers; }
+    public void setAnswers(List<AttemptAnswer> answers) { this.answers = answers; }
+
     public enum Status {
-        IN_PROGRESS, SUBMITTED, EXPIRED
+        IN_PROGRESS, SUBMITTED, MISSED, ABANDONED
     }
 
     // 🔥 SAFE METHOD (KEEP THIS)

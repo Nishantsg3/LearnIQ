@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { User, Mail, Lock, ArrowRight } from 'lucide-react';
+import { User, Mail, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import AuthLayout from '../components/AuthLayout';
+import api from '../utils/api';
+import { useAuth } from '../context/AuthContext';
+
 
 function Register() {
   const [formData, setFormData] = useState({
@@ -11,135 +14,182 @@ function Register() {
     password: '',
     confirmPassword: ''
   });
-  const [loading, setLoading] = useState(false);
+  const { isLoggingIn, setIsLoggingIn } = useAuth();
+  const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const validateField = (name, value) => {
+    let err = "";
+    if (name === "email" && value && !/\S+@\S+\.\S+/.test(value)) {
+      err = "Invalid email format";
+    }
+    if (name === "password" && value && value.length < 6) {
+      err = "Minimum 6 characters required";
+    }
+    if (name === "confirmPassword" && value && value !== formData.password) {
+      err = "Passwords do not match";
+    }
+    setFieldErrors(prev => ({ ...prev, [name]: err }));
   };
 
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+    validateField(name, value);
+    if (error) setError("");
+  };
 
   const handleRegister = async (e) => {
     e.preventDefault();
-    console.log("HANDLE REGISTER TRIGGERED");
-    console.log("REGISTER CLICKED");
+    
+    // Final validation check before submit
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+    if (formData.password.length < 6) {
+      setError("Password must be at least 6 characters");
+      return;
+    }
+
+    setIsLoggingIn(true);
 
     try {
-      console.log("SENDING REQUEST...");
+      const res = await api.post("/auth/register", {
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+      });
 
-      const res = await fetch(
-        "https://learniq-rz0t.onrender.com/api/v1/auth/register",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            name: formData.name,
-            email: formData.email,
-            password: formData.password,
-          }),
-        }
-      );
-
-      const data = await res.json();
-
-      console.log("RESPONSE:", data);
-
-      if (!res.ok) {
-        throw new Error(data.message || "Registration failed");
-      }
-
-      alert("SUCCESS");
-
+      toast.success("Account created successfully!");
       navigate("/login");
     } catch (err) {
-      console.error("ERROR:", err);
-      alert(err.message);
+      const msg = err.response?.data?.message || err.message || "Registration failed";
+      setError(msg);
+      toast.error(msg);
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
   return (
-    <AuthLayout 
-      headline="Grow your potential." 
-      tagline="Join thousands of students preparing for their dream careers with LearnIQ."
-    >
-      <div className="card-base p-8 lg:p-10">
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-slate-50">Create account</h2>
-          <p className="text-slate-500 text-sm mt-1">Start your assessment journey today</p>
+    <AuthLayout>
+      <div className="space-y-6">
+        
+        {/* Header */}
+        <div className="space-y-1">
+          <h2 className="text-5xl font-black text-white uppercase tracking-tight leading-[0.9]">Create<br />Account</h2>
+          <p className="text-zinc-500 font-bold text-[10px] tracking-widest uppercase mt-3">Start your professional journey</p>
         </div>
 
-        <form onSubmit={handleRegister} className="space-y-5">
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
-            <div className="relative">
-              <User size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-              <input
-                name="name" type="text" required
-                className="input-base pl-11"
-                placeholder="John Doe"
-                value={formData.name} onChange={handleChange}
-              />
-            </div>
-          </div>
+        {/* Form */}
+        <form onSubmit={handleRegister} className="space-y-4">
           
           <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Email address</label>
-            <div className="relative">
-              <Mail size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-              <input
-                name="email" type="email" required
-                className="input-base pl-11"
-                placeholder="name@company.com"
-                value={formData.email} onChange={handleChange}
-              />
+            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Full Name</label>
+            <input
+              name="name"
+              type="text"
+              className="w-full bg-[#161618] border border-white/5 rounded-xl px-6 py-3.5 text-white placeholder:text-zinc-700 outline-none focus:border-[#6366f1]/50 transition-all text-sm"
+              placeholder="John Doe"
+              value={formData.name}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Email Address</label>
+            <input
+              name="email"
+              type="email"
+              className={`w-full bg-[#161618] border rounded-xl px-6 py-3.5 text-white placeholder:text-zinc-700 outline-none transition-all text-sm ${
+                fieldErrors.email ? 'border-red-500/50' : 'border-white/5 focus:border-[#6366f1]/50'
+              }`}
+              placeholder="name@company.com"
+              value={formData.email}
+              onChange={handleChange}
+              required
+            />
+            {fieldErrors.email && <p className="text-[10px] text-red-400 font-bold uppercase tracking-wider">{fieldErrors.email}</p>}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Password</label>
+              <div className="relative">
+                <input
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  className={`w-full bg-[#161618] border rounded-xl px-6 py-3.5 text-white placeholder:text-zinc-700 outline-none transition-all text-sm ${
+                    fieldErrors.password ? 'border-red-500/50' : 'border-white/5 focus:border-[#6366f1]/50'
+                  }`}
+                  placeholder="••••••••"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-white"
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Confirm</label>
+              <div className="relative">
+                <input
+                  name="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  className={`w-full bg-[#161618] border rounded-xl px-6 py-3.5 text-white placeholder:text-zinc-700 outline-none transition-all text-sm ${
+                    fieldErrors.confirmPassword ? 'border-red-500/50' : 'border-white/5 focus:border-[#6366f1]/50'
+                  }`}
+                  placeholder="••••••••"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-white"
+                >
+                  {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Password</label>
-              <div className="relative">
-                <Lock size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                <input
-                  name="password" type="password" required
-                  className="input-base pl-11"
-                  placeholder="••••••••"
-                  value={formData.password} onChange={handleChange}
-                />
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Confirm</label>
-              <div className="relative">
-                <Lock size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                <input
-                  name="confirmPassword" type="password" required
-                  className="input-base pl-11"
-                  placeholder="••••••••"
-                  value={formData.confirmPassword} onChange={handleChange}
-                />
-              </div>
-            </div>
-          </div>
+          {error && <p className="text-red-400 text-[11px] font-bold uppercase tracking-widest">{error}</p>}
 
           <button 
-            type="submit"
-            disabled={loading}
-            onClick={() => console.log("BUTTON CLICKED")}
-            className="w-full btn-primary py-3.5 group mt-4 flex items-center justify-center gap-2"
+            type="submit" 
+            disabled={isLoggingIn}
+            className="w-full py-4 bg-[#6366f1] text-white font-bold rounded-xl flex items-center justify-center gap-3 hover:bg-[#4f46e5] transition-all duration-300 group active:scale-[0.98] mt-2 shadow-xl shadow-indigo-500/20"
           >
-            {loading ? 'Creating account...' : 'Create account'}
-            {!loading && <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />}
+            {isLoggingIn ? (
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+            ) : (
+              <>
+                <span className="text-lg">Create Account</span>
+                <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+              </>
+            )}
           </button>
         </form>
 
-        <div className="mt-8 pt-6 border-t border-[#1f2937] text-center">
-          <p className="text-sm text-slate-500 font-medium">
-            Already have an account? <Link to="/login" className="text-indigo-400 font-bold hover:underline transition-all">Sign in</Link>
-          </p>
+        {/* Footer */}
+        <div className="pt-4 text-center">
+           <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+             Already have an account? <Link to="/login" className="text-white hover:text-[#6366f1] transition-all ml-1 border-b border-white/20 hover:border-[#6366f1]">Sign In</Link>
+           </p>
         </div>
       </div>
     </AuthLayout>

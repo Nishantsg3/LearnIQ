@@ -1,100 +1,265 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { ShieldCheck, Lock, ArrowRight } from 'lucide-react';
+import { ShieldCheck, Eye, EyeOff } from 'lucide-react';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import AuthLayout from '../components/AuthLayout';
 
+// Admin portal uses deep midnight violet — darker sibling of student violet (#7c3aed)
+const ADMIN_COLOR = '#1e1b4b';
+const ADMIN_ACCENT = '#8b5cf6'; // bright violet accent for interactive elements
+
 function AdminLogin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const { login, isLoggingIn, setIsLoggingIn } = useAuth();
   const navigate = useNavigate();
-  const { login } = useAuth();
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setLoading(true);
-
+    setIsLoggingIn(true);
     try {
       const res = await api.post('/auth/admin-login', { email, password });
-      login({
-        token: res.data.token,
-        name: res.data.name,
-        role: res.data.role
-      });
-      toast.success('Admin access granted');
-      navigate('/admin-dashboard');
-
+      login({ token: res.data.token, name: res.data.name, role: res.data.role });
+      toast.success('Admin access granted.');
+      navigate('/admin/dashboard');
     } catch (err) {
-      toast.error('Unauthorized: Invalid admin credentials');
+      toast.error('Access denied. Invalid credentials.');
     } finally {
-      setLoading(false);
+      setIsLoggingIn(false);
     }
+  };
+
+  const inputStyle = {
+    width: '100%',
+    background: '#1c1c22',
+    border: '1px solid rgba(255,255,255,0.06)',
+    borderRadius: 12,
+    padding: '18px 20px',
+    color: '#fff',
+    fontSize: 15,
+    outline: 'none',
+    boxSizing: 'border-box',
+    transition: 'all 0.2s',
+  };
+
+  const labelStyle = {
+    display: 'block',
+    color: '#888',
+    fontSize: 11,
+    fontWeight: 700,
+    letterSpacing: '0.12em',
+    textTransform: 'uppercase',
+    marginBottom: 10,
   };
 
   return (
     <AuthLayout 
-      headline="Administrative Console." 
-      tagline="Secure access for assessment administrators and proctors."
+      panelColor={ADMIN_COLOR}
+      title={<>SHAPING THE<br /><span style={{ color: 'rgba(255,255,255,0.45)' }}>FUTURE.</span></>}
+      description={<>EMPOWERING EDUCATORS WITH PRECISION<br />INSIGHTS TO DRIVE ACADEMIC EXCELLENCE<br />AND SYSTEMIC GROWTH.</>}
     >
-      <div className="card-base p-8 lg:p-10">
-        <div className="mb-8">
-          <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-indigo-600 text-white mb-4">
-             <ShieldCheck size={20} />
-          </div>
-          <h2 className="text-2xl font-bold text-slate-50">Admin access</h2>
-          <p className="text-slate-500 text-sm mt-1">Authorized personnel only</p>
+
+      {/* Admin badge */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+        <div
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 8,
+            background: `${ADMIN_ACCENT}18`,
+            border: `1px solid ${ADMIN_ACCENT}33`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: ADMIN_ACCENT,
+          }}
+        >
+          <ShieldCheck size={18} />
         </div>
-
-        <form onSubmit={handleLogin} className="space-y-6">
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Admin Email</label>
-            <div className="relative">
-              <Lock size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-              <input
-                type="email"
-                className="input-base pl-11"
-                placeholder="admin@company.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Password</label>
-            <div className="relative">
-              <Lock size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-              <input
-                type="password"
-                className="input-base pl-11"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-          </div>
-
-          <button 
-            type="submit" 
-            disabled={loading}
-            className="w-full btn-primary py-3.5 group mt-2"
-          >
-            {loading ? 'Verifying...' : 'Login as Admin'}
-            {!loading && <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />}
-          </button>
-        </form>
-
-        <div className="mt-8 pt-6 border-t border-[#1f2937] text-center">
-          <Link to="/login" className="text-sm font-semibold text-indigo-400 hover:underline">
-            Return to user login
-          </Link>
-        </div>
+        <span
+          style={{
+            color: ADMIN_ACCENT,
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: '0.15em',
+            textTransform: 'uppercase',
+          }}
+        >
+          Admin Portal
+        </span>
       </div>
+
+      {/* Heading */}
+      <h2
+        style={{
+          color: '#fff',
+          fontWeight: 900,
+          fontSize: 'clamp(2rem, 4vw, 2.8rem)',
+          textTransform: 'uppercase',
+          letterSpacing: '-0.02em',
+          lineHeight: 1,
+          margin: 0,
+        }}
+      >
+        WELCOME BACK
+      </h2>
+
+      {/* Subtitle */}
+      <p
+        style={{
+          color: '#666',
+          fontSize: 11,
+          fontWeight: 700,
+          letterSpacing: '0.15em',
+          textTransform: 'uppercase',
+          marginTop: 6,
+          marginBottom: 20,
+        }}
+      >
+        SIGN IN TO ADMIN CONSOLE
+      </p>
+
+      <form onSubmit={handleLogin}>
+        {/* Email */}
+        <div style={{ marginBottom: 16 }}>
+          <label style={labelStyle}>Admin Email</label>
+          <input
+            type="email"
+            style={{ ...inputStyle, padding: '14px 20px' }}
+            placeholder="admin@learniq.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            onFocus={(e) => (e.target.style.borderColor = `${ADMIN_ACCENT}60`)}
+            onBlur={(e) => (e.target.style.borderColor = 'rgba(255,255,255,0.06)')}
+            required
+          />
+        </div>
+
+        {/* Password */}
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+            <label style={{ ...labelStyle, marginBottom: 0 }}>Password</label>
+          </div>
+          <div style={{ position: 'relative' }}>
+            <input
+              type={showPassword ? 'text' : 'password'}
+              style={{ ...inputStyle, padding: '14px 20px', paddingRight: 52 }}
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onFocus={(e) => (e.target.style.borderColor = `${ADMIN_ACCENT}60`)}
+              onBlur={(e) => (e.target.style.borderColor = 'rgba(255,255,255,0.06)')}
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              style={{
+                position: 'absolute',
+                right: 16,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#555',
+                display: 'flex',
+                alignItems: 'center',
+                padding: 0,
+              }}
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
+        </div>
+
+        {/* Submit Button */}
+        <button
+          type="submit"
+          disabled={isLoggingIn}
+          className="admin-btn"
+          style={{
+            width: '100%',
+            background: ADMIN_COLOR,
+            border: `1px solid ${ADMIN_ACCENT}40`,
+            borderRadius: 12,
+            padding: '14px 20px',
+            color: '#fff',
+            fontSize: 16,
+            fontWeight: 700,
+            cursor: isLoggingIn ? 'not-allowed' : 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            transition: 'all 0.2s',
+            opacity: isLoggingIn ? 0.7 : 1,
+            boxShadow: `0 4px 14px 0 rgba(0,0,0,0.4)`,
+          }}
+        >
+          {isLoggingIn ? (
+            <div
+              style={{
+                width: 20,
+                height: 20,
+                border: '2px solid rgba(255,255,255,0.3)',
+                borderTopColor: '#fff',
+                borderRadius: '50%',
+                animation: 'spin 0.8s linear infinite',
+              }}
+            />
+          ) : (
+            <span>Access Console →</span>
+          )}
+        </button>
+      </form>
+
+      {/* Footer */}
+      <p
+        style={{
+          color: '#555',
+          fontSize: 12,
+          fontWeight: 600,
+          letterSpacing: '0.05em',
+          textAlign: 'center',
+          marginTop: 20,
+          textTransform: 'uppercase',
+        }}
+      >
+        <Link
+          to="/login"
+          style={{
+            color: '#666',
+            fontWeight: 700,
+            textDecoration: 'none',
+            letterSpacing: '0.08em',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = '#fff')}
+          onMouseLeave={(e) => (e.currentTarget.style.color = '#666')}
+        >
+          ← Return to Student Login
+        </Link>
+      </p>
+
+      <style>{`
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+        .admin-btn:hover {
+          background: #2d2a6e !important;
+          transform: translateY(-1px);
+          border-color: ${ADMIN_ACCENT}80 !important;
+          box-shadow: 0 6px 20px 0 rgba(0,0,0,0.6) !important;
+        }
+        .admin-btn:active {
+          background: #16143c !important;
+          transform: translateY(0px);
+        }
+        input::placeholder { color: #444; }
+      `}</style>
     </AuthLayout>
   );
 }

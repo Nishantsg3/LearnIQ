@@ -22,48 +22,17 @@ import { useLocation, Navigate } from 'react-router-dom';
  *   - No token → appropriate login page
  */
 const ProtectedRoute = ({ children, requiredRole }) => {
-  const { role: userRole, loading, isAuthenticated } = useAuth();
+  const { role: userRole, isInitializing, isAuthenticated } = useAuth();
   const location = useLocation();
 
-  // Helper: where to redirect on role mismatch (go to YOUR dashboard, not login)
   const redirectForMismatch = (actualRole) => {
-    if (actualRole === 'ADMIN') return '/admin-dashboard';
+    if (actualRole === 'ADMIN') return '/admin/dashboard';
     if (actualRole === 'STUDENT') return '/student-dashboard';
-    // Unknown role — send to login
     return requiredRole === 'ADMIN' ? '/admin-access' : '/login';
   };
 
-  // Helper: where to redirect when no session exists
   const loginPage = () => requiredRole === 'ADMIN' ? '/admin-access' : '/login';
-
-  // ── LAYER 1: Synchronous localStorage check (runs before /auth/me) ─────────
-  if (loading) {
-    const rawToken = localStorage.getItem('token');
-
-    if (!rawToken) {
-      // No token at all — not authenticated
-      return <Navigate to={loginPage()} state={{ from: location }} replace />;
-    }
-
-    try {
-      const storedUser = JSON.parse(localStorage.getItem('user') || 'null');
-
-      if (storedUser?.role) {
-        if (requiredRole && storedUser.role !== requiredRole) {
-          // Wrong role trying to access this route
-          console.warn(
-            `[ProtectedRoute] Layer-1 block: required=${requiredRole}, stored=${storedUser.role}`
-          );
-          return <Navigate to={redirectForMismatch(storedUser.role)} replace />;
-        }
-      }
-    } catch (_) {
-      // Malformed JSON in localStorage
-      localStorage.clear();
-      return <Navigate to="/login" replace />;
-    }
-
-    // Token + role look valid — show loading spinner while /auth/me completes
+  if (isInitializing) {
     return (
       <div className="flex items-center justify-center h-screen bg-[#0f172a]">
         <div className="w-8 h-8 border-4 border-[#1f2937] border-t-indigo-600 rounded-full animate-spin"></div>

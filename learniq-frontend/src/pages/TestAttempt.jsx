@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import CodeQuestion from '../components/CodeQuestion';
 import { 
   Clock, 
   ChevronRight, 
@@ -11,6 +12,21 @@ import {
   Activity
 } from 'lucide-react';
 import api from '../utils/api';
+import ConfirmModal from '../components/ConfirmModal';
+
+const attemptRequestCache = new Map();
+
+const fetchAttemptOnce = (attemptId) => {
+  if (!attemptRequestCache.has(attemptId)) {
+    attemptRequestCache.set(
+      attemptId,
+      api.get(`/attempts/${attemptId}`).finally(() => {
+        attemptRequestCache.delete(attemptId);
+      })
+    );
+  }
+  return attemptRequestCache.get(attemptId);
+};
 
 const TestAttempt = () => {
   const { attemptId } = useParams();
@@ -22,6 +38,8 @@ const TestAttempt = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [testId, setTestId] = useState(null);
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
 
   // Use ref to avoid stale closure in timer
   const answersRef = useRef({});
@@ -30,11 +48,15 @@ const TestAttempt = () => {
   const updateAnswers = (newAnswers) => {
     answersRef.current = newAnswers;
     setAnswers(newAnswers);
+    // Persist answers
+    if (testId) {
+      localStorage.setItem(`test_answers_${testId}`, JSON.stringify(newAnswers));
+    }
   };
 
   const fetchData = useCallback(async () => {
     try {
-      const res = await api.get(`/attempts/${attemptId}`);
+      const res = await fetchAttemptOnce(attemptId);
       const data = res.data;
       
       if (!data) throw new Error('Attempt not found');
@@ -42,6 +64,7 @@ const TestAttempt = () => {
       // If already submitted, redirect to results
       if (data.status === 'SUBMITTED') {
         toast('This assessment is already completed.', { icon: 'ℹ️' });
+        localStorage.removeItem(`test_answers_${data.testId}`);
         navigate(`/results/${attemptId}`);
         return;
       }
@@ -54,6 +77,15 @@ const TestAttempt = () => {
 
       setQuestions(data.questions || []);
       setRemainingTime(data.remainingTime);
+      setTestId(data.testId);
+
+      // Restore answers
+      const saved = localStorage.getItem(`test_answers_${data.testId}`);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        answersRef.current = parsed;
+        setAnswers(parsed);
+      }
       
       if (data.remainingTime <= 0) {
         toast.error('This assessment session has expired.');
@@ -83,9 +115,11 @@ const TestAttempt = () => {
           // Auto-submit using ref values (not stale state)
           if (!submittingRef.current) {
             submittingRef.current = true;
+            console.log("AUTO-SUBMIT PAYLOAD:", answersRef.current);
             api.post(`/attempts/${attemptId}/submit`, answersRef.current)
               .then(res => {
                 toast.success('Time up — assessment auto-submitted');
+                localStorage.removeItem(`test_answers_${testId}`);
                 navigate(`/results/${res.data.id}`);
               })
               .catch(() => {
@@ -100,24 +134,23 @@ const TestAttempt = () => {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [remainingTime, attemptId, navigate]);
+  }, [remainingTime, attemptId, navigate, testId]);
 
   const handleSubmit = async (e, isAuto = false) => {
     if (e) e.preventDefault();
     if (submittingRef.current) return;
 
-    if (!isAuto && remainingTime <= 0) {
-      toast.error('Submission rejected: Time limit exceeded');
-      navigate('/student-dashboard');
+    if (!isAuto && !showSubmitConfirm) {
+      setShowSubmitConfirm(true);
       return;
     }
-
-    if (!isAuto && !window.confirm('Final submission? You will not be able to modify your responses after this.')) return;
 
     submittingRef.current = true;
     setSubmitting(true);
     try {
+      console.log("SUBMIT PAYLOAD:", answersRef.current);
       const res = await api.post(`/attempts/${attemptId}/submit`, answersRef.current);
+      localStorage.removeItem(`test_answers_${testId}`);
       toast.success('Assessment completed');
       navigate(`/results/${res.data.id}`); 
     } catch (err) {
@@ -246,7 +279,7 @@ const TestAttempt = () => {
                 </div>
 
                 <h3 className="text-3xl font-bold text-slate-50 leading-[1.4] mb-16 tracking-tight">
-                  {currentQ?.questionText}
+                  <CodeQuestion text={currentQ?.title} />
                 </h3>
 
                 <div className="grid grid-cols-1 gap-5">
@@ -313,8 +346,17 @@ const TestAttempt = () => {
               </div>
            </div>
         </main>
-
       </div>
+
+      <ConfirmModal 
+        isOpen={showSubmitConfirm}
+        onClose={() => setShowSubmitConfirm(false)}
+        onConfirm={() => handleSubmit(null, true)}
+        title="Final Submission"
+        message="Are you sure you want to submit your assessment? You will not be able to modify your responses after this."
+        confirmText="Submit Now"
+        cancelText="Review More"
+      />
     </div>
   );
 };

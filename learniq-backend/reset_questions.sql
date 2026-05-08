@@ -1,0 +1,3 @@
+DELETE FROM attempt_answer;
+DELETE FROM question;
+ALTER TABLE question ALTER COLUMN id RESTART WITH 1;

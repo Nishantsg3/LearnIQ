@@ -3,6 +3,8 @@ package learniq_backend.controller;
 import learniq_backend.dto.StartAttemptRequest;
 import learniq_backend.dto.TestAttemptResponse;
 import learniq_backend.model.TestAttempt;
+import learniq_backend.model.User;
+import learniq_backend.repository.UserRepository;
 import learniq_backend.service.AttemptService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +20,9 @@ import java.util.*;
 public class TestAttemptController {
 
     private final AttemptService attemptService;
+    private final learniq_backend.repository.TestAttemptRepository testAttemptRepository;
+    private final UserRepository userRepository;
+
 
     // ✅ START ATTEMPT
     @PostMapping("/start")
@@ -31,6 +36,8 @@ public class TestAttemptController {
         String userEmail = authentication.getName();
 
         TestAttempt attempt = attemptService.startOrResumeAttempt(userEmail, request.getTestId());
+        attempt.setUserEmail(authentication.getName());
+
 
         // If already submitted, block re-attempt and return existing attempt ID
         if (attempt.getStatus() == TestAttempt.Status.SUBMITTED) {
@@ -40,23 +47,29 @@ public class TestAttemptController {
             ));
         }
 
-        return ResponseEntity.ok(Map.of("attemptId", attempt.getId()));
+        return ResponseEntity.ok(Map.of(
+            "attemptId", attempt.getId(),
+            "testId", attempt.getTest().getId(),
+            "status", attempt.getStatus()
+        ));
     }
 
-    // ✅ GET USER ATTEMPTS
     @GetMapping("/me")
-    public ResponseEntity<List<TestAttemptResponse>> getMyAttempts(Authentication authentication) {
-
-        if (authentication == null) {
+    public ResponseEntity<?> getMyAttempts(Authentication auth) {
+        if (auth == null || auth.getName() == null) {
             return ResponseEntity.ok(Collections.emptyList());
         }
+        String email = auth.getName();
+
+        System.out.println("CONTROLLER: routing to service layer");
 
         return ResponseEntity.ok(
-                attemptService.getUserAttempts(authentication.getName())
+            attemptService.getUserAttempts(email)
         );
     }
 
-    // ✅ GET SINGLE ATTEMPT (FIXED — DIRECT FETCH, NOT STREAM FILTER)
+
+    // ✅ GET SINGLE ATTEMPT
     @GetMapping("/{id}")
     public ResponseEntity<?> getAttemptById(@PathVariable Long id,
                                            Authentication authentication) {
@@ -77,7 +90,7 @@ public class TestAttemptController {
         }
     }
 
-    // ✅ SUBMIT (CRITICAL FIX)
+    // ✅ SUBMIT
     @PostMapping("/{id}/submit")
     public ResponseEntity<?> submitAttempt(@PathVariable Long id,
                                            @RequestBody(required = false) Map<String, String> answers,
@@ -88,7 +101,6 @@ public class TestAttemptController {
         }
 
         try {
-            // 🔥 FIX 1: NEVER PASS NULL
             if (answers == null) {
                 answers = new HashMap<>();
             }
@@ -100,7 +112,7 @@ public class TestAttemptController {
             );
 
         } catch (Exception e) {
-            e.printStackTrace(); // 🔥 SHOW REAL ERROR IN BACKEND LOG
+            e.printStackTrace();
 
             return ResponseEntity.badRequest().body(
                     Map.of(
@@ -108,6 +120,33 @@ public class TestAttemptController {
                             "type", e.getClass().getSimpleName()
                     )
             );
+        }
+    }
+
+    // ✅ SAVE PROGRESS (FOR RESUME)
+    @PostMapping("/{id}/save-progress")
+    public ResponseEntity<?> saveProgress(@PathVariable Long id,
+                                          @RequestBody Map<String, String> answers,
+                                          Authentication authentication) {
+        if (authentication == null) return ResponseEntity.status(401).body(Map.of("message", "Unauthorized"));
+        
+        try {
+            TestAttempt attempt = attemptService.saveProgress(id, answers);
+            return ResponseEntity.ok(Map.of("message", "Progress saved", "attemptId", attempt.getId()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    // ✅ DELETE ATTEMPT
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteAttempt(@PathVariable Long id, Authentication auth) {
+        if (auth == null) return ResponseEntity.status(401).body(Map.of("message", "Unauthorized"));
+        try {
+            testAttemptRepository.deleteById(id);
+            return ResponseEntity.ok(Map.of("message", "Attempt deleted"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
     }
 }
