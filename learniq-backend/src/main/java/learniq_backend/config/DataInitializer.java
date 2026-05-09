@@ -18,7 +18,13 @@ public class DataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        String adminEmail = "admin@learniq.com";
+        String adminEmail = System.getenv("ADMIN_EMAIL");
+        String adminPassword = System.getenv("ADMIN_PASSWORD");
+
+        if (adminEmail == null || adminPassword == null) {
+            System.out.println("Admin env variables not set, skipping admin creation.");
+            return;
+        }
 
         Optional<User> existingAdmin = userRepository.findByEmail(adminEmail);
 
@@ -26,12 +32,12 @@ public class DataInitializer implements CommandLineRunner {
 
         admin.setName("LearnIQ Admin");
         admin.setEmail(adminEmail);
-        admin.setPassword(passwordEncoder.encode("admin123"));
+        admin.setPassword(passwordEncoder.encode(adminPassword));
         admin.setRole(User.Role.ADMIN);
         admin.setVerified(true);
 
         userRepository.save(admin);
 
-        System.out.println("Admin ensured: " + adminEmail);
+        System.out.println("Admin ensured via env: " + adminEmail);
     }
 }
