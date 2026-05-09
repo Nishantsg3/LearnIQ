@@ -6,10 +6,10 @@ import learniq_backend.model.Question;
 import learniq_backend.repository.QuestionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Component;
 
+import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.List;
 
 @Component
@@ -17,29 +17,30 @@ import java.util.List;
 public class QuestionDataInitializer implements CommandLineRunner {
 
     private final QuestionRepository questionRepository;
-    private final ObjectMapper objectMapper;
-    private final ResourceLoader resourceLoader;
 
     @Override
     public void run(String... args) throws Exception {
-        if (questionRepository.count() == 0) {
-            String[] seedFiles = {"seed_1.json", "seed_2.json", "seed_3.json", "seed_4.json"};
-            int totalSeeded = 0;
+        if (questionRepository.count() > 0) {
+            System.out.println("Questions already present, skipping seeding.");
+            return;
+        }
 
-            for (String fileName : seedFiles) {
-                Resource resource = resourceLoader.getResource("classpath:" + fileName);
-                if (resource.exists()) {
-                    List<Question> questions = objectMapper.readValue(
-                        resource.getInputStream(),
-                        new TypeReference<List<Question>>() {}
-                    );
-                    questionRepository.saveAll(questions);
-                    totalSeeded += questions.size();
+        ObjectMapper mapper = new ObjectMapper();
+        List<Question> allQuestions = new ArrayList<>();
+
+        for (int i = 1; i <= 4; i++) {
+            String fileName = "seed_" + i + ".json";
+            try (InputStream is = getClass().getResourceAsStream("/" + fileName)) {
+                if (is != null) {
+                    List<Question> questions = mapper.readValue(is, new TypeReference<List<Question>>() {});
+                    allQuestions.addAll(questions);
                 }
             }
-            System.out.println("Questions seeded: " + totalSeeded);
-        } else {
-            System.out.println("Question bank already populated, skipping seeding.");
+        }
+
+        if (!allQuestions.isEmpty()) {
+            questionRepository.saveAll(allQuestions);
+            System.out.println("Successfully seeded " + allQuestions.size() + " normalized questions.");
         }
     }
 }
