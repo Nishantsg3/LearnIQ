@@ -56,9 +56,29 @@
   .badge-primary { @apply bg-indigo-500/10 text-indigo-400 border-indigo-500/20; }
   .badge-success { @apply bg-emerald-500/10 text-emerald-400 border-emerald-500/20; }
   .badge-warning { @apply bg-amber-500/10 text-amber-400 border-amber-500/20; }
-  .badge-danger { @apply bg-rose-500/10 text-rose-400 border-rose-500/20; }
+  .btn-white {
+    @apply btn-base bg-white text-black hover:bg-white/90 shadow-xl shadow-white/5;
+  }
 
-  /* Spacing */
+  /* Global Fallback for Unrefactored Action Buttons */
+  button[class*="px-"]:not([class*="sidebar"]):not([class*="nav"]):not(.p-2):not(.p-3):not(.icon-only):not(.btn-base) {
+    border-radius: 9999px !important;
+    font-size: 10px !important;
+    font-weight: 900 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.1em !important;
+    padding-left: 2rem !important;
+    padding-right: 2rem !important;
+    padding-top: 0.75rem !important;
+    padding-bottom: 0.75rem !important;
+    transition: all 0.3s ease !important;
+  }
+  
+  button[class*="px-"]:not([class*="sidebar"]):not([class*="nav"]):not(.p-2):not(.p-3):not(.icon-only):not(.btn-base):active {
+    transform: scale(0.95) !important;
+  }
+
+  /* Badges */
   .section-container { @apply max-w-7xl mx-auto px-6 py-8; }
 
   /* Grid Utils */
