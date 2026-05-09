@@ -2,7 +2,7 @@ import api from '../utils/api';
 
 /**
  * API Service for Test Management
- * Connected to live backend at https://learniq-rz0t.onrender.com/api/v1
+ * Centralized API calls for tests
  */
 
 // Normalize backend status (UPPERCASE) to frontend status (lowercase)

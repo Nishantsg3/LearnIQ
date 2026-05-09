@@ -1,8 +1,14 @@
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
+// Centralized Environment-Aware API Configuration
+// Ensure localhost development points to local backend while production defaults to Render
+const IS_DEV = import.meta.env.MODE === 'development';
+const PROD_URL = import.meta.env.VITE_API_URL || 'https://learniq-backend.onrender.com/api/v1';
+const LOCAL_URL = 'http://localhost:8080/api/v1';
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1',
+  baseURL: IS_DEV ? LOCAL_URL : PROD_URL,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
