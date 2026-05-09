@@ -35,8 +35,8 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
 
-                        // AUTH
-                        .requestMatchers("/api/v1/auth/**").permitAll()
+                        // PUBLIC ENDPOINTS
+                        .requestMatchers("/", "/api/v1/auth/**").permitAll()
 
                         // TESTS
                         .requestMatchers(HttpMethod.GET, "/api/v1/tests/**").hasAnyRole("ADMIN", "STUDENT")
