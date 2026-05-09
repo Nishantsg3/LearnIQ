@@ -37,7 +37,6 @@ public class Question {
     @LastModifiedDate
     private LocalDateTime updatedAt;
 
-    @com.fasterxml.jackson.annotation.JsonProperty("title")
     @Column(unique = true, length = 1000)
     private String questionText;
 
