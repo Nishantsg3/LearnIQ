@@ -21,8 +21,15 @@ public class QuestionDataInitializer implements CommandLineRunner {
     @Override
     public void run(String... args) throws Exception {
         if (questionRepository.count() > 0) {
-            System.out.println("Questions already present, skipping seeding.");
-            return;
+            // Self-healing: Check if the existing questions are broken (null text)
+            List<Question> sample = questionRepository.findAll();
+            if (!sample.isEmpty() && sample.get(0).getQuestionText() == null) {
+                System.out.println("Found broken questions with NULL text. Wiping existing rows before reseeding...");
+                questionRepository.deleteAll();
+            } else {
+                System.out.println("Questions already present and valid, skipping seeding.");
+                return;
+            }
         }
 
         ObjectMapper mapper = new ObjectMapper();
