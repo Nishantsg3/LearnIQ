@@ -140,7 +140,7 @@ const AdminTestList = () => {
           <div className="flex items-center gap-3">
               <button 
                 onClick={() => navigate('/admin/tests/create')}
-                className="flex items-center gap-3 px-6 py-4 bg-white text-black rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all hover:bg-white/90 active:scale-95 shadow-xl shadow-white/5"
+                className="btn-white"
               >
                 <Plus size={14} />
                 New Assessment
@@ -154,10 +154,10 @@ const AdminTestList = () => {
               <button
                 key={type}
                 onClick={() => setFilterType(type)}
-                className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-500 ${
+                className={`transition-all duration-500 ${
                   filterType === type 
-                    ? 'bg-white text-black shadow-[0_10px_30px_rgba(255,255,255,0.1)] scale-105' 
-                    : 'text-slate-500 hover:text-white hover:bg-white/5'
+                    ? 'btn-white scale-105 shadow-[0_10px_30px_rgba(255,255,255,0.1)]' 
+                    : 'btn-base text-slate-500 hover:text-white hover:bg-white/5'
                 }`}
               >
                 {type === 'practice' ? 'Practice Clusters' : 'Main Assessments'}
