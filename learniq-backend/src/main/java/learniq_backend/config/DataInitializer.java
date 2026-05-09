@@ -19,21 +19,19 @@ public class DataInitializer implements CommandLineRunner {
     @Override
     public void run(String... args) throws Exception {
         String adminEmail = "admin@learniq.com";
-        
+
         Optional<User> existingAdmin = userRepository.findByEmail(adminEmail);
-        
-        if (existingAdmin.isEmpty()) {
-            User admin = new User();
-            admin.setName("LearnIQ Admin");
-            admin.setEmail(adminEmail);
-            admin.setPassword(passwordEncoder.encode("admin123"));
-            admin.setRole(User.Role.ADMIN);
-            admin.setVerified(true);
-            
-            userRepository.save(admin);
-            System.out.println("Default Admin account created: " + adminEmail);
-        } else {
-            System.out.println("Admin account already exists: " + adminEmail);
-        }
+
+        User admin = existingAdmin.orElse(new User());
+
+        admin.setName("LearnIQ Admin");
+        admin.setEmail(adminEmail);
+        admin.setPassword(passwordEncoder.encode("admin123"));
+        admin.setRole(User.Role.ADMIN);
+        admin.setVerified(true);
+
+        userRepository.save(admin);
+
+        System.out.println("Admin ensured: " + adminEmail);
     }
 }
