@@ -14,10 +14,9 @@ services:
   # Backend - Spring Boot API
   - type: web
     name: learniq-backend
-    runtime: java
+    env: docker
     rootDir: learniq-backend
-    buildCommand: mvn clean package -DskipTests
-    startCommand: java -jar target/*.jar
+    dockerfilePath: ./Dockerfile
     plan: free
 
     envVars:
