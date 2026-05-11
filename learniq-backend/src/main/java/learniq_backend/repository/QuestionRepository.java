@@ -14,21 +14,21 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
     boolean existsByQuestionText(String questionText);
 
 
-    @Query("SELECT q FROM Test t JOIN t.questions q WHERE t.id = :testId")
+    @Query("SELECT q FROM Question q JOIN q.tests t WHERE t.id = :testId")
     List<Question> findByTestId(@Param("testId") Long testId);
 
     @Modifying
     @Transactional
-    @Query(value = "ALTER TABLE question ALTER COLUMN id RESTART WITH 1", nativeQuery = true)
+    @Query(value = "ALTER SEQUENCE question_id_seq RESTART WITH 1", nativeQuery = true)
     void resetId();
 
 
     List<Question> findByCategory(String category);
 
-    @Query(value = "SELECT * FROM question WHERE UPPER(category) = UPPER(:category) ORDER BY RAND() LIMIT :limit", nativeQuery = true)
+    @Query(value = "SELECT * FROM question WHERE UPPER(category) = UPPER(:category) ORDER BY RANDOM() LIMIT :limit", nativeQuery = true)
     List<Question> findRandomByCategory(@Param("category") String category, @Param("limit") int limit);
 
-    @Query(value = "SELECT * FROM question ORDER BY RAND() LIMIT :limit", nativeQuery = true)
+    @Query(value = "SELECT * FROM question ORDER BY RANDOM() LIMIT :limit", nativeQuery = true)
     List<Question> findRandom(@Param("limit") int limit);
 
     @Modifying
