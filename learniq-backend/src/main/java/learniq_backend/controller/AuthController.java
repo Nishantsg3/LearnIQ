@@ -172,36 +172,47 @@ public class AuthController {
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
         String email = request.email().trim().toLowerCase();
-        log.info("[AUTH] Password reset requested for email: {}", email);
+        log.info("[FORGOT-PASSWORD] Request received for email: {}", email);
 
         Optional<User> userOpt = userRepository.findByEmail(email);
         
         if (userOpt.isEmpty()) {
-            log.warn("[AUTH] Password reset requested for non-existent email: {}", email);
+            log.warn("[FORGOT-PASSWORD] User NOT FOUND in database for email: {}", email);
             // Still return success to prevent email enumeration (standard security practice)
             return ResponseEntity.ok(Map.of("message", "If an account is associated with this email, you will receive a reset link shortly."));
         }
 
         User user = userOpt.get();
+        log.info("[FORGOT-PASSWORD] User found: {} (ID: {}, Role: {})", user.getEmail(), user.getId(), user.getRole());
+        
         String token = UUID.randomUUID().toString();
-        log.info("[AUTH] Generated reset token for {}: {}", email, token);
+        log.info("[FORGOT-PASSWORD] Generated reset token: {}", token);
         
         user.setResetToken(token);
         user.setResetTokenExpiry(LocalDateTime.now().plusMinutes(15));
         userRepository.save(user);
+        log.info("[FORGOT-PASSWORD] Token saved to database for user: {}", email);
         
         // Send Reset Link via Email.
         String resetLink = frontendUrl + "/reset-password/" + token;
-        log.info("[AUTH] Dispatching reset email to {} with link: {}", email, resetLink);
+        log.info("[FORGOT-PASSWORD] Preparing to invoke EmailService for: {}", email);
         
-        boolean sent = emailService.sendResetPasswordEmail(user.getEmail(), resetLink);
-        
-        if (!sent) {
-            log.error("[AUTH] Failed to send reset email to {}. SMTP failure.", email);
+        try {
+            boolean sent = emailService.sendResetPasswordEmail(user.getEmail(), resetLink);
+            log.info("[FORGOT-PASSWORD] EmailService.sendResetPasswordEmail returned: {}", sent);
+            
+            if (!sent) {
+                log.error("[FORGOT-PASSWORD] EmailService reported failure (returned false) for: {}", email);
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(Map.of("message", "Failed to send reset email. Please try again later."));
+            }
+        } catch (Exception e) {
+            log.error("[FORGOT-PASSWORD] CRITICAL EXCEPTION during EmailService invocation: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("message", "Failed to send reset email. Please try again later."));
+                    .body(Map.of("message", "Internal error during email dispatch: " + e.getMessage()));
         }
 
+        log.info("[FORGOT-PASSWORD] Success response being sent to client for: {}", email);
         return ResponseEntity.ok(Map.of("message", "If an account is associated with this email, you will receive a reset link shortly."));
     }
 
@@ -259,13 +270,14 @@ public class AuthController {
 
         User user = userOpt.get();
         
-        // 🔥 DEBUG LOGS
-        System.out.println("\n--- LOGIN DEBUG ---");
-        System.out.println("LOGIN INPUT: " + request.password());
-        System.out.println("DB PASSWORD: " + user.getPassword());
-        System.out.println("-------------------\n");
+        // 🔥 DEBUG LOGS (Updated to SLF4J)
+        log.info("[LOGIN-DEBUG] Email: {}", user.getEmail());
+        log.info("[LOGIN-DEBUG] Role in DB: {}", user.getRole());
+        log.info("[LOGIN-DEBUG] Expected Role: {}", expectedRole);
+        log.info("[LOGIN-DEBUG] Password Match: {}", passwordEncoder.matches(request.password(), user.getPassword()));
 
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
+            log.warn("[LOGIN-FAILED] Incorrect password for: {}", user.getEmail());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Invalid email or password"));
         }
         
