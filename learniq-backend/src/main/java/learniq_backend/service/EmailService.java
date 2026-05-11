@@ -4,6 +4,7 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -13,6 +14,7 @@ import java.io.UnsupportedEncodingException;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class EmailService {
 
     private final JavaMailSender mailSender;
@@ -25,6 +27,7 @@ public class EmailService {
     private static final String CARD_BG = "#16161a";
 
     private void sendHtmlEmail(String toEmail, String subject, String htmlBody) {
+        log.info("[MAIL] Attempting to send email to: {}, Subject: {}", toEmail, subject);
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
@@ -35,8 +38,9 @@ public class EmailService {
             helper.setText(htmlBody, true);
 
             mailSender.send(message);
-        } catch (MessagingException | UnsupportedEncodingException e) {
-            System.err.println("[EmailService] Error sending email: " + e.getMessage());
+            log.info("[MAIL] Email sent successfully to: {}", toEmail);
+        } catch (Exception e) {
+            log.error("[MAIL] CRITICAL FAILURE sending email to: {}. Error: {}", toEmail, e.getMessage(), e);
         }
     }
 
