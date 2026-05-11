@@ -18,7 +18,8 @@ public class CorsConfig {
         // Allowed Origins
         configuration.setAllowedOrigins(List.of(
             "http://localhost:5173",
-            "https://learniq-frontend.onrender.com"
+            "https://learniq-frontend.onrender.com",
+            "https://learniq-frontend-7oyn.onrender.com"
         ));
         
         // Allowed Methods

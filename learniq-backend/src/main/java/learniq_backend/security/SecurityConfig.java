@@ -31,6 +31,9 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
 
+                        // Preflight OPTIONS requests
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        
                         // PUBLIC ENDPOINTS
                         .requestMatchers("/", "/api/v1/auth/**").permitAll()
 
