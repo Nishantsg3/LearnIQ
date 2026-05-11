@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { User, Mail, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import { User, Mail, Lock, ArrowRight, Eye, EyeOff, GraduationCap } from 'lucide-react';
 import AuthLayout from '../components/AuthLayout';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';

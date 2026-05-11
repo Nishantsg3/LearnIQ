@@ -12,6 +12,7 @@ import learniq_backend.repository.UserRepository;
 import learniq_backend.security.JwtUtil;
 import learniq_backend.service.EmailService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,6 +32,7 @@ import java.util.UUID;
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*")
+@Slf4j
 public class AuthController {
 
     private final UserRepository userRepository;
@@ -169,15 +171,23 @@ public class AuthController {
 
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
-        userRepository.findByEmail(request.email().trim().toLowerCase()).ifPresent(user -> {
+        String email = request.email().trim().toLowerCase();
+        log.info("[AUTH] Password reset requested for email: {}", email);
+
+        userRepository.findByEmail(email).ifPresentOrElse(user -> {
             String token = UUID.randomUUID().toString();
+            log.info("[AUTH] Generated reset token for {}: {}", email, token);
+            
             user.setResetToken(token);
             user.setResetTokenExpiry(LocalDateTime.now().plusMinutes(15));
             userRepository.save(user);
             
             // Send Reset Link via Email.
             String resetLink = frontendUrl + "/reset-password/" + token;
+            log.info("[AUTH] Dispatching reset email to {} with link: {}", email, resetLink);
             emailService.sendResetPasswordEmail(user.getEmail(), resetLink);
+        }, () -> {
+            log.warn("[AUTH] Password reset requested for non-existent email: {}", email);
         });
 
         return ResponseEntity.ok(Map.of("message", "Reset link sent if email exists"));
