@@ -251,6 +251,24 @@ public class AuthController {
         return ResponseEntity.badRequest().body(errors);
     }
 
+    @PostMapping("/test-email")
+    public ResponseEntity<?> testEmail(@RequestParam String email) {
+        log.info("[AUTH] Manual test email requested for: {}", email);
+        try {
+            boolean sent = emailService.sendResetPasswordEmail(email, frontendUrl + "/reset-password/test-token");
+            if (sent) {
+                return ResponseEntity.ok(Map.of("message", "Test email sent successfully to " + email));
+            } else {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(Map.of("message", "EmailService reported failure. Check logs."));
+            }
+        } catch (Exception e) {
+            log.error("[AUTH] Test email failed: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Test email failed: " + e.getMessage()));
+        }
+    }
+
     private ResponseEntity<?> authenticate(LoginRequest request, User.Role expectedRole) {
         Optional<User> userOpt = userRepository.findByEmail(request.email().trim().toLowerCase());
         if (userOpt.isEmpty()) {

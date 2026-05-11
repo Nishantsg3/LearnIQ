@@ -19,8 +19,28 @@ public class EmailService {
 
     private final JavaMailSender mailSender;
 
+    @Value("${spring.mail.host}")
+    private String mailHost;
+
+    @Value("${spring.mail.port}")
+    private String mailPort;
+
     @Value("${spring.mail.username}")
     private String fromEmail;
+
+    @Value("${spring.mail.password}")
+    private String mailPassword;
+
+    @jakarta.annotation.PostConstruct
+    public void logConfig() {
+        log.info("=============================================");
+        log.info("  EMAIL SERVICE CONFIGURATION");
+        log.info("  Host: {}", mailHost);
+        log.info("  Port: {}", mailPort);
+        log.info("  User: {}", fromEmail);
+        log.info("  Pass defined: {}", (mailPassword != null && !mailPassword.isEmpty() && !"none".equals(mailPassword)));
+        log.info("=============================================");
+    }
 
     private static final String BRAND_COLOR = "#8b5cf6";
     private static final String DARK_BG = "#0d0d10";
