@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Centralized Environment-Aware API Configuration
 const IS_DEV = import.meta.env.MODE === 'development';
-const PROD_URL = import.meta.env.VITE_API_URL || 'https://learniq-backend.onrender.com/api/v1';
+const PROD_URL = import.meta.env.VITE_API_URL || 'https://learniq-backend-ksug.onrender.com/api/v1';
 const LOCAL_URL = 'http://localhost:8080/api/v1';
 
 const api = axios.create({
