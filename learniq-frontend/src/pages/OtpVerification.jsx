@@ -44,8 +44,11 @@ function OtpVerification() {
 
   return (
     <AuthLayout 
-      headline="Verify your identity." 
-      tagline={`We've sent a 6-digit code to ${email}. Please enter it below to continue.`}
+      panelColor="#7c3aed"
+      accentColor="#a78bfa"
+      showMobileDecorations={true}
+      title={<>VERIFY YOUR<br /><span style={{ color: 'rgba(255,255,255,0.45)' }}>IDENTITY.</span></>} 
+      description={`WE'VE SENT A 6-DIGIT CODE TO ${email?.toUpperCase()}. PLEASE ENTER IT BELOW TO CONTINUE.`}
     >
       <div className="card-base p-8 lg:p-10">
         <div className="mb-10 flex flex-col items-center text-center">
