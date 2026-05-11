@@ -11,28 +11,36 @@ services:
         source: /*
         destination: /index.html
 
-  # Backend - Java Web Service
+  # Backend - Spring Boot API
   - type: web
     name: learniq-backend
-    env: java
+    runtime: java
     rootDir: learniq-backend
     buildCommand: mvn clean package -DskipTests
     startCommand: java -jar target/*.jar
     plan: free
+
     envVars:
       - key: SPRING_PROFILES_ACTIVE
         value: prod
+
       - key: MAIL_USERNAME
         sync: false
+
       - key: MAIL_PASSWORD
         sync: false
+
       - key: SPRING_DATASOURCE_URL
         sync: false
+
       - key: SPRING_DATASOURCE_USERNAME
         sync: false
+
       - key: SPRING_DATASOURCE_PASSWORD
         sync: false
+
       - key: APP_JWT_SECRET
         generateValue: true
+
       - key: APP_FRONTEND_URL
         value: https://learniq-frontend.onrender.com

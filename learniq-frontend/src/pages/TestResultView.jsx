@@ -75,7 +75,7 @@ const TestResultView = () => {
             if (testData.testType === 'MAIN') {
               api.get(`/tests/${attemptData.testId}/leaderboard`)
                 .then(lbRes => setLeaderboard(lbRes.data))
-                .catch(() => console.log("Leaderboard fetch failed."));
+                .catch(() => {});
             }
           }
         }
