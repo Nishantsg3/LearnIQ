@@ -20,11 +20,14 @@ public class EmailService {
     private final JavaMailSender mailSender;
 
     @Value("${spring.mail.username}")
+    private String smtpUsername;
+
+    @Value("${spring.mail.from}")
     private String fromEmail;
 
     @jakarta.annotation.PostConstruct
     public void init() {
-        log.info("[EMAIL-SERVICE] Starting with sender: {}", fromEmail);
+        log.info("[EMAIL-SERVICE] Starting. Auth User: {}, Verified Sender: {}", smtpUsername, fromEmail);
     }
 
     private static final String BRAND_COLOR = "#8b5cf6";
