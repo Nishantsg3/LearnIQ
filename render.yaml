@@ -11,6 +11,10 @@ services:
         source: /*
         destination: /index.html
 
+    envVars:
+      - key: VITE_API_URL
+        value: https://learniq-backend-vglf.onrender.com/api/v1
+
   # Backend - Spring Boot API
   - type: web
     name: learniq-backend
