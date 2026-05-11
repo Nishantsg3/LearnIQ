@@ -16,13 +16,19 @@ public class DataInitializer implements CommandLineRunner {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
+    @org.springframework.beans.factory.annotation.Value("${app.seed.admin.email}")
+    private String adminEmail;
+
+    @org.springframework.beans.factory.annotation.Value("${app.seed.admin.password}")
+    private String adminPassword;
+
+    @org.springframework.beans.factory.annotation.Value("${app.seed.admin.name}")
+    private String adminName;
+
     @Override
     public void run(String... args) throws Exception {
-        String adminEmail = System.getenv("ADMIN_EMAIL");
-        String adminPassword = System.getenv("ADMIN_PASSWORD");
-
-        if (adminEmail == null || adminPassword == null) {
-            System.out.println("Admin env variables not set, skipping admin creation.");
+        if (adminEmail == null || adminPassword == null || "none".equals(adminEmail)) {
+            System.out.println("[INITIALIZER] Admin seeding skipped: Config missing.");
             return;
         }
 
@@ -30,7 +36,7 @@ public class DataInitializer implements CommandLineRunner {
 
         User admin = existingAdmin.orElse(new User());
 
-        admin.setName("LearnIQ Admin");
+        admin.setName(adminName);
         admin.setEmail(adminEmail);
         admin.setPassword(passwordEncoder.encode(adminPassword));
         admin.setRole(User.Role.ADMIN);
@@ -38,6 +44,6 @@ public class DataInitializer implements CommandLineRunner {
 
         userRepository.save(admin);
 
-        System.out.println("Admin ensured via env: " + adminEmail);
+        System.out.println("[INITIALIZER] Admin account verified/created: " + adminEmail);
     }
 }
