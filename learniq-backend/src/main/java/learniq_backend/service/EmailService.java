@@ -19,38 +19,14 @@ public class EmailService {
 
     private final JavaMailSender mailSender;
 
-    @Value("${spring.mail.host}")
-    private String mailHost;
-
-    @Value("${spring.mail.port}")
-    private String mailPort;
-
     @Value("${spring.mail.username}")
     private String fromEmail;
-
-    @Value("${spring.mail.password}")
-    private String mailPassword;
-
-    public String getMailHost() { return mailHost; }
-    public String getMailPort() { return mailPort; }
-
-    @jakarta.annotation.PostConstruct
-    public void logConfig() {
-        log.info("=============================================");
-        log.info("  EMAIL SERVICE CONFIGURATION");
-        log.info("  Host: {}", mailHost);
-        log.info("  Port: {}", mailPort);
-        log.info("  User: {}", fromEmail);
-        log.info("  Pass defined: {}", (mailPassword != null && !mailPassword.isEmpty() && !"none".equals(mailPassword)));
-        log.info("=============================================");
-    }
 
     private static final String BRAND_COLOR = "#8b5cf6";
     private static final String DARK_BG = "#0d0d10";
     private static final String CARD_BG = "#16161a";
 
     private void sendHtmlEmail(String toEmail, String subject, String htmlBody) throws Exception {
-        log.info("[MAIL] Attempting to send email to: {}, Subject: {}", toEmail, subject);
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
@@ -60,7 +36,6 @@ public class EmailService {
         helper.setText(htmlBody, true);
 
         mailSender.send(message);
-        log.info("[MAIL] Email sent successfully to: {}", toEmail);
     }
 
     private String getBaseTemplate(String content) {
@@ -80,10 +55,7 @@ public class EmailService {
                "</div></body></html>";
     }
 
-    public void sendTestEmail(String toEmail) throws Exception {
-        String content = "<h2>LearnIQ SMTP Test</h2><p>This is a diagnostic test email to verify your Brevo SMTP configuration.</p>";
-        sendHtmlEmail(toEmail, "LearnIQ SMTP Test", getBaseTemplate(content));
-    }
+
 
     public boolean sendRegistrationOtpEmail(String toEmail, String otp) {
         try {
