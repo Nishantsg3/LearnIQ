@@ -70,6 +70,7 @@ function ResetPassword() {
       <AuthLayout 
         panelColor={THEME_COLOR}
         accentColor={ACCENT_COLOR}
+        showMobileDecorations={true}
         title="INVALID LINK"
         description="The password reset link is missing or has expired."
       >
@@ -93,6 +94,7 @@ function ResetPassword() {
     <AuthLayout 
       panelColor={THEME_COLOR}
       accentColor={ACCENT_COLOR}
+      showMobileDecorations={true}
       title={<>SECURE YOUR<br /><span style={{ color: 'rgba(255,255,255,0.45)' }}>CREDENTIALS.</span></>}
       description={<>ALMOST THERE. CHOOSE A STRONG NEW<br />PASSWORD TO PROTECT YOUR<br />ASSESSMENT DATA AND HISTORY.</>}
     >

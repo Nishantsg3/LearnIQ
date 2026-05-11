@@ -55,6 +55,7 @@ function ForgotPassword() {
     <AuthLayout 
       panelColor={THEME_COLOR}
       accentColor={ACCENT_COLOR}
+      showMobileDecorations={true}
       title={<>RESTORE YOUR<br /><span style={{ color: 'rgba(255,255,255,0.45)' }}>ACCESS.</span></>}
       description={<>INITIATE SECURE RECOVERY TO REGAIN<br />CONTROL OF YOUR LEARNING<br />AND ASSESSMENT DATA.</>}
     >
