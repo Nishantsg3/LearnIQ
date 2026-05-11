@@ -31,6 +31,9 @@ public class EmailService {
     @Value("${spring.mail.password}")
     private String mailPassword;
 
+    public String getMailHost() { return mailHost; }
+    public String getMailPort() { return mailPort; }
+
     @jakarta.annotation.PostConstruct
     public void logConfig() {
         log.info("=============================================");
