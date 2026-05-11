@@ -179,7 +179,7 @@ public class AuthController {
         if (userOpt.isEmpty()) {
             log.warn("[AUTH] Password reset requested for non-existent email: {}", email);
             // Still return success to prevent email enumeration (standard security practice)
-            return ResponseEntity.ok(Map.of("message", "Reset link sent if email exists"));
+            return ResponseEntity.ok(Map.of("message", "If an account is associated with this email, you will receive a reset link shortly."));
         }
 
         User user = userOpt.get();
@@ -202,7 +202,7 @@ public class AuthController {
                     .body(Map.of("message", "Failed to send reset email. Please try again later."));
         }
 
-        return ResponseEntity.ok(Map.of("message", "Reset link sent successfully"));
+        return ResponseEntity.ok(Map.of("message", "If an account is associated with this email, you will receive a reset link shortly."));
     }
 
     @PostMapping("/reset-password")
@@ -249,27 +249,6 @@ public class AuthController {
         }
 
         return ResponseEntity.badRequest().body(errors);
-    }
-
-    @PostMapping("/test-email")
-    public ResponseEntity<?> testEmail(@RequestParam String email) {
-        log.info("[AUTH] Manual test email requested for: {}", email);
-        String host = emailService.getMailHost();
-        String port = emailService.getMailPort();
-        try {
-            emailService.sendTestEmail(email);
-            return ResponseEntity.ok(Map.of(
-                "message", "Test email sent successfully to " + email,
-                "active_config", "Host: " + host + ", Port: " + port
-            ));
-        } catch (Exception e) {
-            log.error("[AUTH] Test email failed: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of(
-                        "message", "Test email failed: " + e.getMessage(),
-                        "active_config", "Host: " + host + ", Port: " + port
-                    ));
-        }
     }
 
     private ResponseEntity<?> authenticate(LoginRequest request, User.Role expectedRole) {
