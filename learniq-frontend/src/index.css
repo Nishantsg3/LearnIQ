@@ -13,6 +13,15 @@
     --border: 31, 41, 55;       /* Border/1f2937 */
     --foreground: 248, 250, 252; /* Slate-50 */
     --muted: 148, 163, 184;     /* Slate-400 */
+    --accent: 124, 58, 237;     /* Violet-600 (Base) */
+  }
+
+  .admin-theme {
+    --accent: 30, 27, 75;       /* Navy-Violet (Matches AdminLogin.jsx #1e1b4b) */
+  }
+
+  .student-theme {
+    --accent: 167, 139, 250;     /* Violet-400 (Lighter for Student) */
   }
 
   html, body, #root {
@@ -35,17 +44,25 @@
     @apply w-full px-4 py-2.5 bg-slate-900/50 border border-[#1f2937] rounded-lg text-slate-50 placeholder:text-slate-500 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all;
   }
 
-  /* Professional Buttons */
+  /* Centralized Button System (Pill-Shaped Action Buttons) */
+  .btn-base {
+    @apply flex items-center justify-center gap-2 px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all shrink-0 shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100;
+  }
+
   .btn-primary {
-    @apply px-5 py-2.5 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2;
+    @apply btn-base bg-indigo-600 text-white hover:bg-indigo-700 shadow-xl shadow-indigo-500/20;
   }
 
   .btn-secondary {
-    @apply px-5 py-2.5 bg-transparent text-slate-300 font-semibold border border-[#1f2937] rounded-lg hover:bg-slate-800 active:scale-[0.98] transition-all flex items-center justify-center gap-2;
+    @apply btn-base bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:bg-white/10;
   }
 
   .btn-danger {
-    @apply px-5 py-2.5 bg-rose-600 text-white font-semibold rounded-lg hover:bg-rose-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2;
+    @apply btn-base bg-rose-500/10 border border-rose-500/20 text-rose-500 hover:bg-rose-500 hover:text-white shadow-xl shadow-rose-500/10;
+  }
+
+  .btn-accent {
+    @apply btn-base bg-[#7c3aed] text-white hover:bg-[#6d28d9] shadow-xl shadow-[#7c3aed]/20;
   }
 
   /* Badges */
@@ -60,18 +77,30 @@
     @apply btn-base bg-white text-black hover:bg-white/90 shadow-xl shadow-white/5;
   }
 
-  /* Global Fallback for Unrefactored Action Buttons */
-  button[class*="px-"]:not([class*="sidebar"]):not([class*="nav"]):not(.p-2):not(.p-3):not(.icon-only):not(.btn-base) {
-    border-radius: 9999px !important;
-    font-size: 10px !important;
-    font-weight: 900 !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.1em !important;
-    padding-left: 2rem !important;
-    padding-right: 2rem !important;
-    padding-top: 0.75rem !important;
-    padding-bottom: 0.75rem !important;
-    transition: all 0.3s ease !important;
+  .btn-ghost {
+    @apply btn-base bg-transparent text-slate-400 hover:text-white hover:bg-white/5;
+  }
+
+  .btn-outline {
+    @apply btn-base bg-transparent border border-white/10 text-white hover:bg-white/5;
+  }
+
+  .icon-pill {
+    @apply p-2 rounded-full transition-all flex items-center justify-center;
+  }
+
+  /* Global Fallback for Unrefactored Action Buttons - Removed aggressive rounding */
+  button[class*="px-"]:not([class*="sidebar"]):not([class*="nav"]):not(.p-2):not(.p-3):not(.icon-only):not(.btn-base):not([class*="rounded-"]) {
+    border-radius: 9999px;
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding-left: 2rem;
+    padding-right: 2rem;
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+    transition: all 0.3s ease;
   }
   
   button[class*="px-"]:not([class*="sidebar"]):not([class*="nav"]):not(.p-2):not(.p-3):not(.icon-only):not(.btn-base):active {

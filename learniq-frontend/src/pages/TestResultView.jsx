@@ -56,7 +56,6 @@ const TestResultView = () => {
   const [test, setTest] = useState(null);
   const [leaderboard, setLeaderboard] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showAnswers, setShowAnswers] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const reportRef = useRef(null);
 
@@ -170,7 +169,7 @@ const TestResultView = () => {
         </div>
         <button 
             onClick={() => navigate('/student/dashboard')} 
-            className="px-8 py-3 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black text-white uppercase tracking-widest hover:bg-white/10 transition-all"
+            className="px-10 py-4 bg-white/5 border border-white/10 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-all font-black uppercase text-[11px] tracking-widest"
         >
             Return to Command Center
         </button>
@@ -179,14 +178,14 @@ const TestResultView = () => {
   }
 
   return (
-    <div className={`flex flex-col animate-in fade-in duration-1000 ${showAnswers ? 'min-h-screen pb-20 overflow-y-auto' : 'h-[calc(100vh-140px)] overflow-hidden'} p-8 space-y-4`}>
+    <div className="flex flex-col animate-in fade-in duration-1000 min-h-screen pb-20 overflow-y-auto p-4 md:p-8 space-y-4 relative">
       <style>{`
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.05); border-radius: 10px; }
       `}</style>
 
-      {/* HEADER - TIGHTENED FURTHER */}
+      {/* HEADER */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 shrink-0 no-print">
           <div className="space-y-1">
               <div className="flex items-center gap-3 text-slate-500 text-[8px] font-black uppercase tracking-[0.4em]">
@@ -199,24 +198,27 @@ const TestResultView = () => {
           </div>
 
           <div className="flex items-center gap-2">
-              <button onClick={handleExportPDF} className="flex items-center gap-2 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-all text-slate-400 hover:text-white group">
+              <button onClick={handleExportPDF} className="hidden sm:flex px-4 py-2 bg-white/5 border border-white/10 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-all items-center gap-2">
                   <Download size={12} />
                   <span className="text-[8px] font-black uppercase tracking-widest">PDF</span>
               </button>
-              <button onClick={() => navigate('/student/dashboard')} className="flex items-center gap-2 px-4 py-2.5 bg-violet-600 rounded-xl hover:bg-violet-700 transition-all text-white group shadow-lg">
-                  <ArrowUpRight size={12} />
-                  <span className="text-[8px] font-black uppercase tracking-widest text-white">Dashboard</span>
+              <button 
+                onClick={() => navigate('/student/dashboard')} 
+                className="shrink-0 h-8 px-4 flex items-center gap-2 bg-white/5 border border-white/10 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-all whitespace-nowrap group"
+              >
+                  <ArrowUpRight size={12} className="group-hover:rotate-45 transition-transform shrink-0" />
+                  <span className="text-[10px] font-black uppercase tracking-widest">Dashboard</span>
               </button>
           </div>
       </div>
 
       {/* MAIN CONTENT AREA - NO SCROLL IN SUMMARY */}
-      <div ref={reportRef} className={`flex-1 flex flex-col gap-6 ${showAnswers ? 'overflow-visible' : 'overflow-hidden'}`}>
+      <div ref={reportRef} className="flex-1 flex flex-col gap-6 overflow-visible">
           
-          {/* SUMMARY GRID - ULTRA COMPACT */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 shrink-0 h-full max-h-fit">
-              {/* RADIAL SCORE CARD - COMPACT */}
-              <div className="lg:col-span-5 bg-gradient-to-b from-[#161622] to-[#0d0d12] border border-white/5 rounded-[2rem] p-6 flex flex-col items-center justify-center relative overflow-hidden shadow-2xl h-full min-h-[300px]">
+          {/* SUMMARY GRID */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 shrink-0 h-full max-h-fit">
+              {/* RADIAL SCORE CARD */}
+              <div className="lg:col-span-5 bg-gradient-to-b from-[#161622] to-[#0d0d12] border border-white/5 rounded-2xl sm:rounded-[2rem] p-4 sm:p-6 flex flex-col items-center justify-center relative overflow-hidden shadow-2xl h-full min-h-[240px] sm:min-h-[300px]">
                   <div className={`absolute top-0 left-0 w-full h-1 ${isPassed ? 'bg-emerald-500' : 'bg-rose-500'} opacity-30`}></div>
                   
                   <div className="relative w-32 h-32 flex items-center justify-center mb-4">
@@ -250,16 +252,16 @@ const TestResultView = () => {
 
                       <button
                         onClick={() => navigate('/review/' + attemptId)}
-                        className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all no-print mx-auto bg-violet-600 text-white hover:bg-violet-700 shadow-lg shadow-violet-500/20`}
+                        className="px-8 py-3 bg-[#7c3aed] text-white rounded-full hover:bg-[#6d28d9] transition-all flex items-center gap-2 shadow-lg shadow-[#7c3aed]/20 no-print mx-auto"
                       >
                         <Eye size={12} />
-                        Deep Analysis
+                        <span className="text-[9px] font-black uppercase tracking-widest">Deep Analysis</span>
                       </button>
                   </div>
               </div>
 
-              {/* KPI TILES - COMPACT */}
-              <div className="lg:col-span-7 grid grid-cols-2 gap-3 h-full">
+              {/* KPI TILES */}
+              <div className="lg:col-span-7 grid grid-cols-2 gap-2 sm:gap-3 h-full">
                   <KPICard label="Correct" value={clientCorrect} color="#10b981" icon={<CheckCircle2 size={16} />} />
                   <KPICard label="Incorrect" value={clientWrong} color="#f43f5e" icon={<X size={16} />} />
                   <KPICard label="Items" value={reviewList.length || attempt?.totalQuestions} color="#6366f1" icon={<FileText size={16} />} />
@@ -276,40 +278,26 @@ const TestResultView = () => {
               </div>
           </div>
 
-          {/* DEEP ANALYSIS LIST (Only if showAnswers is TRUE) */}
-          {showAnswers && (
-            <div className="space-y-8 animate-in slide-in-from-top-10 duration-700">
-                <div className="flex items-center gap-6 px-4 shrink-0">
-                    <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.6em]">Question-Level Analytics</h3>
-                    <div className="h-px flex-1 bg-gradient-to-r from-white/5 to-transparent"></div>
+          {/* PERSONAL STANDING HIGHLIGHT (LEADERBOARD FIX) */}
+          {test?.testType === 'MAIN' && leaderboard.length > 0 && (
+            <div className="mt-8 sm:mt-12 mb-20 p-4 sm:p-8 bg-violet-600/5 border border-violet-500/20 rounded-2xl sm:rounded-3xl flex flex-col sm:flex-row items-center justify-between gap-6 overflow-hidden">
+              <div className="flex items-center gap-4 md:gap-6 min-w-0 w-full sm:w-auto">
+                <div className="w-10 h-10 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-violet-600/20 flex items-center justify-center text-violet-400 border border-violet-500/20 shrink-0">
+                  <Award size={20} className="sm:w-6 sm:h-6" />
                 </div>
-
-                <div className="grid grid-cols-1 gap-6">
-                    {reviewList.map((item, i) => item && (
-                        <AnalysisRow key={i} item={item} index={i} />
-                    ))}
+                <div className="min-w-0 flex-1 overflow-hidden">
+                  <h3 className="text-sm sm:text-xl font-black text-white uppercase tracking-tight truncate">Your Global Standing</h3>
+                  <p className="text-violet-400/60 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.3em] truncate">Positioned relative to all candidates</p>
                 </div>
-
-                {/* PERSONAL STANDING HIGHLIGHT (REPLACED FULL TABLE) */}
-                {test?.testType === 'MAIN' && leaderboard.length > 0 && (
-                  <div className="mt-12 mb-20 p-8 bg-violet-600/5 border border-violet-500/20 rounded-3xl flex items-center justify-between">
-                    <div className="flex items-center gap-6">
-                      <div className="w-16 h-16 rounded-2xl bg-violet-600/20 flex items-center justify-center text-violet-400 border border-violet-500/20">
-                        <Award size={32} />
-                      </div>
-                      <div>
-                        <h3 className="text-xl font-black text-white uppercase tracking-tight">Your Global Standing</h3>
-                        <p className="text-violet-400/60 text-[10px] font-black uppercase tracking-[0.3em]">Positioned relative to all candidates</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Current Rank</p>
-                      <p className="text-4xl font-black text-white tracking-tighter italic">
-                        #{globalStandingData.rank}
-                      </p>
-                    </div>
-                  </div>
-                )}
+              </div>
+              <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto bg-black/20 sm:bg-transparent px-4 py-3 sm:p-0 rounded-2xl sm:rounded-none shrink-0 border border-white/5 sm:border-none">
+                <p className="text-[8px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest sm:mb-1">Current Rank</p>
+                <div className="flex items-baseline gap-1 text-right">
+                  <span className="text-2xl sm:text-4xl font-black text-white tracking-tighter italic tabular-nums leading-none">
+                    #{globalStandingData.rank}
+                  </span>
+                </div>
+              </div>
             </div>
           )}
       </div>
@@ -335,14 +323,14 @@ const KPICard = ({ label, value, color, icon }) => (
 const AnalysisRow = ({ item, index }) => {
   const isCorrect = calcIsCorrect(item);
   return (
-    <div className={`bg-[#0d0d12]/60 backdrop-blur-xl border ${isCorrect ? 'border-emerald-500/10' : 'border-rose-500/10'} rounded-[2.5rem] p-10 relative overflow-hidden transition-all group hover:bg-[#0d0d12]`}>
+    <div className={`bg-[#0d0d12]/60 backdrop-blur-xl border ${isCorrect ? 'border-emerald-500/10' : 'border-rose-500/10'} rounded-2xl sm:rounded-[2.5rem] p-5 sm:p-10 relative overflow-hidden transition-all group hover:bg-[#0d0d12]`}>
        <div className="flex flex-col md:flex-row justify-between items-start gap-8 relative z-10">
           <div className="flex-1 space-y-4">
              <div className="flex items-center gap-4">
                 <span className="px-3 py-1 bg-white/5 border border-white/5 rounded-lg text-[8px] font-black text-slate-500 uppercase tracking-widest">Question {index + 1}</span>
                 <div className={`w-2 h-2 rounded-full ${isCorrect ? 'bg-emerald-500' : 'bg-rose-500'} shadow-[0_0_10px_currentColor]`}></div>
              </div>
-             <h4 className="text-xl font-black text-white uppercase tracking-tight leading-tight max-w-3xl">{item.questionText}</h4>
+             <h4 className="text-lg sm:text-xl font-black text-white uppercase tracking-tight leading-tight max-w-3xl break-words min-w-0 overflow-hidden">{item.questionText}</h4>
           </div>
           <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 border ${isCorrect ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'}`}>
              {isCorrect ? <CheckCircle2 size={28} /> : <X size={28} />}
@@ -376,9 +364,9 @@ const AnalysisRow = ({ item, index }) => {
                    }`}>
                       {opt.id}
                    </div>
-                   <p className="text-xs font-black uppercase tracking-tight leading-tight flex-1">{opt.text}</p>
+                   <p className="text-[10px] sm:text-xs font-black uppercase tracking-tight leading-tight flex-1 break-words min-w-0 overflow-hidden line-clamp-2">{opt.text}</p>
                    {isSelected && (
-                     <div className={`px-2 py-1 rounded-md text-[7px] font-black uppercase tracking-[0.2em] ${isCorrectAns ? 'bg-emerald-500 text-black' : 'bg-rose-500 text-white'}`}>Selected</div>
+                     <div className={`shrink-0 px-2 py-1 rounded-md text-[7px] font-black uppercase tracking-[0.2em] ${isCorrectAns ? 'bg-emerald-500 text-black' : 'bg-rose-500 text-white'}`}>Selected</div>
                    )}
                 </div>
              );

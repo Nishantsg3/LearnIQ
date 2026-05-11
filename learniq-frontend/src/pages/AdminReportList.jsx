@@ -60,18 +60,20 @@ const AdminReportList = ({ mode = 'ANALYTICS' }) => {
               </div>
           </div>
 
-          <div className="flex items-center gap-6">
-              <div className="relative group">
+          <div className="flex flex-col sm:flex-row items-center gap-4 min-w-0 w-full md:w-auto">
+              <div className="relative group w-full sm:w-[240px]">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-indigo-400 transition-colors" size={14} />
                   <input 
                       type="text" 
-                      placeholder="SEARCH CLUSTERS..." 
+                      placeholder="Search..." 
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
-                      className="bg-[#0d0d12] border border-white/5 rounded-2xl py-4 pl-12 pr-6 text-[10px] font-black uppercase tracking-widest text-white outline-none focus:border-indigo-500/50 transition-all w-full md:w-80 placeholder:text-white/10 shadow-2xl"
+                      className="bg-[#0d0d12] border border-white/5 rounded-full h-10 pl-10 pr-4 text-[10px] font-black uppercase tracking-widest text-white outline-none focus:border-indigo-500/50 transition-all w-full placeholder:text-white/10 shadow-2xl"
                   />
               </div>
-              <BackToDashboard />
+              <div className="flex items-center gap-2 min-w-0 shrink-0 self-end sm:self-auto">
+                <BackToDashboard />
+              </div>
           </div>
         </div>
 
@@ -113,17 +115,17 @@ const AdminReportList = ({ mode = 'ANALYTICS' }) => {
                  {mode === 'ANALYTICS' ? (
                    <button 
                      onClick={() => navigate(`/admin/tests/${test.id}/analytics`)}
-                     className="w-full py-5 bg-white/5 hover:bg-indigo-600 text-white/40 hover:text-white border border-white/5 hover:border-indigo-500/50 rounded-[1.5rem] text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-500 flex items-center justify-center gap-4 group/btn"
+                     className="btn-primary w-full py-5"
                    >
-                     <BarChart2 size={16} className="text-white/10 group-hover/btn:text-white transition-colors" />
+                     <BarChart2 size={16} />
                      Audit Reports
                    </button>
                  ) : (
                    <button 
                      onClick={() => navigate(`/admin/tests/${test.id}/leaderboard`)}
-                     className="w-full py-5 bg-white/5 hover:bg-amber-600 text-white/40 hover:text-white border border-white/5 hover:border-amber-500/50 rounded-[1.5rem] text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-500 flex items-center justify-center gap-4 group/btn"
+                     className="btn-accent w-full py-5"
                    >
-                     <Award size={16} className="text-white/10 group-hover/btn:text-white transition-colors" />
+                     <Award size={16} />
                      Merit Rankings
                    </button>
                  )}

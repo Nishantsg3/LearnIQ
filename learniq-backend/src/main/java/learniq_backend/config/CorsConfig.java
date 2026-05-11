@@ -15,8 +15,11 @@ public class CorsConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // Allowed Origin for Production
-        configuration.setAllowedOrigins(List.of("https://learniq-frontend.onrender.com"));
+        // Allowed Origins
+        configuration.setAllowedOrigins(List.of(
+            "http://localhost:5173",
+            "https://learniq-frontend.onrender.com"
+        ));
         
         // Allowed Methods
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));

@@ -172,14 +172,14 @@ function Register() {
           <button 
             type="submit" 
             disabled={isLoggingIn}
-            className="w-full py-4 bg-[#6366f1] text-white font-bold rounded-xl flex items-center justify-center gap-3 hover:bg-[#4f46e5] transition-all duration-300 group active:scale-[0.98] mt-2 shadow-xl shadow-indigo-500/20"
+            className="btn-primary w-full py-4 mt-2"
           >
             {isLoggingIn ? (
               <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
             ) : (
               <>
                 <span className="text-lg">Create Account</span>
-                <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                <ArrowRight size={20} />
               </>
             )}
           </button>

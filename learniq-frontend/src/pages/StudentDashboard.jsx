@@ -95,27 +95,27 @@ const StudentDashboard = () => {
   ];
 
   return (
-    <div className="h-full overflow-y-auto custom-scrollbar animate-in fade-in duration-700 p-8 flex flex-col">
+    <div className="h-full overflow-y-auto custom-scrollbar animate-in fade-in duration-700 p-4 sm:p-6 lg:p-8 flex flex-col">
       
       {/* HEADER */}
-      <div className="mb-10">
-        <div className="flex items-center gap-4 mb-2">
-          <div className="w-1 h-6 bg-[#7c3aed] rounded-full" />
-          <h1 className="text-2xl font-black text-white uppercase tracking-tight">
+      <div className="mb-6 sm:mb-10">
+        <div className="flex flex-wrap items-center gap-3 mb-2">
+          <div className="w-1 h-5 bg-[#7c3aed] rounded-full" />
+          <h1 className="text-xl sm:text-2xl font-black text-white uppercase tracking-tight">
             Welcome back, <span className="text-[#7c3aed]">{user?.name?.split(' ')[0] || 'Scholar'}</span>
           </h1>
-          <div className="px-3 py-1 bg-white/5 border border-white/10 rounded-full flex items-center gap-2">
+          <div className="px-2.5 py-1 bg-white/5 border border-white/10 rounded-full flex items-center gap-1.5">
              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-             <span className="text-[8px] font-black text-white/40 uppercase tracking-widest">Secure Portal</span>
+             <span className="text-[7px] font-black text-white/40 uppercase tracking-widest">Secure Portal</span>
           </div>
         </div>
-        <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.4em] ml-5">
+        <p className="text-slate-500 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] sm:tracking-[0.4em] ml-4">
            Candidate Dashboard | Select module to begin
         </p>
       </div>
 
-      {/* STAT CARDS GRID - Identical to Admin Style */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl">
+      {/* STAT CARDS GRID */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 w-full">
         {navCards.map((card) => (
           <StatCard key={card.label} card={card} onClick={() => navigate(card.path)} />
         ))}
@@ -135,8 +135,8 @@ const StatCard = ({ card, onClick }) => {
       style={{
         background: hovered ? '#161622' : '#0d0d12',
         border: `1px solid ${hovered ? card.accent + '30' : 'rgba(255,255,255,0.03)'}`,
-        borderRadius: 32,
-        padding: '32px',
+        borderRadius: 12,
+        padding: 'clamp(20px, 4vw, 32px)',
         cursor: 'pointer',
         transition: 'all 0.3s ease',
         transform: hovered ? 'translateY(-4px)' : 'translateY(0)',
@@ -145,7 +145,7 @@ const StatCard = ({ card, onClick }) => {
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'center',
-        minHeight: '200px'
+        minHeight: 'clamp(120px, 25vw, 200px)'
       }}
     >
       {/* Large Background Icon (Same as Admin) */}
@@ -160,7 +160,7 @@ const StatCard = ({ card, onClick }) => {
         zIndex: 0,
         pointerEvents: 'none'
       }}>
-        {React.cloneElement(card.icon, { size: 140 })}
+        {React.cloneElement(card.icon, { size: window.innerWidth < 640 ? 80 : 140 })}
       </div>
 
       {/* Subtle top accent glow (Same as Admin) */}
@@ -177,7 +177,7 @@ const StatCard = ({ card, onClick }) => {
       {/* Content Container */}
       <div style={{ position: 'relative', zIndex: 10 }}>
         {/* Icon + Arrow row */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: window.innerWidth < 640 ? 12 : 24 }}>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
             <div style={{
               width: 48,
@@ -191,7 +191,7 @@ const StatCard = ({ card, onClick }) => {
               color: hovered ? card.accent : '#666',
               transition: 'all 0.3s ease'
             }}>
-              {card.icon}
+              {React.cloneElement(card.icon, { size: window.innerWidth < 640 ? 18 : 22 })}
             </div>
             {card.badge && (
               <div style={{

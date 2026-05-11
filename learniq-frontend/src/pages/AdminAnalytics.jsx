@@ -121,27 +121,30 @@ export default function AdminAnalytics() {
       <div className="animate-in fade-in duration-700 h-full flex flex-col space-y-4">
         
         {/* HEADER CLUSTER - ULTRA COMPACT */}
-        <div className="flex items-center justify-between shrink-0 border-b border-white/5 pb-4 px-4">
-          <div className="flex items-center gap-10">
-            <div className="flex items-center gap-4">
-                <div className="w-1.5 h-8 bg-indigo-500 rounded-full shadow-[0_0_20px_rgba(129,140,248,0.5)]"></div>
-                <h1 className="text-2xl font-black tracking-tight text-white uppercase italic leading-none">{data?.title || "Assessment"}</h1>
-                <span className="px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[8px] font-black uppercase tracking-[0.2em] rounded-full shadow-lg">
-                    Sector Analytics
-                </span>
+        <div className="flex flex-col gap-4 border-b border-white/5 pb-6 px-4 shrink-0">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-1 h-6 sm:w-1.5 sm:h-8 bg-indigo-500 rounded-full shrink-0 shadow-[0_0_20px_rgba(129,140,248,0.5)]"></div>
+              <div className="min-w-0">
+                <h1 className="text-sm sm:text-xl font-black tracking-tight text-white uppercase italic truncate">{data?.title || "Assessment"}</h1>
+                <p className="text-[8px] font-black text-indigo-400 uppercase tracking-[0.2em] mt-0.5 truncate">Sector Analytics Intelligence</p>
+              </div>
             </div>
-            <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-white/[0.03] border border-white/5 rounded-lg">
-                    <Database size={12} className="text-indigo-500/50" />
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{data?.category || "General"}</span>
-                </div>
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-white/[0.03] border border-white/5 rounded-lg">
-                    <Clock size={12} className="text-indigo-500/50" />
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{data?.durationMinutes ?? 0} MINS</span>
-                </div>
+            <div className="flex items-center gap-2 min-w-0 shrink-0">
+              <BackToDashboard />
             </div>
           </div>
-          <BackToDashboard />
+
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-white/[0.03] border border-white/5 rounded-lg flex-1 sm:flex-none justify-center">
+                <Database size={12} className="text-indigo-500/50" />
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest truncate">{data?.category || "General"}</span>
+            </div>
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-white/[0.03] border border-white/5 rounded-lg flex-1 sm:flex-none justify-center">
+                <Clock size={12} className="text-indigo-500/50" />
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest truncate">{data?.durationMinutes ?? 0} MINS</span>
+            </div>
+          </div>
         </div>
 
         {/* ANALYTICS GRID - PREMIUM COMMAND CENTER STYLE */}
@@ -159,7 +162,7 @@ export default function AdminAnalytics() {
               >
                   <div className="group-hover:opacity-100 transition-opacity duration-700" style={{ opacity: 0.8 }}>
                     {React.cloneElement(s.icon, { 
-                        size: 140,
+                        size: window.innerWidth < 640 ? 100 : 140,
                         className: "transition-all duration-700 group-hover:scale-110 group-hover:drop-shadow-[0_0_40px_currentColor]"
                     })}
                   </div>
@@ -183,8 +186,8 @@ export default function AdminAnalytics() {
               </div>
               
               {/* MIDDLE: VALUE */}
-              <div className="relative z-10 my-6">
-                  <h2 className="text-6xl font-black text-white tabular-nums tracking-tighter leading-none">
+              <div className="relative z-10 my-3 sm:my-6">
+                  <h2 className="text-4xl sm:text-6xl font-black text-white tabular-nums tracking-tighter leading-none">
                       {s.value}
                   </h2>
               </div>

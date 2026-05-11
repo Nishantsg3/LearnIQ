@@ -57,104 +57,104 @@ function AppContent() {
         onSave={() => setIsProfileOpen(false)}
       />
 
-      <Routes>
-        {/* Public routes */}
-        <Route path="/" element={<Navigate to="/login" />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/verify-otp" element={<OtpVerification />} />
-        <Route path="/admin-access" element={<AdminLogin />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
+      <div className={`${user?.role === 'ADMIN' ? 'admin-theme' : 'student-theme'} min-h-screen flex flex-col`}>
+        <Routes>
+          {/* Public routes */}
+          <Route path="/" element={<Navigate to="/login" />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/verify-otp" element={<OtpVerification />} />
+          <Route path="/admin-access" element={<AdminLogin />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password/:token" element={<ResetPassword />} />
 
-        {/* ── STUDENT ROUTES (requiredRole="STUDENT") ─────────────────────── */}
-        <Route path="/student/dashboard" element={
-          <ProtectedRoute requiredRole="STUDENT">{withLayout(<StudentDashboard />)}</ProtectedRoute>
-        } />
-        <Route path="/student/section1" element={
-          <ProtectedRoute requiredRole="STUDENT">{withLayout(<PracticePage />)}</ProtectedRoute>
-        } />
-        <Route path="/student/section2" element={
-          <ProtectedRoute requiredRole="STUDENT">{withLayout(<MainTestsPage />)}</ProtectedRoute>
-        } />
-        <Route path="/student/results" element={
-          <ProtectedRoute requiredRole="STUDENT">{withLayout(<ResultsPage />)}</ProtectedRoute>
-        } />
-        <Route path="/student/progress" element={
-          <ProtectedRoute requiredRole="STUDENT">{withLayout(<ProgressPage />)}</ProtectedRoute>
-        } />
+          {/* ── STUDENT ROUTES (requiredRole="STUDENT") ─────────────────────── */}
+          <Route path="/student/dashboard" element={
+            <ProtectedRoute requiredRole="STUDENT">{withLayout(<StudentDashboard />)}</ProtectedRoute>
+          } />
+          <Route path="/student/section1" element={
+            <ProtectedRoute requiredRole="STUDENT">{withLayout(<PracticePage />)}</ProtectedRoute>
+          } />
+          <Route path="/student/section2" element={
+            <ProtectedRoute requiredRole="STUDENT">{withLayout(<MainTestsPage />)}</ProtectedRoute>
+          } />
+          <Route path="/student/results" element={
+            <ProtectedRoute requiredRole="STUDENT">{withLayout(<ResultsPage />)}</ProtectedRoute>
+          } />
+          <Route path="/student/progress" element={
+            <ProtectedRoute requiredRole="STUDENT">{withLayout(<ProgressPage />)}</ProtectedRoute>
+          } />
 
+          <Route path="/student-dashboard" element={<Navigate to="/student/dashboard" replace />} />
 
+          <Route path="/attempt/:attemptId" element={
+            <ProtectedRoute requiredRole="STUDENT"><TestAttempt /></ProtectedRoute>
+          } />
 
-        <Route path="/student-dashboard" element={<Navigate to="/student/dashboard" replace />} />
+          <Route path="/student/test/:id" element={
+            <ProtectedRoute requiredRole="STUDENT"><StudentTest /></ProtectedRoute>
+          } />
 
-        <Route path="/attempt/:attemptId" element={
-          <ProtectedRoute requiredRole="STUDENT"><TestAttempt /></ProtectedRoute>
-        } />
+          <Route path="/results/:attemptId" element={
+            <ProtectedRoute requiredRole="STUDENT">{withLayout(<TestResultView />)}</ProtectedRoute>
+          } />
 
-        <Route path="/student/test/:id" element={
-          <ProtectedRoute requiredRole="STUDENT"><StudentTest /></ProtectedRoute>
-        } />
+          <Route path="/review/:attemptId" element={
+            <ProtectedRoute requiredRole="STUDENT"><TestReview /></ProtectedRoute>
+          } />
 
-        <Route path="/results/:attemptId" element={
-          <ProtectedRoute requiredRole="STUDENT">{withLayout(<TestResultView />)}</ProtectedRoute>
-        } />
+          {/* ── ADMIN ROUTES (requiredRole="ADMIN") ──────────────────────────── */}
+          <Route path="/admin/dashboard" element={
+            <ProtectedRoute requiredRole="ADMIN">{withLayout(<AdminDashboard />)}</ProtectedRoute>
+          } />
 
-        <Route path="/review/:attemptId" element={
-          <ProtectedRoute requiredRole="STUDENT"><TestReview /></ProtectedRoute>
-        } />
+          <Route path="/admin-dashboard" element={<Navigate to="/admin/dashboard" replace />} />
 
-        {/* ── ADMIN ROUTES (requiredRole="ADMIN") ──────────────────────────── */}
-        <Route path="/admin/dashboard" element={
-          <ProtectedRoute requiredRole="ADMIN">{withLayout(<AdminDashboard />)}</ProtectedRoute>
-        } />
+          <Route path="/admin/tests" element={<Navigate to="/admin/tests/active" replace />} />
+          <Route path="/admin/tests/active" element={
+            <ProtectedRoute requiredRole="ADMIN">{withLayout(<AdminTestList />)}</ProtectedRoute>
+          } />
+          <Route path="/admin/tests/create" element={
+            <ProtectedRoute requiredRole="ADMIN">{withLayout(<AdminTestMaker />)}</ProtectedRoute>
+          } />
+          <Route path="/admin/tests/history" element={
+            <ProtectedRoute requiredRole="ADMIN">{withLayout(<AdminTestHistory />)}</ProtectedRoute>
+          } />
+          <Route path="/admin/tests/edit/:id" element={
+            <ProtectedRoute requiredRole="ADMIN">{withLayout(<AdminTestEdit />)}</ProtectedRoute>
+          } />
 
-        <Route path="/admin-dashboard" element={<Navigate to="/admin/dashboard" replace />} />
+          <Route path="/admin/tests/:testId/questions" element={
+            <ProtectedRoute requiredRole="ADMIN">{withLayout(<QuestionManager />)}</ProtectedRoute>
+          } />
 
-        <Route path="/admin/tests" element={<Navigate to="/admin/tests/active" replace />} />
-        <Route path="/admin/tests/active" element={
-          <ProtectedRoute requiredRole="ADMIN">{withLayout(<AdminTestList />)}</ProtectedRoute>
-        } />
-        <Route path="/admin/tests/create" element={
-          <ProtectedRoute requiredRole="ADMIN">{withLayout(<AdminTestMaker />)}</ProtectedRoute>
-        } />
-        <Route path="/admin/tests/history" element={
-          <ProtectedRoute requiredRole="ADMIN">{withLayout(<AdminTestHistory />)}</ProtectedRoute>
-        } />
-        <Route path="/admin/tests/edit/:id" element={
-          <ProtectedRoute requiredRole="ADMIN">{withLayout(<AdminTestEdit />)}</ProtectedRoute>
-        } />
+          <Route path="/admin/tests/:testId/analytics" element={
+            <ProtectedRoute requiredRole="ADMIN">{withLayout(<AdminAnalytics />)}</ProtectedRoute>
+          } />
 
-        <Route path="/admin/tests/:testId/questions" element={
-          <ProtectedRoute requiredRole="ADMIN">{withLayout(<QuestionManager />)}</ProtectedRoute>
-        } />
+          <Route path="/admin/tests/:testId/leaderboard" element={
+            <ProtectedRoute requiredRole="ADMIN">{withLayout(<AdminTestLeaderboard />)}</ProtectedRoute>
+          } />
 
-        <Route path="/admin/tests/:testId/analytics" element={
-          <ProtectedRoute requiredRole="ADMIN">{withLayout(<AdminAnalytics />)}</ProtectedRoute>
-        } />
+          <Route path="/admin/students" element={
+            <ProtectedRoute requiredRole="ADMIN">{withLayout(<AdminStudents />)}</ProtectedRoute>
+          } />
 
-        <Route path="/admin/tests/:testId/leaderboard" element={
-          <ProtectedRoute requiredRole="ADMIN">{withLayout(<AdminTestLeaderboard />)}</ProtectedRoute>
-        } />
+          <Route path="/admin/questions" element={
+            <ProtectedRoute requiredRole="ADMIN">{withLayout(<QuestionBank />)}</ProtectedRoute>
+          } />
 
-        <Route path="/admin/students" element={
-          <ProtectedRoute requiredRole="ADMIN">{withLayout(<AdminStudents />)}</ProtectedRoute>
-        } />
+          <Route path="/admin/leaderboard" element={
+            <ProtectedRoute requiredRole="ADMIN">{withLayout(<AdminReportList mode="LEADERBOARD" />)}</ProtectedRoute>
+          } />
 
-        <Route path="/admin/questions" element={
-          <ProtectedRoute requiredRole="ADMIN">{withLayout(<QuestionBank />)}</ProtectedRoute>
-        } />
+          <Route path="/admin/analytics" element={
+            <ProtectedRoute requiredRole="ADMIN">{withLayout(<AdminReportList mode="ANALYTICS" />)}</ProtectedRoute>
+          } />
 
-        <Route path="/admin/leaderboard" element={
-          <ProtectedRoute requiredRole="ADMIN">{withLayout(<AdminReportList mode="LEADERBOARD" />)}</ProtectedRoute>
-        } />
-
-        <Route path="/admin/analytics" element={
-          <ProtectedRoute requiredRole="ADMIN">{withLayout(<AdminReportList mode="ANALYTICS" />)}</ProtectedRoute>
-        } />
-
-        <Route path="*" element={<Navigate to="/login" />} />
-      </Routes>
+          <Route path="*" element={<Navigate to="/login" />} />
+        </Routes>
+      </div>
     </BrowserRouter>
   );
 }

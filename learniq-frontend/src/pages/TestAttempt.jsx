@@ -115,7 +115,6 @@ const TestAttempt = () => {
           // Auto-submit using ref values (not stale state)
           if (!submittingRef.current) {
             submittingRef.current = true;
-            console.log("AUTO-SUBMIT PAYLOAD:", answersRef.current);
             api.post(`/attempts/${attemptId}/submit`, answersRef.current)
               .then(res => {
                 toast.success('Time up — assessment auto-submitted');
@@ -148,7 +147,7 @@ const TestAttempt = () => {
     submittingRef.current = true;
     setSubmitting(true);
     try {
-      console.log("SUBMIT PAYLOAD:", answersRef.current);
+      // SUBMIT
       const res = await api.post(`/attempts/${attemptId}/submit`, answersRef.current);
       localStorage.removeItem(`test_answers_${testId}`);
       toast.success('Assessment completed');
@@ -237,7 +236,7 @@ const TestAttempt = () => {
                   <button 
                     key={i}
                     onClick={() => setCurrentIndex(i)}
-                    className={`h-11 rounded-lg text-xs font-black transition-all border-2
+                    className={`h-11 w-11 rounded-full text-xs font-black transition-all border-2
                       ${isCurrent ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-600/20 -translate-y-0.5' : 
                         isAnswered ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:border-emerald-500' : 
                         'bg-slate-900/50 border-[#1f2937] text-slate-500 hover:border-slate-700'}
@@ -291,7 +290,7 @@ const TestAttempt = () => {
                       <button 
                         key={opt}
                         onClick={() => updateAnswers({...answersRef.current, [currentQ.id]: opt})}
-                        className={`w-full flex items-center gap-6 p-6 rounded-2xl border-2 transition-all text-left group relative overflow-hidden
+                        className={`w-full flex items-center gap-6 p-6 rounded-full border-2 transition-all text-left group relative overflow-hidden
                           ${isSelected 
                             ? 'bg-indigo-600/10 border-indigo-500 text-indigo-50 shadow-md' 
                             : 'bg-slate-900 border-[#1f2937] text-slate-400 hover:border-slate-700'

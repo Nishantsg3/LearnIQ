@@ -58,12 +58,14 @@ function AdminLogin() {
   return (
     <AuthLayout 
       panelColor={ADMIN_COLOR}
+      accentColor={ADMIN_ACCENT}
+      showMobileDecorations={true}
       title={<>SHAPING THE<br /><span style={{ color: 'rgba(255,255,255,0.45)' }}>FUTURE.</span></>}
       description={<>EMPOWERING EDUCATORS WITH PRECISION<br />INSIGHTS TO DRIVE ACADEMIC EXCELLENCE<br />AND SYSTEMIC GROWTH.</>}
     >
 
       {/* Admin badge */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
         <div
           style={{
             width: 36,
@@ -115,8 +117,8 @@ function AdminLogin() {
           fontWeight: 700,
           letterSpacing: '0.15em',
           textTransform: 'uppercase',
-          marginTop: 6,
-          marginBottom: 20,
+          marginTop: 4,
+          marginBottom: 16,
         }}
       >
         SIGN IN TO ADMIN CONSOLE
@@ -129,7 +131,7 @@ function AdminLogin() {
           <input
             type="email"
             style={{ ...inputStyle, padding: '14px 20px' }}
-            placeholder="admin@learniq.com"
+            placeholder="Enter your admin email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             onFocus={(e) => (e.target.style.borderColor = `${ADMIN_ACCENT}60`)}
@@ -180,25 +182,7 @@ function AdminLogin() {
         <button
           type="submit"
           disabled={isLoggingIn}
-          className="admin-btn"
-          style={{
-            width: '100%',
-            background: ADMIN_COLOR,
-            border: `1px solid ${ADMIN_ACCENT}40`,
-            borderRadius: 12,
-            padding: '14px 20px',
-            color: '#fff',
-            fontSize: 16,
-            fontWeight: 700,
-            cursor: isLoggingIn ? 'not-allowed' : 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
-            transition: 'all 0.2s',
-            opacity: isLoggingIn ? 0.7 : 1,
-            boxShadow: `0 4px 14px 0 rgba(0,0,0,0.4)`,
-          }}
+          className="btn-primary w-full py-4 mt-4"
         >
           {isLoggingIn ? (
             <div
@@ -258,7 +242,7 @@ function AdminLogin() {
           background: #16143c !important;
           transform: translateY(0px);
         }
-        input::placeholder { color: #444; }
+        input::placeholder { color: #2a2a30; }
       `}</style>
     </AuthLayout>
   );

@@ -35,16 +35,16 @@ public class SecurityConfig {
                         .requestMatchers("/", "/api/v1/auth/**").permitAll()
 
                         // TESTS
-                        .requestMatchers(HttpMethod.GET, "/api/v1/tests/**").hasAnyRole("ADMIN", "STUDENT")
-                        .requestMatchers(HttpMethod.POST, "/api/v1/tests/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/v1/tests/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/v1/tests/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/tests", "/api/v1/tests/**").hasAnyRole("ADMIN", "STUDENT")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/tests", "/api/v1/tests/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/tests", "/api/v1/tests/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/tests", "/api/v1/tests/**").hasRole("ADMIN")
 
                         // QUESTIONS
-                        .requestMatchers(HttpMethod.GET, "/api/v1/questions/**").hasAnyRole("ADMIN", "STUDENT")
-                        .requestMatchers(HttpMethod.POST, "/api/v1/questions/**").hasAnyRole("ADMIN", "STUDENT")
-                        .requestMatchers(HttpMethod.PUT, "/api/v1/questions/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/v1/questions/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/questions", "/api/v1/questions/**").hasAnyRole("ADMIN", "STUDENT")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/questions", "/api/v1/questions/**").hasAnyRole("ADMIN", "STUDENT")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/questions", "/api/v1/questions/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/questions", "/api/v1/questions/**").hasRole("ADMIN")
 
                         // 🔥 ATTEMPTS (ALLOW STUDENT & ADMIN ACCESS)
                         .requestMatchers("/api/v1/attempts/**").hasAnyRole("STUDENT", "ADMIN")

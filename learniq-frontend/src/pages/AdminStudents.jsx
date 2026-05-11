@@ -107,43 +107,64 @@ const AdminStudents = () => {
             <p className="text-white/20 text-[9px] font-bold uppercase tracking-[0.3em]">Governance & User Access</p>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 min-w-0 shrink-0 ml-auto md:ml-0">
             <button
               onClick={fetchStudents}
-              className="px-5 py-4 bg-white/5 hover:bg-white/10 text-white/40 border border-white/10 rounded-2xl transition-all group shrink-0"
-              title="Refresh Directory"
+              className={`w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-[#111118] border border-white/10 text-white/30 hover:text-white hover:bg-violet-600/20 hover:border-violet-500/40 transition-all shrink-0 flex items-center justify-center relative ${loading ? 'cursor-wait' : 'cursor-pointer'}`}
+              title="Refresh"
             >
-              <RotateCw size={14} className={loading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'} />
+              <RotateCw size={14} sm:size={20} className={loading ? 'animate-spin' : ''} />
             </button>
-            <div className="relative group hidden lg:block">
-              <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-violet-500 transition-colors" />
-              <input
-                type="text"
-                placeholder="SEARCH REGISTRY..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="bg-[#0f0f14] border border-white/5 rounded-2xl pl-10 pr-4 py-4 text-[10px] font-black uppercase tracking-widest text-white outline-none focus:border-violet-500/30 transition-all w-64 placeholder:text-white/5"
-              />
-            </div>
             <BackToDashboard />
           </div>
         </div>
 
         {/* Stats Quickbar - DETERMINISTIC ONLY */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="px-6 py-5 bg-[#0a0a0f] border border-white/5 rounded-2xl flex items-center gap-5 shadow-xl">
-            <div className="w-10 h-10 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-400">
-              <Users size={18} strokeWidth={2.5} />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+          <div className="px-4 sm:px-6 py-4 sm:py-5 bg-[#0a0a0f] border border-white/5 rounded-2xl flex items-center gap-3 sm:gap-5 shadow-xl">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-400">
+              <Users size={16} sm:size={18} strokeWidth={2.5} />
             </div>
             <div>
-              <p className="text-[8px] font-black text-white/20 uppercase tracking-[0.2em]">Total Students</p>
-              <p className="text-lg font-black text-white tabular-nums tracking-tighter mt-0.5">{students.length}</p>
+              <p className="text-[7px] sm:text-[8px] font-black text-white/20 uppercase tracking-[0.2em]">Total Students</p>
+              <p className="text-base sm:text-lg font-black text-white tabular-nums tracking-tighter mt-0.5">{students.length}</p>
             </div>
           </div>
         </div>
 
-        {/* Main Table Container */}
-        <div className="bg-[#0a0a0f] border border-white/5 rounded-2xl overflow-hidden shadow-2xl">
+        {/* Mobile View: Cards */}
+        <div className="lg:hidden grid grid-cols-1 gap-4">
+          {filteredStudents.length > 0 ? filteredStudents.map((student) => (
+            <div key={student.id} className="bg-[#0a0a0f] border border-white/10 rounded-2xl p-4 flex items-center justify-between group">
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${getGradient(student.name)} flex items-center justify-center text-sm font-black text-white shadow-lg`}>
+                  {student.name?.charAt(0).toUpperCase()}
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[11px] font-black text-white uppercase tracking-widest">{student.name}</span>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <ShieldCheck size={8} className="text-violet-500/50" />
+                    <span className="text-[8px] font-black text-white/20 uppercase tracking-widest">Candidate Signature</span>
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedStudent(student)}
+                className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/40"
+              >
+                <Info size={16} />
+              </button>
+            </div>
+          )) : (
+            <div className="py-20 text-center opacity-20">
+              <Users size={40} className="mx-auto mb-4" />
+              <p className="text-[10px] font-black uppercase tracking-widest">No Results</p>
+            </div>
+          )}
+        </div>
+
+        {/* Desktop View: Table */}
+        <div className="hidden lg:block bg-[#0a0a0f] border border-white/5 rounded-2xl overflow-hidden shadow-2xl">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead className="bg-black/20 border-b border-white/5">
@@ -188,7 +209,7 @@ const AdminStudents = () => {
                     <td className="px-6 py-5 text-center">
                       <button
                         onClick={() => setSelectedStudent(student)}
-                        className="p-2.5 bg-white/5 text-white/20 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+                        className="icon-pill bg-white/5 text-white/20 hover:text-white hover:bg-white/10"
                         title="View Profile"
                       >
                         <Info size={14} />
@@ -271,13 +292,13 @@ const AdminStudents = () => {
               <div className="mt-10 flex gap-4">
                 <button
                   onClick={() => setSelectedStudent(null)}
-                  className="flex-1 py-4 bg-white/5 hover:bg-white/10 text-white/40 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all"
+                  className="btn-secondary flex-1 py-4"
                 >
                   Close Profile
                 </button>
                 <button
                   onClick={() => setShowDeleteConfirm(true)}
-                  className="flex-[2] py-4 bg-rose-500 hover:bg-rose-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl transition-all active:scale-95"
+                  className="btn-danger flex-[2] py-4"
                 >
                   Delete Profile
                 </button>
