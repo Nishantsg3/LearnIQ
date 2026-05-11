@@ -255,13 +255,8 @@ public class AuthController {
     public ResponseEntity<?> testEmail(@RequestParam String email) {
         log.info("[AUTH] Manual test email requested for: {}", email);
         try {
-            boolean sent = emailService.sendResetPasswordEmail(email, frontendUrl + "/reset-password/test-token");
-            if (sent) {
-                return ResponseEntity.ok(Map.of("message", "Test email sent successfully to " + email));
-            } else {
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                        .body(Map.of("message", "EmailService reported failure. Check logs."));
-            }
+            emailService.sendTestEmail(email);
+            return ResponseEntity.ok(Map.of("message", "Test email sent successfully to " + email));
         } catch (Exception e) {
             log.error("[AUTH] Test email failed: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
