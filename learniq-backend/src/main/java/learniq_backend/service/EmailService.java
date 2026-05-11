@@ -26,7 +26,7 @@ public class EmailService {
     private static final String DARK_BG = "#0d0d10";
     private static final String CARD_BG = "#16161a";
 
-    private void sendHtmlEmail(String toEmail, String subject, String htmlBody) {
+    private boolean sendHtmlEmail(String toEmail, String subject, String htmlBody) {
         log.info("[MAIL] Attempting to send email to: {}, Subject: {}", toEmail, subject);
         try {
             MimeMessage message = mailSender.createMimeMessage();
@@ -39,8 +39,10 @@ public class EmailService {
 
             mailSender.send(message);
             log.info("[MAIL] Email sent successfully to: {}", toEmail);
+            return true;
         } catch (Exception e) {
             log.error("[MAIL] CRITICAL FAILURE sending email to: {}. Error: {}", toEmail, e.getMessage(), e);
+            return false;
         }
     }
 
@@ -61,7 +63,7 @@ public class EmailService {
                "</div></body></html>";
     }
 
-    public void sendRegistrationOtpEmail(String toEmail, String otp) {
+    public boolean sendRegistrationOtpEmail(String toEmail, String otp) {
         String content = "<h2 style=\"margin: 0 0 20px; font-size: 22px;\">Verify Your Account</h2>" +
                          "<p style=\"color: rgba(255,255,255,0.6); line-height: 1.6; margin-bottom: 30px;\">Welcome to LearnIQ! Use the verification code below to complete your registration.</p>" +
                          "<div style=\"background: rgba(139, 92, 246, 0.1); border: 1px solid " + BRAND_COLOR + "; border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 30px;\">" +
@@ -69,10 +71,10 @@ public class EmailService {
                          "</div>" +
                          "<p style=\"color: rgba(255,255,255,0.4); font-size: 13px;\">This code will expire in 5 minutes.</p>";
         
-        sendHtmlEmail(toEmail, "Verify Your LearnIQ Account", getBaseTemplate(content));
+        return sendHtmlEmail(toEmail, "Verify Your LearnIQ Account", getBaseTemplate(content));
     }
 
-    public void sendResetPasswordEmail(String toEmail, String resetLink) {
+    public boolean sendResetPasswordEmail(String toEmail, String resetLink) {
         String content = "<h2 style=\"margin: 0 0 20px; font-size: 22px;\">Reset Your Password</h2>" +
                          "<p style=\"color: rgba(255,255,255,0.6); line-height: 1.6; margin-bottom: 30px;\">We received a request to reset your LearnIQ password. Click the button below to proceed.</p>" +
                          "<div style=\"text-align: center; margin-bottom: 30px;\">" +
@@ -80,10 +82,10 @@ public class EmailService {
                          "</div>" +
                          "<p style=\"color: rgba(255,255,255,0.4); font-size: 13px;\">If you didn't request this, you can safely ignore this email.</p>";
         
-        sendHtmlEmail(toEmail, "Reset Your LearnIQ Password", getBaseTemplate(content));
+        return sendHtmlEmail(toEmail, "Reset Your LearnIQ Password", getBaseTemplate(content));
     }
 
-    public void sendTestResultEmail(String toEmail, String studentName, String testName, int score, int correct, int wrong, int rank, String timeTaken, String analysisLink) {
+    public boolean sendTestResultEmail(String toEmail, String studentName, String testName, int score, int correct, int wrong, int rank, String timeTaken, String analysisLink) {
         String content = "<h2 style=\"margin: 0 0 10px; font-size: 22px;\">Performance Summary</h2>" +
                          "<p style=\"color: " + BRAND_COLOR + "; font-weight: 700; margin-bottom: 25px; text-transform: uppercase; font-size: 12px; letter-spacing: 1px;\">" + testName + "</p>" +
                          "<p style=\"color: rgba(255,255,255,0.6); line-height: 1.6; margin-bottom: 30px;\">Hello " + studentName + ", your assessment is complete. Here is your preliminary result.</p>" +
@@ -98,7 +100,7 @@ public class EmailService {
                          "    <div style=\"font-size: 24px; font-weight: 900; color: " + BRAND_COLOR + ";\">#" + rank + "</div>" +
                          "  </div>" +
                          "</div>" +
-
+ 
                          "<div style=\"margin-bottom: 30px;\">" +
                          "  <div style=\"display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 13px;\">" +
                          "    <span style=\"color: rgba(255,255,255,0.5);\">Correct Answers</span>" +
@@ -113,11 +115,11 @@ public class EmailService {
                          "    <span style=\"color: #ffffff; font-weight: 700;\">" + timeTaken + "</span>" +
                          "  </div>" +
                          "</div>" +
-
+ 
                          "<div style=\"text-align: center; margin-bottom: 10px;\">" +
                          "  <a href=\"" + analysisLink + "\" style=\"background-color: " + BRAND_COLOR + "; color: #ffffff; padding: 14px 28px; border-radius: 50px; text-decoration: none; font-weight: 700; font-size: 14px; display: inline-block;\">VIEW DETAILED ANALYSIS</a>" +
                          "</div>";
         
-        sendHtmlEmail(toEmail, "Test Result: " + testName, getBaseTemplate(content));
+        return sendHtmlEmail(toEmail, "Test Result: " + testName, getBaseTemplate(content));
     }
 }
