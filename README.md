@@ -71,8 +71,8 @@ npm run dev
 *   **Start Command:** `java -jar target/*.jar`
 *   **Environment Variables:**
     *   `SPRING_PROFILES_ACTIVE`: `prod`
-    *   `MAIL_USERNAME`: Gmail address
-    *   `MAIL_PASSWORD`: Gmail App Password
+    *   `MAIL_USERNAME`: Brevo SMTP Login (usually an email)
+    *   `MAIL_PASSWORD`: Brevo SMTP Key / Password
     *   `SPRING_DATASOURCE_URL`: PostgreSQL JDBC URL
     *   `SPRING_DATASOURCE_USERNAME`: DB Username
     *   `SPRING_DATASOURCE_PASSWORD`: DB Password
