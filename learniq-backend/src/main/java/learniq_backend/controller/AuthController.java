@@ -254,13 +254,21 @@ public class AuthController {
     @PostMapping("/test-email")
     public ResponseEntity<?> testEmail(@RequestParam String email) {
         log.info("[AUTH] Manual test email requested for: {}", email);
+        String host = emailService.getMailHost();
+        String port = emailService.getMailPort();
         try {
             emailService.sendTestEmail(email);
-            return ResponseEntity.ok(Map.of("message", "Test email sent successfully to " + email));
+            return ResponseEntity.ok(Map.of(
+                "message", "Test email sent successfully to " + email,
+                "active_config", "Host: " + host + ", Port: " + port
+            ));
         } catch (Exception e) {
             log.error("[AUTH] Test email failed: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("message", "Test email failed: " + e.getMessage()));
+                    .body(Map.of(
+                        "message", "Test email failed: " + e.getMessage(),
+                        "active_config", "Host: " + host + ", Port: " + port
+                    ));
         }
     }
 
