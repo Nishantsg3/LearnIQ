@@ -1,107 +1,125 @@
-# LearnIQ - Modern Assessment Platform
+# LearnIQ — Research-Grade Assessment Platform
 
-LearnIQ is a full-stack assessment platform designed to simulate real-world testing environments for students while providing powerful control and analytics for administrators.
+![LearnIQ Cover](https://via.placeholder.com/1200x600/0d0d10/8b5cf6?text=LearnIQ+Assessment+Platform)
 
-## 🚀 Key Features
+LearnIQ is a high-fidelity, enterprise-grade assessment ecosystem designed for precision testing and deep academic analytics. Built with a futuristic, dark-themed aesthetic, it provides a premium experience for both educators and students.
 
-### 👨‍🎓 Student Features
-- **Practice Tests**: Self-paced assessments to improve skills.
-- **Main Exams**: Official timed assessments with secure submission.
-- **Result Analytics**: Detailed breakdown of performance and answer keys.
-- **Progress Tracking**: Visual representation of learning journey.
-- **Modern UI**: Clean, intuitive interface with dark mode support.
+## 🚀 Live Demo & Deployment
 
-### 👨‍💼 Admin Features
-- **Test Management**: Create, edit, and manage assessments easily.
-- **Question Bank**: Centralized repository for assessment content.
-- **Real-time Analytics**: Insights into student performance and test trends.
-- **Student Management**: Oversee student progress and results.
-- **System Hardening**: Robust security and session management.
+*   **Frontend:** [Vercel Deployment](https://learniq-frontend.vercel.app)
+*   **Backend:** [Render Hosting](https://learniq-backend.onrender.com)
+*   **Database:** [Neon PostgreSQL](https://neon.tech)
 
-## 🛠️ Tech Stack
+## ✨ Core Features
 
-- **Frontend**: React.js, Vite, Tailwind CSS, Lucide Icons, Axios.
-- **Backend**: Spring Boot (Java), Spring Security, JPA/Hibernate.
-- **Database**: H2 (Development), PostgreSQL/MySQL (Production ready).
-- **Authentication**: JWT (JSON Web Tokens).
+### 👨‍🎓 Student Experience
+*   **Dynamic Dashboard:** Real-time progress tracking and upcoming assessments.
+*   **High-Fidelity Testing:** Secure, synchronized test environment with auto-save and proctor-ready logic.
+*   **Deep Analysis:** Automated performance summaries with rank calculation, duration tracking, and correct/wrong heatmaps.
+*   **Automated Results:** Instant branded HTML reports delivered directly to the student's inbox.
+
+### 👩‍💼 Admin Intelligence
+*   **Test Lifecycle Management:** Create, schedule, and live-monitor assessments with granular control.
+*   **Question Bank:** Modular repository for managing complex questions with multi-option support.
+*   **Academic Analytics:** Comprehensive data visualization for test scores, leaderboards, and student engagement.
+*   **Premium Controls:** Role-based access control with secure identity verification.
+
+## 🛠️ Technology Stack
+
+*   **Frontend:** React 18, Vite, Lucide Icons, Vanilla CSS (Premium Dark System)
+*   **Backend:** Java 17, Spring Boot 3, Spring Security, JWT (Token-based Auth)
+*   **Email Engine:** JavaMail (Gmail SMTP Integration) with HTML Template System
+*   **Database:** PostgreSQL (Production), H2 (Local Development)
+*   **Deployment:** Vercel (Frontend), Render (Backend), Neon (Database)
+
+## 🏗️ Architecture Overview
+
+LearnIQ follows a decoupled, stateless architecture ensuring maximum scalability:
+1.  **Frontend:** Single Page Application (SPA) communicating via a secure REST API.
+2.  **Backend:** Modular Spring Boot service layer with JWT-based stateless authentication.
+3.  **Data Layer:** JPA/Hibernate for database abstraction with profile-based storage logic.
 
 ## 📸 Screenshots
-*(Placeholders for future screenshots)*
 
----
+| Login Portal | Student Dashboard | Test Environment |
+| :--- | :--- | :--- |
+| ![Login](https://via.placeholder.com/400x300/0d0d10/8b5cf6?text=Login+Portal) | ![Dashboard](https://via.placeholder.com/400x300/0d0d10/8b5cf6?text=Dashboard) | ![Testing](https://via.placeholder.com/400x300/0d0d10/8b5cf6?text=Testing+UI) |
 
-## 🛠️ Setup Instructions
-
-### Prerequisites
-- Node.js (v18+)
-- Java JDK 17+
-- Maven
+## ⚙️ Local Setup
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/your-username/learniq.git
-cd learniq
+git clone https://github.com/Nishantsg3/LearnIQ.git
+cd LearnIQ
 ```
 
 ### 2. Backend Setup
+1.  Navigate to `learniq-backend`.
+2.  Create a `.env` file based on `.env.example`.
+3.  Configure your **Gmail App Password** for SMTP.
+4.  Run the application:
 ```bash
-cd learniq-backend
-# Copy env example
-cp .env.example .env
-# Install dependencies and run
-./mvnw spring-boot:run
+mvn spring-boot:run
 ```
 
 ### 3. Frontend Setup
+1.  Navigate to `learniq-frontend`.
+2.  Install dependencies:
 ```bash
-cd learniq-frontend
-# Copy env example
-cp .env.example .env
-# Install dependencies
 npm install
-# Run development server
+```
+3.  Run the dev server:
+```bash
 npm run dev
 ```
 
-## ⚙️ Environment Variables
+## 🚀 Render Deployment Guide
 
-### Backend (`learniq-backend/.env`)
-- `SPRING_DATASOURCE_URL`: Database connection URL.
-- `APP_JWT_SECRET`: Secret key for JWT signing.
-- `APP_SEED_ADMIN_EMAIL`: Initial admin account email.
+LearnIQ is optimized for zero-config deployment on **Render**.
 
-### Frontend (`learniq-frontend/.env`)
-- `VITE_API_URL`: The base URL for the backend API (e.g., `http://localhost:8080/api/v1`).
+### 1. Frontend (Static Site)
+*   **Root Directory:** `learniq-frontend`
+*   **Build Command:** `npm install && npm run build`
+*   **Publish Directory:** `dist`
+*   **Redirects/Rewrites:** 
+    *   Source: `/*`
+    *   Destination: `/index.html`
+    *   Action: `Rewrite`
+*   **Env Vars:** 
+    *   `VITE_API_URL`: Your deployed backend URL (e.g., `https://learniq-backend.onrender.com/api/v1`)
 
-## 📂 Folder Structure
+### 2. Backend (Web Service)
+*   **Root Directory:** `learniq-backend`
+*   **Runtime:** `Java`
+*   **Build Command:** `mvn clean package -DskipTests`
+*   **Start Command:** `java -jar target/*.jar`
+*   **Env Vars:**
+    *   `SPRING_PROFILES_ACTIVE`: `prod`
+    *   `MAIL_USERNAME`: Your Gmail address
+    *   `MAIL_PASSWORD`: Your Gmail App Password
+    *   `APP_JWT_SECRET`: A long random string
+    *   `SPRING_DATASOURCE_URL`: PostgreSQL JDBC URL (from Neon)
+    *   `SPRING_DATASOURCE_USERNAME`: DB Username
+    *   `SPRING_DATASOURCE_PASSWORD`: DB Password
 
-```text
-LearnIQ/
-├── learniq-backend/     # Spring Boot application
-│   ├── src/             # Source code
-│   ├── pom.xml          # Maven dependencies
-│   └── Dockerfile       # Containerization config
-├── learniq-frontend/    # React application (Vite)
-│   ├── src/             # Components and logic
-│   ├── public/          # Static assets
-│   └── package.json     # Node dependencies
-└── render.yaml          # Deployment configuration
-```
+## 📬 SMTP Configuration
 
-## 🔮 Future Improvements
-- [ ] AI-driven question generation.
-- [ ] Proctoring integration (camera/tab-switch detection).
-- [ ] Multi-language support (i18n).
-- [ ] Advanced performance charts for students.
+LearnIQ uses **Gmail SMTP** for free production email delivery. 
+1.  Go to your Google Account Settings.
+2.  Enable 2FA.
+3.  Search for **App Passwords**.
+4.  Generate a "Mail" password and add it to your `.env` as `MAIL_PASSWORD`.
+
+## 🗺️ Roadmap
+
+- [ ] PDF Scorecard Generation
+- [ ] AI-Powered Question Recommendations
+- [ ] Advanced Proctoring with Tab-Switch Detection
+- [ ] Excel/CSV Bulk Question Import
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
-
-## 👨‍💻 Author
-
-**Nishant Gawande**  
-Electronics & Telecommunication Engineer | Full Stack Developer  
-
-- Built LearnIQ as a complete end-to-end assessment platform.
-- Focused on scalable architecture, clean UI/UX, and real-world usability.
-
----
+**Built with precision by LearnIQ Engineering.**

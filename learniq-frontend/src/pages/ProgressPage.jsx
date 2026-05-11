@@ -81,16 +81,16 @@ const ProgressPage = () => {
   );
 
   return (
-    <div className="flex-1 flex flex-col bg-[#0a0a0f] min-h-0">
+    <div className="flex-1 flex flex-col bg-[#0a0a0f] min-h-0 relative">
       {/* HEADER */}
-      <div className="flex items-center justify-between p-10 border-b border-white/5 bg-[#0d0d12]/80 backdrop-blur-xl shrink-0 z-50 relative overflow-visible">
-        <div className="flex items-center gap-4">
-            <div className="w-1.5 h-8 bg-violet-500 rounded-full shadow-[0_0_20px_rgba(139,92,246,0.5)]" />
-            <h1 className="text-xl font-black text-white uppercase tracking-tight italic">Analytics Intelligence</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-6 lg:p-10 border-b border-white/5 bg-[#0d0d12]/80 backdrop-blur-xl shrink-0 z-30 relative overflow-visible gap-4 sm:gap-6">
+        <div className="flex items-center gap-3 sm:gap-4">
+            <div className="w-1 h-6 sm:w-1.5 sm:h-8 bg-violet-500 rounded-full shadow-[0_0_20px_rgba(139,92,246,0.5)]" />
+            <h1 className="text-lg sm:text-xl font-black text-white uppercase tracking-tight italic">Analytics Intelligence</h1>
         </div>
 
-        <div className="flex items-center gap-6">
-            <div className="relative w-64" onClick={(e) => e.stopPropagation()}>
+        <div className="flex flex-wrap items-center gap-4 sm:gap-6">
+            <div className="relative w-full sm:w-64" onClick={(e) => e.stopPropagation()}>
                 <div 
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                     className="w-full pl-10 pr-10 py-2.5 bg-white/[0.03] border border-white/5 rounded-full text-[10px] font-black uppercase tracking-widest text-slate-300 transition-all cursor-pointer hover:bg-white/5 flex items-center justify-between group"
@@ -134,7 +134,7 @@ const ProgressPage = () => {
 
             <button
                 onClick={() => navigate('/student/dashboard')}
-                className="flex items-center gap-2 px-8 py-3 bg-white/5 border border-white/10 rounded-full hover:bg-white/10 transition-all text-slate-400 hover:text-white group"
+                className="flex items-center justify-center gap-2 px-6 sm:px-8 py-3 bg-white/5 border border-white/10 rounded-full hover:bg-white/10 transition-all text-slate-400 hover:text-white group flex-1 sm:flex-none"
             >
                 <ArrowUpRight size={14} className="group-hover:rotate-45 transition-transform" />
                 <span className="text-[10px] font-black uppercase tracking-widest">Dashboard</span>
@@ -142,9 +142,9 @@ const ProgressPage = () => {
         </div>
       </div>
 
-      <div className="p-10 flex-1 flex flex-col min-h-0">
+      <div className="p-4 sm:p-6 lg:p-10 flex-1 flex flex-col min-h-0">
         {/* GRAPH SECTION */}
-        <div className="flex-1 bg-[#0d0d12] border border-white/5 rounded-[3rem] p-12 relative overflow-hidden shadow-inner flex flex-col">
+        <div className="flex-1 bg-[#0d0d12] border border-white/5 rounded-2xl sm:rounded-[3rem] p-6 sm:p-12 relative overflow-hidden shadow-inner flex flex-col">
             {!selectedTest || allAttempts.length === 0 ? (
                 <div className="flex-1 flex flex-col items-center justify-center text-center opacity-10">
                     <TrendingUp size={80} className="text-white mb-4" />

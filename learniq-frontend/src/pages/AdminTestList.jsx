@@ -137,30 +137,30 @@ const AdminTestList = () => {
             <p className="text-[#9ca3af] text-[9px] font-black uppercase tracking-[0.3em] mt-1">Modify core parameters and synchronization settings</p>
           </div>
           
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 min-w-0">
               <button 
                 onClick={() => navigate('/admin/tests/create')}
-                className="btn-white"
+                className="btn-white h-8 px-4 text-[10px]"
               >
                 <Plus size={14} />
-                New Assessment
+                New
               </button>
               <BackToDashboard />
           </div>
         </div>
         {searchParams.get('type') === 'all' && (
-          <div className="flex items-center gap-2 mb-10 bg-black/40 p-1 rounded-2xl border border-white/5 w-fit shadow-2xl backdrop-blur-md">
+          <div className="flex items-center gap-1 mb-10 bg-black/40 p-1 rounded-lg border border-white/5 w-fit shadow-2xl backdrop-blur-md">
             {['practice', 'main'].map(type => (
               <button
                 key={type}
                 onClick={() => setFilterType(type)}
-                className={`transition-all duration-500 ${
+                className={`px-6 py-2 rounded-md text-[10px] font-black uppercase tracking-widest transition-all duration-500 ${
                   filterType === type 
-                    ? 'btn-white scale-105 shadow-[0_10px_30px_rgba(255,255,255,0.1)]' 
-                    : 'btn-base text-slate-500 hover:text-white hover:bg-white/5'
+                    ? 'bg-white text-black scale-105 shadow-[0_10px_30px_rgba(255,255,255,0.1)] font-black' 
+                    : 'text-slate-500 hover:text-white hover:bg-white/5 font-bold'
                 }`}
               >
-                {type === 'practice' ? 'Practice Clusters' : 'Main Assessments'}
+                {type === 'practice' ? 'Practice' : 'Main'}
               </button>
             ))}
           </div>
@@ -228,17 +228,17 @@ const AssessmentCard = ({ test, navigate, deleteTest, archiveTest, isMain = fals
         {isMain ? <FileText size={18} /> : <Zap size={18} />}
       </div>
       <div className="flex gap-1.5 opacity-40 group-hover:opacity-100 transition-opacity">
-        <button onClick={() => navigate(`/admin/tests/edit/${test.id}`)} className="p-2 hover:bg-white/5 rounded-lg text-white/60 hover:text-white transition-all" title="Edit"><Edit2 size={14} /></button>
-        <button onClick={() => archiveTest(test.id)} className="p-2 hover:bg-amber-500/10 rounded-lg text-white/60 hover:text-amber-500 transition-all" title="Archive"><Archive size={14} /></button>
+        <button onClick={() => navigate(`/admin/tests/edit/${test.id}`)} className="icon-pill hover:bg-white/5 text-white/60 hover:text-white" title="Edit"><Edit2 size={14} /></button>
+        <button onClick={() => archiveTest(test.id)} className="icon-pill hover:bg-amber-500/10 text-white/60 hover:text-amber-500" title="Archive"><Archive size={14} /></button>
         {isMain ? (
           <>
-            <button onClick={() => navigate(`/admin/tests/${test.id}/leaderboard`)} className="p-2 hover:bg-white/5 rounded-lg text-white/60 hover:text-white transition-all" title="Leaderboard"><Trophy size={14} /></button>
-            <button onClick={() => navigate(`/admin/tests/${test.id}/analytics`)} className="p-2 hover:bg-white/5 rounded-lg text-white/60 hover:text-white transition-all" title="Analytics"><BarChart3 size={14} /></button>
+            <button onClick={() => navigate(`/admin/tests/${test.id}/leaderboard`)} className="icon-pill hover:bg-white/5 text-white/60 hover:text-white" title="Leaderboard"><Trophy size={14} /></button>
+            <button onClick={() => navigate(`/admin/tests/${test.id}/analytics`)} className="icon-pill hover:bg-white/5 text-white/60 hover:text-white" title="Analytics"><BarChart3 size={14} /></button>
           </>
         ) : (
-          <button onClick={() => navigate(`/admin/tests/${test.id}/questions`)} className="p-2 hover:bg-white/5 rounded-lg text-white/60 hover:text-white transition-all" title="Questions"><FileText size={14} /></button>
+          <button onClick={() => navigate(`/admin/tests/${test.id}/questions`)} className="icon-pill hover:bg-white/5 text-white/60 hover:text-white" title="Questions"><FileText size={14} /></button>
         )}
-        <button onClick={() => deleteTest(test.id)} className="p-2 hover:bg-rose-500/10 rounded-lg text-white/60 hover:text-rose-500 transition-all" title="Delete"><Trash2 size={14} /></button>
+        <button onClick={() => deleteTest(test.id)} className="icon-pill hover:bg-rose-500/10 text-white/60 hover:text-rose-500" title="Delete"><Trash2 size={14} /></button>
       </div>
     </div>
 

@@ -70,7 +70,7 @@ const MainLayout = ({ children, onProfileClick }) => {
   const { date, time, ampm } = formatDate(currentTime);
 
   return (
-    <div className="main-layout selection:bg-violet-500/30 min-h-screen bg-[#0d0d10]">
+    <div className={`main-layout selection:bg-violet-500/30 min-h-screen bg-[#0d0d10] ${user?.role === 'ADMIN' ? 'admin-theme' : 'student-theme'}`}>
       {/* SaaS Sidebar - Now Responsive */}
       <Sidebar 
         onProfileClick={onProfileClick} 
@@ -83,28 +83,28 @@ const MainLayout = ({ children, onProfileClick }) => {
         
         {/* Top Header - Studio Grade */}
         <header 
-          className="h-20 px-6 lg:px-10 flex items-center justify-between shrink-0 z-40 relative sticky top-0"
+          className="h-20 px-3 sm:px-6 lg:px-10 flex items-center justify-between shrink-0 z-40 relative sticky top-0"
           style={{ 
             background: '#0a0a0f',
             borderBottom: '1px solid rgba(255,255,255,0.02)'
           }}
         >
-          <div className="flex items-center gap-4 lg:gap-12">
+          <div className="flex items-center gap-2 sm:gap-4 lg:gap-12 min-w-0 flex-1">
             {/* MOBILE MENU TOGGLE */}
             <button 
               onClick={() => setIsSidebarOpen(true)}
-              className="lg:hidden w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-white transition-all active:scale-95"
+              className="lg:hidden w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-white transition-all active:scale-95"
             >
               <Menu size={20} />
             </button>
 
-            <div className="flex items-center gap-3">
-              <h1 className="text-[10px] lg:text-xs font-black uppercase tracking-[0.2em]">
+            <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">
+              <h1 className="text-[9px] sm:text-[10px] lg:text-xs font-black uppercase tracking-[0.2em] shrink-0">
                 <span className="text-white">LEARN</span>
                 <span className="text-violet-500">IQ</span>
               </h1>
-              <span className="text-white/10 font-thin text-xl select-none">/</span>
-              <h1 className="text-[10px] lg:text-sm font-black text-white uppercase tracking-[0.25em] truncate max-w-[150px] lg:max-w-none italic">
+              <span className="text-white/10 font-thin text-lg sm:text-xl select-none">/</span>
+              <h1 className="text-[9px] sm:text-[10px] lg:text-sm font-black text-white uppercase tracking-[0.2em] sm:tracking-[0.25em] truncate italic flex-1">
                 {getPageTitle()}
               </h1>
             </div>
@@ -123,32 +123,33 @@ const MainLayout = ({ children, onProfileClick }) => {
             </div>
           </div>
           
-          <div className="flex items-center gap-4 lg:gap-8">
-            <div className="flex items-center gap-2 lg:gap-4">
+          <div className="flex items-center gap-2 sm:gap-4 lg:gap-8 shrink-0">
+            <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-4">
               <button 
                 onClick={onProfileClick}
-                className="flex items-center gap-3 lg:gap-4 px-3 lg:px-5 py-2 lg:py-2.5 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all group/profile"
+                className="flex items-center justify-between gap-3 sm:gap-4 lg:gap-6 px-2 sm:px-6 py-2 rounded-md bg-white/5 border border-white/10 hover:bg-white/10 transition-all group/profile shadow-2xl min-w-0 sm:min-w-[180px] lg:min-w-[220px] relative overflow-hidden h-14"
               >
-                 <div className="text-right hidden sm:block">
-                   <p className="text-[10px] font-black text-white uppercase tracking-widest group-hover/profile:text-violet-400 transition-colors">
-                     {user?.name?.split(' ')[0]}
+                 <div className="absolute top-0 left-0 w-1 h-full bg-violet-600/40" />
+                 <div className="text-left hidden sm:block">
+                   <p className="text-[10px] font-black text-white uppercase tracking-[0.15em] group-hover/profile:text-violet-400 transition-colors truncate max-w-[120px] lg:max-w-none">
+                     {user?.name || 'Scholar'}
                    </p>
-                   <p className="text-[8px] font-bold text-white/20 uppercase tracking-[0.2em] mt-0.5">
-                     {user?.role === 'ADMIN' ? 'Admin' : 'Student'}
+                   <p className="text-[8px] font-bold text-white/10 uppercase tracking-[0.2em] mt-0.5 italic">
+                     {user?.role === 'ADMIN' ? 'System Authority' : 'Authorized Identity'}
                    </p>
                  </div>
-                 <div className="w-8 h-8 lg:w-9 lg:h-9 rounded-xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 flex items-center justify-center border border-white/10 overflow-hidden shadow-xl group-hover/profile:border-violet-500/40 transition-all">
+                 <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-md bg-white/5 flex items-center justify-center border border-white/10 overflow-hidden shadow-xl group-hover/profile:border-violet-500/30 transition-all shrink-0">
                    {user?.avatar ? (
                       <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
                    ) : (
-                      <UserCircle className="text-white/40" size={18} />
+                      <UserCircle className="text-white/20" size={18} />
                    )}
                  </div>
               </button>
 
               <button 
                 onClick={logout}
-                className="w-10 h-10 lg:w-11 lg:h-11 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-center text-white/20 hover:bg-rose-500/10 hover:border-rose-500/20 hover:text-rose-500 transition-all group shadow-sm"
+                className="w-9 h-9 sm:w-10 sm:h-10 lg:w-11 lg:h-11 rounded-full bg-white/5 border border-white/5 flex items-center justify-center text-white/20 hover:bg-rose-500/10 hover:border-rose-500/20 hover:text-rose-500 transition-all group shadow-sm"
                 title="Logout"
               >
                 <LogOut size={18} className="group-hover:translate-x-1 transition-transform" />

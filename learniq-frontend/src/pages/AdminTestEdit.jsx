@@ -135,7 +135,7 @@ const AdminTestEdit = () => {
                   <label className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-1.5 block ml-1 group-hover:text-violet-400/60 transition-colors">Assessment Title</label>
                   <input 
                     type="text" 
-                    placeholder="e.g. JAVA INFRASTRUCTURE 2024"
+                    placeholder="e.g. Java Mock Assessment"
                     value={formData.title}
                     onChange={(e) => setFormData({...formData, title: e.target.value})}
                     className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-[11px] text-white focus:outline-none focus:border-violet-500/50 placeholder:text-white/10 font-bold tracking-widest transition-all hover:bg-white/[0.07]"
@@ -366,14 +366,14 @@ const AdminTestEdit = () => {
                                           setFormData({...formData, startTime: ''});
                                           setShowClock(false);
                                         }}
-                                        className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white/40 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all"
+                                        className="btn-secondary flex-1 py-2"
                                       >
                                         Clear
                                       </button>
                                       <button 
                                         type="button"
                                         onClick={() => setShowClock(false)}
-                                        className="flex-1 py-2 bg-white text-black rounded-xl text-[8px] font-black uppercase tracking-widest shadow-xl transition-all active:scale-95"
+                                        className="btn-white flex-1 py-2"
                                       >
                                         Finalize
                                       </button>
@@ -444,7 +444,7 @@ const AdminTestEdit = () => {
                   <button 
                     type="submit" 
                     disabled={saving} 
-                    className="w-full h-11 bg-white text-black rounded-xl font-black uppercase text-[11px] tracking-[0.4em] transition-all hover:bg-violet-50 hover:shadow-[0_0_30px_rgba(124,58,237,0.3)] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none relative overflow-hidden group"
+                    className="btn-white w-full py-4 mt-4"
                   >
                     {saving ? 'Saving...' : 'Save Changes'}
                   </button>

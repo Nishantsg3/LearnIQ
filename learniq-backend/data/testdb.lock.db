@@ -1,6 +1,6 @@
 #FileLock
-#Fri May 08 15:00:14 IST 2026
-server=192.168.1.38\:55521
+#Mon May 11 20:16:30 IST 2026
+server=10.140.30.142\:62397
 hostName=Ram
 method=file
-id=19e06ec543941cd981da3034b6af180b37dff9b6eaf
+id=19e1780f64e3cd3bac276b0f587889b78ee900ace00

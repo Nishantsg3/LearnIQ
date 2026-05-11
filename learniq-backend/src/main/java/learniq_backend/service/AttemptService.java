@@ -4,6 +4,7 @@ import learniq_backend.model.*;
 import learniq_backend.repository.*;
 import learniq_backend.dto.TestAttemptResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +22,10 @@ public class AttemptService {
     private final TestRepository testRepository;
     private final UserRepository userRepository;
     private final QuestionRepository questionRepository;
+    private final EmailService emailService;
+
+    @Value("${app.frontend.url}")
+    private String frontendUrl;
 
     // =========================================================
     // 🚀 START / RESUME ATTEMPT (FINAL FIXED)
@@ -225,7 +230,44 @@ public class AttemptService {
         attempt.setSubmitted(true);
         attempt.setSubmittedAt(LocalDateTime.now());
 
-        return testAttemptRepository.save(attempt);
+        TestAttempt saved = testAttemptRepository.save(attempt);
+
+        // 🔥 AUTOMATIC RESULTS EMAIL (Only for MAIN tests)
+        if ("MAIN".equalsIgnoreCase(attempt.getTest().getTestType())) {
+            try {
+                // Calculate Rank
+                long betterAttempts = testAttemptRepository.countByTestIdAndScorePercentGreaterThanAndStatus(
+                        attempt.getTest().getId(), 
+                        attempt.getScorePercent(), 
+                        TestAttempt.Status.SUBMITTED
+                );
+                int rank = (int) betterAttempts + 1;
+
+                // Calculate Time Taken
+                Duration duration = Duration.between(attempt.getStartedAt(), attempt.getSubmittedAt());
+                long minutes = duration.toMinutes();
+                long seconds = duration.minusMinutes(minutes).getSeconds();
+                String timeString = String.format("%dm %ds", minutes, seconds);
+
+                String analysisLink = frontendUrl + "/results/" + attempt.getId();
+
+                emailService.sendTestResultEmail(
+                        attempt.getUserEmail(),
+                        attempt.getUserName(),
+                        attempt.getTest().getTitle(),
+                        attempt.getScorePercent(),
+                        attempt.getCorrectCount(),
+                        attempt.getWrongCount(),
+                        rank,
+                        timeString,
+                        analysisLink
+                );
+            } catch (Exception e) {
+                System.err.println("[EmailService] Failed to send auto-result email: " + e.getMessage());
+            }
+        }
+
+        return saved;
     }
 
     // =========================================================

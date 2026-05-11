@@ -114,38 +114,46 @@ const AdminTestHistory = () => {
   );
 
   return (
-    <div className="h-full overflow-y-auto pr-2 custom-scrollbar space-y-6 animate-in fade-in duration-700 p-10">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-white/5 pb-6">
-        <div className="space-y-1">
-          <h1 className="text-xl font-black text-white uppercase tracking-[0.2em]">Assessment History</h1>
-          <p className="text-white/20 text-[9px] font-bold uppercase tracking-[0.3em]">Archival Records & Legacy Data</p>
+    <div className="h-full overflow-y-auto pr-2 custom-scrollbar space-y-6 animate-in fade-in duration-700 p-4 sm:p-10">
+      <div className="flex flex-col gap-6 border-b border-white/5 pb-6">
+        <div className="flex items-center justify-between gap-4">
+          <div className="space-y-1">
+            <h1 className="text-xl font-black text-white uppercase tracking-[0.2em] italic">Assessment History</h1>
+            <p className="text-white/20 text-[9px] font-bold uppercase tracking-[0.3em]">Archival Records & Legacy Data</p>
+          </div>
+          <div className="flex items-center gap-2 min-w-0 shrink-0">
+             <BackToDashboard />
+          </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col gap-4 w-full">
+            <div className="bg-[#0f0f14] p-1 rounded-lg border border-white/5 flex shadow-2xl gap-1 w-full">
+              {['practice', 'main'].map((type) => (
+                <button
+                  key={type}
+                  onClick={() => setFilterType(type)}
+                  className={`flex-1 px-3 py-2.5 rounded-md text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${
+                    filterType === type 
+                      ? 'bg-violet-600 text-white shadow-lg shadow-violet-600/20' 
+                      : 'text-white/20 hover:text-white/40 hover:bg-white/5'
+                  }`}
+                >
+                  {type}
+                </button>
+              ))}
+            </div>
+
             {/* SEARCH */}
-            <div className="relative group hidden lg:block">
+            <div className="relative group w-full">
               <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-violet-500 transition-colors" />
               <input 
                 type="text"
                 placeholder="Search history..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-[#0f0f14] border border-white/5 rounded-xl pl-10 pr-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-white outline-none focus:border-violet-500/30 transition-all w-64 placeholder:text-white/5"
+                className="bg-[#0f0f14] border border-white/5 rounded-lg pl-10 pr-4 py-3.5 text-[10px] font-black uppercase tracking-widest text-white outline-none focus:border-violet-500/30 transition-all w-full placeholder:text-white/5 shadow-2xl"
               />
             </div>
-
-            <div className="bg-[#0f0f14] p-1 rounded-xl border border-white/5 flex">
-              {['practice', 'main'].map((type) => (
-                <button
-                  key={type}
-                  onClick={() => setFilterType(type)}
-                  className={`px-6 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all duration-200 ${filterType === type ? 'bg-white/10 text-white shadow-sm' : 'text-white/20 hover:text-white/40'}`}
-                >
-                  {type} Test
-                </button>
-              ))}
-            </div>
-            <BackToDashboard />
         </div>
       </div>
 
@@ -183,7 +191,7 @@ const AdminTestHistory = () => {
                                 <td className="px-6 py-5 text-center">
                                     <button 
                                       onClick={() => setSelectedTest(test)}
-                                      className="p-2.5 bg-white/5 text-white/40 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+                                      className="p-2.5 bg-white/5 text-white/40 hover:text-white hover:bg-white/10 rounded-full transition-all"
                                       title="View Summary"
                                     >
                                       <Info size={14} />
@@ -193,14 +201,14 @@ const AdminTestHistory = () => {
                                     <div className="flex items-center justify-end gap-2">
                                       <button 
                                         onClick={() => handleRestoreClick(test.id)}
-                                        className="p-2.5 bg-emerald-500/5 text-emerald-500/40 hover:text-emerald-500 hover:bg-emerald-500/10 rounded-lg transition-all"
+                                        className="p-2.5 bg-emerald-500/5 text-emerald-500/40 hover:text-emerald-500 hover:bg-emerald-500/10 rounded-full transition-all"
                                         title="Restore to Active"
                                       >
                                         <RefreshCcw size={14} />
                                       </button>
                                       <button 
                                         onClick={() => handleDeleteClick(test.id)}
-                                        className="p-2.5 bg-rose-500/5 text-rose-500/40 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-all"
+                                        className="p-2.5 bg-rose-500/5 text-rose-500/40 hover:text-rose-500 hover:bg-rose-500/10 rounded-full transition-all"
                                         title="Purge Record"
                                       >
                                         <Trash2 size={14} />
@@ -272,7 +280,7 @@ const AdminTestHistory = () => {
 
               <button 
                 onClick={() => setSelectedTest(null)}
-                className="w-full py-4 bg-white text-black rounded-2xl font-black uppercase text-[10px] tracking-[0.4em] transition-all hover:bg-white/90 active:scale-[0.98]"
+                className="w-full py-4 bg-white text-black rounded-full font-black uppercase text-[10px] tracking-[0.4em] transition-all hover:bg-white/90 active:scale-[0.98]"
               >
                 Close Summary
               </button>

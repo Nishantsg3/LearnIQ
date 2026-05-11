@@ -142,7 +142,7 @@ const AdminDashboard = () => {
   );
 
   return (
-    <div className="h-full overflow-y-auto pr-2 custom-scrollbar p-8">
+    <div className="h-full overflow-y-auto pr-1 sm:pr-2 custom-scrollbar p-3 sm:p-6 lg:p-8">
       <div className="animate-in fade-in duration-700 flex flex-col">
         {/* Page Header - More Compact */}
         <div style={{ marginBottom: '1.5rem' }}>
@@ -151,7 +151,7 @@ const AdminDashboard = () => {
             <h1 style={{
               color: '#fff',
               fontWeight: 900,
-              fontSize: 22,
+              fontSize: 'clamp(16px, 4vw, 22px)',
               letterSpacing: '-0.02em',
               margin: 0,
               textTransform: 'uppercase',
@@ -172,13 +172,7 @@ const AdminDashboard = () => {
         </div>
 
         {/* Stats Grid - Compact */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: 12,
-          flex: 1,
-          minHeight: 0 // Allows shrinking
-        }}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 flex-1 min-h-0">
           {navCards.map((card) => (
             <StatCard key={card.label} card={card} onClick={() => navigate(card.path)} />
           ))}
@@ -245,10 +239,10 @@ const StatCard = ({ card, onClick }) => {
       {/* Content Container */}
       <div style={{ position: 'relative', zIndex: 10 }}>
         {/* Icon + Arrow row */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
           <div style={{
-            width: 44,
-            height: 44,
+            width: 40,
+            height: 40,
             borderRadius: 12,
             background: hovered ? `${card.accent}20` : 'rgba(255,255,255,0.03)',
             border: `1px solid ${hovered ? card.accent + '40' : 'rgba(255,255,255,0.05)'}`,
@@ -258,16 +252,18 @@ const StatCard = ({ card, onClick }) => {
             color: hovered ? card.accent : '#444',
             transition: 'all 0.3s',
           }}>
-            {card.icon}
+            {React.cloneElement(card.icon, { size: 18 })}
           </div>
-          <ArrowUpRight
-            size={16}
-            style={{
-              color: hovered ? card.accent : '#333',
-              opacity: hovered ? 1 : 0.3,
-              transition: 'all 0.3s',
-            }}
-          />
+          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white/5 border border-white/5 group-hover:border-violet-500/30 transition-all shrink-0">
+            <ArrowUpRight
+              size={14}
+              style={{
+                color: hovered ? card.accent : '#333',
+                opacity: hovered ? 1 : 0.3,
+                transition: 'all 0.3s',
+              }}
+            />
+          </div>
         </div>
 
         {/* Label */}

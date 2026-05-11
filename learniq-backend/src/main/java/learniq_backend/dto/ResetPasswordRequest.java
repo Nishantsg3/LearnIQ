@@ -9,6 +9,6 @@ public record ResetPasswordRequest(
 
         @NotBlank(message = "New password is required")
         @Size(min = 3, message = "Password must be at least 3 characters")
-        String newPassword
+        String password
 ) {
 }

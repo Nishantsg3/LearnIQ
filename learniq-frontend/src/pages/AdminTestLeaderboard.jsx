@@ -73,20 +73,22 @@ export default function AdminTestLeaderboard() {
               </div>
           </div>
 
-          <div className="flex items-center gap-6">
-              <div className="relative group">
+          <div className="flex flex-col sm:flex-row items-center gap-4 min-w-0 w-full md:w-auto">
+              <div className="relative group w-full sm:w-[240px]">
                   <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-indigo-400 transition-colors">
                       <Search size={14} />
                   </div>
                   <input 
                       type="text" 
-                      placeholder="SEARCH RANKINGS..."
+                      placeholder="Search..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="bg-[#0d0d12] border border-white/5 rounded-2xl pl-12 pr-6 py-4 text-[10px] font-black uppercase tracking-widest text-white outline-none focus:border-indigo-500/50 transition-all w-full md:w-[300px] placeholder:text-white/10 shadow-2xl"
+                      className="bg-[#0d0d12] border border-white/5 rounded-full pl-10 pr-4 h-10 text-[10px] font-black uppercase tracking-widest text-white outline-none focus:border-indigo-500/50 transition-all w-full placeholder:text-white/10 shadow-2xl"
                   />
               </div>
-              <BackToDashboard />
+              <div className="flex items-center gap-2 min-w-0 shrink-0 self-end sm:self-auto">
+                <BackToDashboard />
+              </div>
           </div>
         </div>
 
@@ -173,9 +175,9 @@ export default function AdminTestLeaderboard() {
                         key={entry.rank} 
                         className="bg-[#0d0d12] border border-white/[0.03] rounded-[2rem] p-6 flex items-center justify-between transition-all duration-300 hover:bg-[#12121a] hover:border-white/10 group shadow-xl"
                       >
-                          <div className="flex items-center gap-8">
+                          <div className="flex-1 min-w-0 flex items-center gap-3 sm:gap-8">
                               <div 
-                                className="w-14 h-14 rounded-2xl flex items-center justify-center text-lg font-black border transition-all duration-500"
+                                className="w-10 h-10 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center text-sm sm:text-lg font-black border transition-all duration-500 shrink-0"
                                 style={{ 
                                   background: `${rankColor}10`, 
                                   borderColor: `${rankColor}20`, 
@@ -186,27 +188,27 @@ export default function AdminTestLeaderboard() {
                                   #{entry.rank}
                               </div>
                               
-                              <div className="space-y-1">
-                                  <h4 className="text-[14px] font-black text-white uppercase tracking-widest group-hover:text-indigo-400 transition-colors italic">
+                              <div className="min-w-0 flex-1 space-y-0.5">
+                                  <h4 className="text-[12px] sm:text-[14px] font-black text-white uppercase tracking-widest group-hover:text-indigo-400 transition-colors italic truncate">
                                       {entry.userName}
                                   </h4>
-                                  <div className="flex items-center gap-3 text-slate-600">
-                                      <Mail size={12} className="opacity-30" />
-                                      <span className="text-[10px] font-bold uppercase tracking-widest">{entry.userEmail}</span>
+                                  <div className="flex items-center gap-2 text-slate-600 truncate">
+                                      <Mail size={10} className="opacity-30 shrink-0" />
+                                      <span className="text-[8px] sm:text-[10px] font-bold uppercase tracking-widest truncate">{entry.userEmail}</span>
                                   </div>
                               </div>
                           </div>
 
-                          <div className="text-right space-y-1 pr-6">
-                              <div className="flex items-baseline justify-end gap-2">
-                                  <span className={`text-3xl font-black tracking-tighter ${
+                          <div className="shrink-0 w-[48px] text-right space-y-0.5">
+                              <div className="flex items-baseline justify-end gap-1">
+                                  <span className={`text-sm font-black tracking-tighter truncate ${
                                       entry.score >= 75 ? 'text-emerald-400' : entry.score >= 40 ? 'text-amber-400' : 'text-rose-400'
                                   }`}>
                                       {entry.score}
                                   </span>
-                                  <span className="text-[12px] font-black text-slate-700">%</span>
+                                  <span className="text-[8px] font-black text-slate-700">%</span>
                               </div>
-                              <p className="text-[8px] font-black text-slate-800 uppercase tracking-widest">Performance Score</p>
+                              <p className="text-[7px] font-black text-slate-800 uppercase tracking-widest truncate">Score</p>
                           </div>
                       </div>
                   );

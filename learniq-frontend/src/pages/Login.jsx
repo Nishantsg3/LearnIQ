@@ -6,13 +6,15 @@ import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import AuthLayout from '../components/AuthLayout';
 
-const THEME_COLOR = '#7c3aed';
+// Student portal uses vibrant, lighter violet to contrast with admin's deep navy
+const STUDENT_COLOR = '#7c3aed';
+const STUDENT_ACCENT = '#a78bfa'; // lighter violet accent for interactive elements
 
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { login, isLoggingIn, setIsLoggingIn } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
+  const { login, isLoggingIn, setIsLoggingIn } = useAuth();
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
@@ -22,11 +24,11 @@ function Login() {
       const res = await api.post('/auth/login', { email, password });
       if (res.data.token) {
         login({ token: res.data.token, name: res.data.name, role: res.data.role });
-        navigate(res.data.role === 'ADMIN' ? '/admin/dashboard' : '/student/dashboard');
-        toast.success('Access Authenticated.');
+        toast.success('Identity Verified.');
+        navigate('/student/dashboard');
       }
     } catch (err) {
-      toast.error('Identity Verification Failed');
+      toast.error('Identity Verification Failed.');
     } finally {
       setIsLoggingIn(false);
     }
@@ -57,30 +59,33 @@ function Login() {
 
   return (
     <AuthLayout 
-      panelColor={THEME_COLOR}
+      panelColor={STUDENT_COLOR}
+      accentColor={STUDENT_ACCENT}
+      showMobileDecorations={true}
       title={<>ELEVATE YOUR<br /><span style={{ color: 'rgba(255,255,255,0.45)' }}>POTENTIAL.</span></>}
       description={<>UNLEASH YOUR CAPABILITIES WITH<br />RESEARCH-BACKED ASSESSMENTS<br />DESIGNED FOR GROWTH.</>}
     >
-      {/* Student Badge */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+
+      {/* Student badge */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
         <div
           style={{
             width: 36,
             height: 36,
             borderRadius: 8,
-            background: `${THEME_COLOR}18`,
-            border: `1px solid ${THEME_COLOR}33`,
+            background: `${STUDENT_ACCENT}18`,
+            border: `1px solid ${STUDENT_ACCENT}33`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: THEME_COLOR,
+            color: STUDENT_ACCENT,
           }}
         >
           <GraduationCap size={18} />
         </div>
         <span
           style={{
-            color: THEME_COLOR,
+            color: STUDENT_ACCENT,
             fontSize: 11,
             fontWeight: 700,
             letterSpacing: '0.15em',
@@ -114,8 +119,8 @@ function Login() {
           fontWeight: 700,
           letterSpacing: '0.15em',
           textTransform: 'uppercase',
-          marginTop: 6,
-          marginBottom: 20,
+          marginTop: 4,
+          marginBottom: 16,
         }}
       >
         SIGN IN TO YOUR ACCOUNT
@@ -128,10 +133,10 @@ function Login() {
           <input
             type="email"
             style={{ ...inputStyle, padding: '14px 20px' }}
-            placeholder="name@company.com"
+            placeholder="Enter your student email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            onFocus={(e) => (e.target.style.borderColor = `${THEME_COLOR}60`)}
+            onFocus={(e) => (e.target.style.borderColor = `${STUDENT_ACCENT}60`)}
             onBlur={(e) => (e.target.style.borderColor = 'rgba(255,255,255,0.06)')}
             required
           />
@@ -144,7 +149,7 @@ function Login() {
             <Link
               to="/forgot-password"
               style={{
-                color: THEME_COLOR,
+                color: STUDENT_ACCENT,
                 fontSize: 13,
                 fontWeight: 700,
                 textDecoration: 'none',
@@ -160,7 +165,7 @@ function Login() {
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              onFocus={(e) => (e.target.style.borderColor = `${THEME_COLOR}60`)}
+              onFocus={(e) => (e.target.style.borderColor = `${STUDENT_ACCENT}60`)}
               onBlur={(e) => (e.target.style.borderColor = 'rgba(255,255,255,0.06)')}
               required
             />
@@ -190,25 +195,7 @@ function Login() {
         <button
           type="submit"
           disabled={isLoggingIn}
-          className="submit-btn"
-          style={{
-            width: '100%',
-            background: THEME_COLOR,
-            border: `1px solid ${THEME_COLOR}40`,
-            borderRadius: 12,
-            padding: '14px 20px',
-            color: '#fff',
-            fontSize: 16,
-            fontWeight: 700,
-            cursor: isLoggingIn ? 'not-allowed' : 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
-            transition: 'all 0.2s',
-            opacity: isLoggingIn ? 0.7 : 1,
-            boxShadow: `0 4px 14px 0 ${THEME_COLOR}40`,
-          }}
+          className="btn-accent w-full py-4 mt-4 student-btn"
         >
           {isLoggingIn ? (
             <div
@@ -276,16 +263,17 @@ function Login() {
         @keyframes spin {
           to { transform: rotate(360deg); }
         }
-        .submit-btn:hover {
+        .student-btn:hover {
           background: #6d28d9 !important;
           transform: translateY(-1px);
-          box-shadow: 0 6px 20px 0 #7c3aed60 !important;
+          border-color: ${STUDENT_ACCENT}80 !important;
+          box-shadow: 0 6px 20px 0 rgba(124,58,237,0.3) !important;
         }
-        .submit-btn:active {
+        .student-btn:active {
           background: #5b21b6 !important;
           transform: translateY(0px);
         }
-        input::placeholder { color: #444; }
+        input::placeholder { color: #2a2a30; }
       `}</style>
     </AuthLayout>
   );

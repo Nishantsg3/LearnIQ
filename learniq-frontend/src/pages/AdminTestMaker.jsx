@@ -19,6 +19,9 @@ const AdminTestMaker = () => {
   const [clockMode, setClockMode] = useState('HOUR'); // 'HOUR' or 'MINUTE'
   const [showClock, setShowClock] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [showTypeDropdown, setShowTypeDropdown] = useState(false);
+  const [showQuestionsDropdown, setShowQuestionsDropdown] = useState(false);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -72,7 +75,7 @@ const AdminTestMaker = () => {
   };
 
   return (
-    <div className="animate-in fade-in duration-500" style={{ padding: '0.5rem 4rem', height: 'calc(100vh - 100px)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+    <div className="animate-in fade-in duration-500 overflow-y-auto lg:overflow-hidden lg:h-[calc(100vh-100px)] p-4 sm:p-6 lg:px-16 flex flex-col custom-scrollbar">
         {/* HEADER: TITLE + NAVIGATION */}
         <div className="flex items-center justify-between mb-3 flex-shrink-0">
           <div>
@@ -86,7 +89,7 @@ const AdminTestMaker = () => {
         </div>
 
         {/* CORE CONFIGURATION ZONE */}
-        <form onSubmit={handleSubmit} className="flex-1 grid grid-cols-[1.2fr_1fr] gap-4 mb-3" style={{ minHeight: 0 }}>
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col lg:grid lg:grid-cols-[1.2fr_1fr] gap-4 mb-3" style={{ minHeight: 0 }}>
           
           {/* LEFT TRACK: CONFIGURATION */}
           <div 
@@ -111,7 +114,7 @@ const AdminTestMaker = () => {
                   <label className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-1.5 block ml-1 group-hover:text-violet-400/60 transition-colors">Assessment Title</label>
                   <input 
                     type="text" 
-                    placeholder="e.g. JAVA INFRASTRUCTURE 2024"
+                    placeholder="e.g. Java Mock Assessment"
                     value={formData.title}
                     onChange={(e) => setFormData({...formData, title: e.target.value})}
                     className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-[11px] text-white focus:outline-none focus:border-violet-500/50 placeholder:text-white/10 font-bold tracking-widest transition-all hover:bg-white/[0.07]"
@@ -119,32 +122,78 @@ const AdminTestMaker = () => {
                   <p className="text-[8px] text-white/10 mt-1.5 ml-1 uppercase tracking-widest font-black italic">Enter a unique test name</p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="group">
                     <label className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-1.5 block ml-1 group-hover:text-violet-400/60 transition-colors">Category</label>
-                    <div className="relative group/select">
-                      <select 
-                        value={formData.category}
-                        onChange={(e) => setFormData({...formData, category: e.target.value})}
-                        className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-[11px] text-white focus:outline-none focus:border-violet-500/50 appearance-none font-bold tracking-widest transition-all hover:bg-white/[0.07]"
+                    <div className="relative w-full">
+                      <button 
+                        type="button"
+                        onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+                        className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-[11px] text-white flex items-center justify-between font-bold tracking-widest transition-all hover:bg-white/[0.07] min-w-0"
                       >
-                        {categories.map(cat => <option key={cat} value={cat} className="bg-[#0f0f14]">{cat}</option>)}
-                      </select>
-                      <ChevronDown size={10} className="absolute right-4 top-1/2 -translate-y-1/2 text-white/20 group-hover/select:text-violet-400 transition-colors pointer-events-none" />
+                        <span className="truncate">{formData.category}</span>
+                        <ChevronDown size={10} className={`text-white/20 transition-transform duration-300 ${showCategoryDropdown ? 'rotate-180 text-violet-400' : ''}`} />
+                      </button>
+                      
+                      {showCategoryDropdown && (
+                        <>
+                          <div className="fixed inset-0 z-40" onClick={() => setShowCategoryDropdown(false)} />
+                          <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-[#0f0f14] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden animate-in zoom-in-95 duration-200">
+                            <div className="max-h-48 overflow-y-auto custom-scrollbar">
+                              {categories.map(cat => (
+                                <button
+                                  key={cat}
+                                  type="button"
+                                  onClick={() => {
+                                    setFormData({...formData, category: cat});
+                                    setShowCategoryDropdown(false);
+                                  }}
+                                  className={`w-full px-4 py-3 text-[10px] font-black uppercase tracking-widest text-left transition-colors hover:bg-violet-500/10 ${formData.category === cat ? 'text-violet-400 bg-violet-500/5' : 'text-white/60 hover:text-white'}`}
+                                >
+                                  {cat}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                   <div className="group">
                     <label className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-1.5 block ml-1 group-hover:text-violet-400/60 transition-colors">Test Mode</label>
-                    <div className="relative group/select">
-                      <select 
-                        value={formData.testType}
-                        onChange={(e) => setFormData({...formData, testType: e.target.value})}
-                        className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-[11px] text-white focus:outline-none focus:border-violet-500/50 appearance-none font-bold tracking-widest transition-all hover:bg-white/[0.07]"
+                    <div className="relative w-full">
+                      <button 
+                        type="button"
+                        onClick={() => setShowTypeDropdown(!showTypeDropdown)}
+                        className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-[11px] text-white flex items-center justify-between font-bold tracking-widest transition-all hover:bg-white/[0.07] min-w-0"
                       >
-                        <option value="PRACTICE" className="bg-[#0f0f14]">Practice Test</option>
-                        <option value="MAIN" className="bg-[#0f0f14]">Main Test</option>
-                      </select>
-                      <ChevronDown size={10} className="absolute right-4 top-1/2 -translate-y-1/2 text-white/20 group-hover/select:text-violet-400 transition-colors pointer-events-none" />
+                        <span className="truncate">{formData.testType === 'PRACTICE' ? 'Practice Test' : 'Main Test'}</span>
+                        <ChevronDown size={10} className={`text-white/20 transition-transform duration-300 ${showTypeDropdown ? 'rotate-180 text-violet-400' : ''}`} />
+                      </button>
+                      
+                      {showTypeDropdown && (
+                        <>
+                          <div className="fixed inset-0 z-40" onClick={() => setShowTypeDropdown(false)} />
+                          <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-[#0f0f14] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden animate-in zoom-in-95 duration-200">
+                            {[
+                              { id: 'PRACTICE', label: 'Practice Test' },
+                              { id: 'MAIN', label: 'Main Test' }
+                            ].map(type => (
+                              <button
+                                key={type.id}
+                                type="button"
+                                onClick={() => {
+                                  setFormData({...formData, testType: type.id});
+                                  setShowTypeDropdown(false);
+                                }}
+                                className={`w-full px-4 py-3 text-[10px] font-black uppercase tracking-widest text-left transition-colors hover:bg-violet-500/10 ${formData.testType === type.id ? 'text-violet-400 bg-violet-500/5' : 'text-white/60 hover:text-white'}`}
+                              >
+                                {type.label}
+                              </button>
+                            ))}
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -191,7 +240,7 @@ const AdminTestMaker = () => {
                         {showCalendar && (
                           <>
                             <div className="fixed inset-0 z-40" onClick={() => setShowCalendar(false)} />
-                            <div className="absolute bottom-full left-0 mb-2 p-3 bg-[#0f0f14] border border-white/5 rounded-2xl shadow-2xl z-50 animate-in zoom-in-95 duration-200 w-56">
+                            <div className="absolute top-[calc(100%+4px)] left-0 right-0 p-3 bg-[#0f0f14] border border-white/5 rounded-2xl shadow-2xl z-50 animate-in zoom-in-95 duration-200 max-h-56 overflow-y-auto box-border">
                               <div className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mb-3 text-center">May 2026</div>
                               <div className="grid grid-cols-7 gap-1 mb-1">
                                 {['S','M','T','W','T','F','S'].map(d => <div key={d} className="text-[8px] font-black text-violet-500/40 text-center">{d}</div>)}
@@ -244,7 +293,7 @@ const AdminTestMaker = () => {
                         {showClock && (
                           <>
                             <div className="fixed inset-0 z-40" onClick={() => setShowClock(false)} />
-                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 p-5 bg-[#0a0a0f] border border-white/10 rounded-[2rem] shadow-[0_30px_100px_rgba(0,0,0,0.9)] z-50 animate-in zoom-in-95 duration-300 w-[240px]">
+                            <div className="absolute top-[calc(100%+4px)] left-0 right-0 p-5 bg-[#0a0a0f] border border-white/10 rounded-[2rem] shadow-[0_30px_100px_rgba(0,0,0,0.9)] z-50 animate-in zoom-in-95 duration-300 max-h-56 overflow-y-auto box-border">
                                {/* COMPACT DIGITAL DISPLAY */}
                                <div className="flex items-center justify-between gap-2 mb-4">
                                     <div className="flex items-baseline gap-1 bg-white/5 px-3 py-1.5 rounded-xl border border-white/5">
@@ -350,24 +399,24 @@ const AdminTestMaker = () => {
                                 </div>
 
                                 <div className="flex gap-2">
-                                    <button 
-                                      type="button"
-                                      onClick={() => {
-                                        setFormData({...formData, startTime: ''});
-                                        setShowClock(false);
-                                      }}
-                                      className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white/40 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all"
-                                    >
-                                      Clear
-                                    </button>
-                                    <button 
-                                      type="button"
-                                      onClick={() => setShowClock(false)}
-                                      className="flex-1 py-2 bg-white text-black rounded-xl text-[8px] font-black uppercase tracking-widest shadow-xl transition-all active:scale-95"
-                                    >
-                                      Finalize
-                                    </button>
-                                </div>
+                                     <button 
+                                       type="button"
+                                       onClick={() => {
+                                         setFormData({...formData, startTime: ''});
+                                         setShowClock(false);
+                                       }}
+                                       className="btn-secondary flex-1 py-2"
+                                     >
+                                       Clear
+                                     </button>
+                                     <button 
+                                       type="button"
+                                       onClick={() => setShowClock(false)}
+                                       className="btn-white flex-1 py-2"
+                                     >
+                                       Finalize
+                                     </button>
+                                 </div>
                               </div>
                             </>
                           )}
@@ -389,19 +438,44 @@ const AdminTestMaker = () => {
 
                 <div className="group">
                   <label className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-1.5 block ml-1 group-hover:text-violet-400/60 transition-colors">Number of Questions</label>
-                  <div className="relative group/select">
-                    <select 
-                      value={formData.totalQuestions}
-                      onChange={(e) => setFormData({...formData, totalQuestions: e.target.value})}
+                  <div className="relative w-full">
+                    <button 
+                      type="button"
                       disabled={formData.testType === 'MAIN'}
-                      className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-[11px] text-white focus:outline-none focus:border-violet-500/50 appearance-none disabled:opacity-50 font-bold tracking-widest transition-all hover:bg-white/[0.07]"
+                      onClick={() => setShowQuestionsDropdown(!showQuestionsDropdown)}
+                      className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-[11px] text-white flex items-center justify-between font-bold tracking-widest transition-all hover:bg-white/[0.07] disabled:opacity-50 min-w-0"
                     >
-                      {[5, 10, 15, 20, 25, 30, 35, 40, 45, 50].map(n => <option key={n} value={n} className="bg-[#0f0f14]">{n} Questions</option>)}
-                    </select>
-                    {formData.testType === 'MAIN' && (
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
-                        <span className="text-[8px] font-black bg-white/5 px-2 py-0.5 rounded uppercase tracking-[0.2em] border border-white/5">Hard Locked</span>
-                      </div>
+                      <span className="truncate">{formData.totalQuestions} Questions</span>
+                      {formData.testType === 'MAIN' ? (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[8px] font-black bg-white/5 px-2 py-0.5 rounded uppercase tracking-[0.2em] border border-white/5">Hard Locked</span>
+                        </div>
+                      ) : (
+                        <ChevronDown size={10} className={`text-white/20 transition-transform duration-300 ${showQuestionsDropdown ? 'rotate-180 text-violet-400' : ''}`} />
+                      )}
+                    </button>
+                    
+                    {showQuestionsDropdown && formData.testType !== 'MAIN' && (
+                      <>
+                        <div className="fixed inset-0 z-40" onClick={() => setShowQuestionsDropdown(false)} />
+                        <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-[#0f0f14] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden animate-in zoom-in-95 duration-200">
+                          <div className="max-h-48 overflow-y-auto custom-scrollbar">
+                            {[5, 10, 15, 20, 25, 30, 35, 40, 45, 50].map(n => (
+                              <button
+                                key={n}
+                                type="button"
+                                onClick={() => {
+                                  setFormData({...formData, totalQuestions: n});
+                                  setShowQuestionsDropdown(false);
+                                }}
+                                className={`w-full px-4 py-3 text-[10px] font-black uppercase tracking-widest text-left transition-colors hover:bg-violet-500/10 ${formData.totalQuestions === n ? 'text-violet-400 bg-violet-500/5' : 'text-white/60 hover:text-white'}`}
+                              >
+                                {n} Questions
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </>
                     )}
                   </div>
                 </div>
@@ -445,13 +519,13 @@ const AdminTestMaker = () => {
                     </div>
                   </div>
 
-                  <button 
-                    type="submit" 
-                    disabled={saving} 
-                    className="w-full h-11 bg-white text-black rounded-xl font-black uppercase text-[11px] tracking-[0.4em] transition-all hover:bg-violet-50 hover:shadow-[0_0_30px_rgba(124,58,237,0.3)] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none relative overflow-hidden group"
-                  >
-                    {saving ? 'Creating...' : 'Create Test'}
-                  </button>
+                   <button 
+                     type="submit" 
+                     disabled={saving} 
+                     className="btn-white w-full py-4 mt-4"
+                   >
+                     {saving ? 'Creating...' : 'Create Test'}
+                   </button>
                 </div>
               </div>
             </div>

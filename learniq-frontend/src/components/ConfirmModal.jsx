@@ -30,7 +30,7 @@ const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message, confirmText 
 
           {/* Icon Section */}
           <div className="flex justify-center mb-6">
-            <div className="p-4 bg-rose-500/10 rounded-2xl border border-rose-500/20 text-rose-500">
+            <div className="p-4 bg-rose-500/10 rounded-full border border-rose-500/20 text-rose-500">
               <AlertTriangle size={32} />
             </div>
           </div>
@@ -49,7 +49,7 @@ const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message, confirmText 
           <div className="flex gap-3">
             <button
               onClick={onClose}
-              className="flex-1 py-4 bg-white/5 hover:bg-white/10 text-white/40 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all"
+              className="btn-secondary flex-1 py-4"
             >
               {cancelText}
             </button>
@@ -58,7 +58,7 @@ const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message, confirmText 
                 onConfirm();
                 onClose();
               }}
-              className="flex-[2] py-4 bg-rose-500 hover:bg-rose-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-rose-500/20 transition-all active:scale-95"
+              className="btn-danger flex-[2] py-4"
             >
               {confirmText}
             </button>

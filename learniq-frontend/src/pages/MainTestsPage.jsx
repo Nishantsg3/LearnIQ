@@ -5,7 +5,6 @@ import {
   Clock,
   FileText,
   Shield,
-  CheckCircle2,
   ArrowUpRight,
   Lock
 } from 'lucide-react';
@@ -93,30 +92,30 @@ const MainTestsPage = () => {
   }
 
   return (
-    <div className="h-[calc(100vh-140px)] flex flex-col space-y-12 animate-in fade-in duration-700 p-8 overflow-hidden">
+    <div className="h-[calc(100vh-140px)] flex flex-col space-y-6 sm:space-y-12 animate-in fade-in duration-700 p-4 sm:p-6 lg:p-8 overflow-hidden">
       
       {/* SIMPLE HEADER */}
-      <div className="flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-6">
+      <div className="flex flex-wrap items-start sm:items-center justify-between gap-3 shrink-0">
+        <div className="flex items-center gap-3 sm:gap-6">
           <div 
             onClick={() => navigate('/student/dashboard')}
-            className="w-14 h-14 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center justify-center text-red-500 cursor-pointer hover:bg-red-500/20 transition-all"
+            className="w-10 h-10 sm:w-14 sm:h-14 bg-red-500/10 border border-red-500/20 rounded-xl sm:rounded-2xl flex items-center justify-center text-red-500 cursor-pointer hover:bg-red-500/20 transition-all"
           >
-            <Shield size={24} />
+            <Shield size={20} />
           </div>
-          <div className="space-y-1">
-            <h1 className="text-2xl font-black text-white uppercase tracking-tight leading-none">Section 2</h1>
-            <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.4em] mt-2">Main Assessments</p>
-            <p className="text-white/20 text-[9px] font-medium uppercase tracking-[0.2em] mt-1">Demonstrate your mastery and achieve your target performance in the main evaluation window.</p>
+          <div className="space-y-0.5">
+            <h1 className="text-lg sm:text-2xl font-black text-white uppercase tracking-tight leading-none">Section 2</h1>
+            <p className="text-slate-500 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] sm:tracking-[0.4em]">Main Assessments</p>
+            <p className="hidden sm:block text-white/20 text-[9px] font-medium uppercase tracking-[0.2em]">Demonstrate your mastery and achieve your target performance in the main evaluation window.</p>
           </div>
         </div>
 
         <button
           onClick={() => navigate('/student/dashboard')}
-          className="flex items-center gap-2 px-6 py-3 bg-white/5 border border-white/10 rounded-full hover:bg-white/10 transition-all text-slate-400 hover:text-white group"
+          className="flex items-center gap-2 px-4 py-2 sm:px-6 sm:py-3 bg-white/5 border border-white/10 rounded-full hover:bg-white/10 transition-all text-slate-400 hover:text-white group shrink-0"
         >
-          <ArrowUpRight size={14} className="group-hover:rotate-45 transition-transform" />
-          <span className="text-[10px] font-black uppercase tracking-widest">Dashboard</span>
+          <ArrowUpRight size={12} className="group-hover:rotate-45 transition-transform" />
+          <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest">Dashboard</span>
         </button>
       </div>
 
@@ -139,7 +138,7 @@ const MainTestsPage = () => {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 overflow-y-auto no-scrollbar pr-2 h-full pb-8 pt-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 items-start overflow-y-auto no-scrollbar pr-1 sm:pr-2 h-full pb-8 pt-4 sm:pt-6">
             {tests.map(test => {
               const latestAttempt = getLatestAttempt(test.id);
               const pastAttempts = getPastAttempts(test.id);
@@ -234,8 +233,8 @@ const StatCard = ({ test, latestAttempt, isCompleted, isLocked, pastAttemptId, o
       style={{
         background: hovered ? '#1a0d0d' : '#0d0d12',
         border: `1px solid ${hovered ? accent + '40' : 'rgba(255,255,255,0.03)'}`,
-        borderRadius: 32,
-        padding: '32px',
+        borderRadius: 12,
+        padding: 'clamp(16px, 4vw, 28px)',
         cursor: 'pointer',
         transition: 'all 0.3s ease',
         transform: hovered ? 'translateY(-4px)' : 'translateY(0)',
@@ -243,9 +242,7 @@ const StatCard = ({ test, latestAttempt, isCompleted, isLocked, pastAttemptId, o
         position: 'relative',
         overflow: 'hidden',
         display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-        minHeight: '240px'
+        flexDirection: 'column'
       }}
     >
       {/* Ghost Icon */}
@@ -262,14 +259,15 @@ const StatCard = ({ test, latestAttempt, isCompleted, isLocked, pastAttemptId, o
       }}>
         {isLocked ? <Lock size={140} /> : <Shield size={140} />}
       </div>
-
-      {/* Content */}
+      
+      {/* Content Section */}
       <div style={{ position: 'relative', zIndex: 10, flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
+        {/* Top Header: Icon + Badges */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
             <div style={{
-                width: 44,
-                height: 44,
-                borderRadius: 14,
+                width: 40,
+                height: 40,
+                borderRadius: 10,
                 background: hovered ? `${accent}20` : 'rgba(255,255,255,0.03)',
                 border: `1px solid ${hovered ? accent + '40' : 'rgba(255,255,255,0.05)'}`,
                 display: 'flex',
@@ -278,62 +276,62 @@ const StatCard = ({ test, latestAttempt, isCompleted, isLocked, pastAttemptId, o
                 color: hovered ? accent : '#444',
                 transition: 'all 0.3s',
             }}>
-                {isLocked ? <Lock size={20} /> : <Shield size={20} />}
+                {isLocked ? <Lock size={18} /> : <Shield size={18} />}
             </div>
             {isLocked ? (
-                 <div className="px-3 py-1 bg-slate-500/10 text-slate-400 border border-slate-500/20 rounded-lg text-[8px] font-black uppercase tracking-widest h-fit flex items-center gap-1">
+                 <div className="px-3 py-1 bg-slate-500/10 text-slate-400 border border-slate-500/20 rounded-md text-[8px] font-black uppercase tracking-widest h-fit flex items-center gap-1">
                     <Lock size={10} />
                     Locked
                 </div>
             ) : isCompleted ? (
-                 <div className="px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-lg text-[8px] font-black uppercase tracking-widest h-fit">
+                 <div className="px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-md text-[8px] font-black uppercase tracking-widest h-fit">
                     Completed
                 </div>
             ) : latestAttempt ? (
-                <div className="px-3 py-1 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-lg text-[8px] font-black uppercase tracking-widest h-fit">
+                <div className="px-3 py-1 bg-red-500/10 text-red-400 border border-red-500/20 rounded-md text-[8px] font-black uppercase tracking-widest h-fit">
                     Active
                 </div>
             ) : (
-                <div className="px-3 py-1 bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg text-[8px] font-black uppercase tracking-widest h-fit">
+                <div className="px-3 py-1 bg-red-500/10 text-red-400 border border-red-500/20 rounded-md text-[8px] font-black uppercase tracking-widest h-fit">
                     Main Test
                 </div>
             )}
         </div>
 
-        <div className="mb-6">
-            <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1">{test.category || 'General'}</p>
-            <h3 className="text-xl font-black text-white/90 uppercase tracking-tight leading-none">{test.title}</h3>
+        {/* Identity: Category + Title */}
+        <div className="mb-3">
+            <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1.5">{test.category || 'General'}</p>
+            <h3 className="text-lg font-black text-white/90 uppercase tracking-tight leading-tight line-clamp-2 min-h-[2.5rem]">{test.title}</h3>
         </div>
 
-        <div className="flex gap-4 mt-auto">
-            <div className="flex items-center gap-2 text-[9px] font-bold text-slate-500 uppercase tracking-widest">
+        {/* Info: Duration + Questions */}
+        <div className="flex items-center gap-3 mb-0">
+            <div className="flex items-center gap-2 text-[9px] font-bold text-slate-500 uppercase tracking-widest bg-white/5 px-2.5 py-1.5 rounded-md border border-white/5">
                 <Clock size={12} className="text-red-500/50" />
                 {test.durationMinutes}m
             </div>
-            <div className="flex items-center gap-2 text-[9px] font-bold text-slate-500 uppercase tracking-widest">
+            <div className="flex items-center gap-2 text-[9px] font-bold text-slate-500 uppercase tracking-widest bg-white/5 px-2.5 py-1.5 rounded-md border border-white/5">
                 <FileText size={12} className="text-red-500/50" />
                 {test.questionCount}q
             </div>
-            {isCompleted && (
-                <div className="flex items-center gap-2 text-[9px] font-bold text-emerald-500/60 uppercase tracking-widest">
-                    <CheckCircle2 size={12} />
-                    Finalized
-                </div>
-            )}
         </div>
-      </div>
 
-      {/* Action Button */}
-      <div className={`mt-6 pt-6 border-t border-white/5 flex items-center justify-between transition-all duration-300 ${hovered ? 'opacity-100' : 'opacity-30'}`}>
-         <span className={`text-[10px] font-black uppercase tracking-widest ${isLocked ? 'text-red-500/80 animate-pulse' : 'text-white'}`}>
-            {isLocked ? (
-                <div className="flex items-center gap-3">
-                    <span className="text-white/20">STARTS IN</span>
-                    <span className="font-mono text-xs tabular-nums text-red-500">{timeLeft || '--:--'}</span>
-                </div>
-            ) : isCompleted ? 'View Result Report' : latestAttempt ? 'Resume Session' : 'Start Assessment'}
-         </span>
-         {!isLocked && <ArrowUpRight size={18} style={{ color: hovered ? accent : '#fff' }} />}
+        {/* Footer: Action Button */}
+        <div className={`pt-5 mt-4 border-t border-white/5 flex items-center justify-between transition-all duration-300 ${hovered ? 'opacity-100' : 'opacity-30'}`}>
+           <div className={`text-[10px] font-black uppercase tracking-widest whitespace-nowrap overflow-hidden text-ellipsis mr-4 ${isLocked ? 'text-red-500/80 animate-pulse' : 'text-white'}`}>
+              {isLocked ? (
+                  <div className="flex items-center gap-3">
+                      <span className="text-white/20">STARTS IN</span>
+                      <span className="font-mono text-xs tabular-nums text-red-500">{timeLeft || '--:--'}</span>
+                  </div>
+              ) : isCompleted ? 'View Result Report' : latestAttempt ? 'Resume Session' : 'Start Assessment'}
+           </div>
+           {!isLocked && (
+             <div className="shrink-0 w-8 h-8 rounded-full bg-white/5 flex items-center justify-center border border-white/5 group-hover:bg-white/10 transition-all">
+               <ArrowUpRight size={16} style={{ color: hovered ? accent : '#fff' }} />
+             </div>
+           )}
+        </div>
       </div>
     </div>
   );

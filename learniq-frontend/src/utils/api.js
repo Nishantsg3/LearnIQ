@@ -1,8 +1,6 @@
 import axios from 'axios';
-import toast from 'react-hot-toast';
 
 // Centralized Environment-Aware API Configuration
-// Ensure localhost development points to local backend while production defaults to Render
 const IS_DEV = import.meta.env.MODE === 'development';
 const PROD_URL = import.meta.env.VITE_API_URL || 'https://learniq-backend.onrender.com/api/v1';
 const LOCAL_URL = 'http://localhost:8080/api/v1';
@@ -21,13 +19,10 @@ api.interceptors.request.use((config) => {
   const studentToken = localStorage.getItem('studentToken');
   const legacyToken = localStorage.getItem('token');
   
-  // 🛡️ Request-Aware Token Discovery:
-  // We determine the token based on the target endpoint, not just the current page.
-  // This prevents 403s during background sync or cross-portal navigation.
-  const targetUrl = config.url || '';
+  const isViewingAdminPortal = window.location.pathname.startsWith('/admin');
   let token;
   
-  if (targetUrl.startsWith('/admin') || targetUrl.startsWith('/questions')) {
+  if (isViewingAdminPortal) {
     token = adminToken || legacyToken || studentToken;
   } else {
     token = studentToken || legacyToken || adminToken;
@@ -41,33 +36,18 @@ api.interceptors.request.use((config) => {
   }
   return config;
 }, (error) => {
-  console.error('[API] Request Error:', error);
   return Promise.reject(error);
 });
 
+// Response Interceptor for Error Handling
 api.interceptors.response.use(
-  (response) => {
-    console.log(`[API] Success: ${response.config.url}`);
-    return response;
-  },
+  (response) => response,
   (error) => {
-    const originalRequest = error.config;
-    
-    // Check for 401 Unauthorized
-    if (error.response?.status === 401) {
-      console.warn(`[API] Unauthorized (401): ${originalRequest?.url}`);
-      // Do NOT force logout here. Let the context/page handle it.
-      // This prevents "flickering" logout on minor network/API blips.
+    // Silently handle common errors to prevent UI flickering
+    // Logging only critical failures in production
+    if (import.meta.env.MODE === 'development') {
+      console.error('[API] Error:', error.response?.data?.message || error.message);
     }
-
-    if (error.code === 'ECONNABORTED' || error.message === 'Network Error') {
-      // toast.error('Network connection issues detected.');
-    }
-
-    const status = error.response?.status;
-    const url = error.config?.url;
-    const data = error.response?.data;
-    console.error(`[API] Error ${status} on ${url}:`, data || error.message);
     return Promise.reject(error);
   }
 );

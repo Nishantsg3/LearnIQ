@@ -53,7 +53,6 @@ export const AuthProvider = ({ children }) => {
       
       // Strict isolation: If we are on admin route, we MUST be an admin
       if (activeRole === 'ADMIN' && backendUser.role !== 'ADMIN') {
-         console.warn('[AuthContext] Isolation breach: Admin route with Student token');
          logout();
          return;
       }
@@ -82,7 +81,6 @@ export const AuthProvider = ({ children }) => {
       // ONLY refresh if the token for OUR role changed (Login/Logout in another tab for same role)
       // This prevents Student login from affecting Admin tabs
       if (e.key === targetTokenKey) {
-        console.log(`[AuthContext] Session for ${activeRole} changed elsewhere. Syncing...`);
         window.location.reload();
       }
       

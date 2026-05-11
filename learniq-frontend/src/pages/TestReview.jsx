@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import CodeQuestion from '../components/CodeQuestion';
-import { ChevronLeft, ChevronRight, Trophy, X, CheckCircle2, Home, ArrowLeft } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Trophy, X, CheckCircle2, Home, ArrowLeft, ArrowUpRight } from 'lucide-react';
 import api from '../utils/api';
 
 /* ─── Single source of truth for correctness ──────────────────────── */
@@ -50,6 +50,7 @@ const TestReview = () => {
   const [loading, setLoading]       = useState(true);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [exitPath, setExitPath] = useState(null);
+  const [showPalette, setShowPalette] = useState(false);
 
   const fetchAttemptData = useCallback(async () => {
     try {
@@ -114,65 +115,67 @@ const TestReview = () => {
   return (
     <div className="h-screen bg-[#0e0e1a] text-white flex flex-col overflow-hidden" style={{ fontFamily: "'Inter', sans-serif" }}>
       {/* ── TOP BAR ─────────────────────────────────────────────────── */}
-      <header className="flex items-center justify-between px-6 py-3 bg-[#12122a] border-b border-[#2a2a4a] flex-shrink-0">
-        <div className="flex items-center gap-4">
+      <header className="flex items-center justify-between px-3 sm:px-6 py-2 md:py-3 bg-[#12122a] border-b border-[#2a2a4a] flex-shrink-0 z-50 relative gap-2">
+        <div className="flex items-center gap-2 md:gap-4 min-w-0">
           <button 
             onClick={() => { setExitPath(-1); setShowExitConfirm(true); }} 
-            className="flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all group"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all group shrink-0"
           >
-            <ArrowLeft size={16} className="text-gray-400 group-hover:text-white transition-colors"/>
-            <span className="text-[10px] font-black text-gray-500 group-hover:text-white uppercase tracking-widest transition-colors">Exit Review</span>
+            <ArrowLeft size={14} className="text-gray-400 group-hover:text-white transition-colors"/>
+            <span className="hidden sm:inline text-[10px] font-black text-gray-500 group-hover:text-white uppercase tracking-widest transition-colors">Exit</span>
           </button>
-          <div className="h-5 w-px bg-white/5 mx-1"/>
           
-          <div className="flex items-center gap-4">
-            <div className="flex flex-col">
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] mb-0.5">
-                <span className="text-white/40">LEARN</span>
-                <span className="text-violet-500">IQ</span>
-              </span>
-              <span className={`${themeText} font-black text-sm tracking-widest uppercase`}>
-                REVIEW <span className="text-white">MODE</span>
-              </span>
-            </div>
-            <div className="h-8 w-px bg-white/5 mx-2"/>
-            <div className="flex flex-col">
-               <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest">Student</span>
-               <span className="text-[10px] font-bold text-white uppercase tracking-wider">
-                 {attempt?.userName || localStorage.getItem('user_name') || 'STUDENT'}
-               </span>
-            </div>
+          <div className="hidden md:flex flex-col shrink-0">
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] mb-0.5">
+              <span className="text-white/40">LEARN</span>
+              <span className="text-violet-500">IQ</span>
+            </span>
+            <span className={`${themeText} font-black text-xs tracking-widest uppercase truncate`}>
+              REVIEW <span className="text-white">MODE</span>
+            </span>
+          </div>
+          <div className="hidden md:block h-8 w-px bg-white/5 mx-2 shrink-0"/>
+          <div className="hidden md:flex flex-col min-w-0">
+             <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest truncate">Student</span>
+             <span className="text-[10px] font-bold text-white uppercase tracking-wider truncate">
+               {attempt?.userName || 'STUDENT'}
+             </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-6">
-          <div className="hidden md:flex items-center gap-4">
+        <div className="flex items-center gap-2 md:gap-4 shrink-0">
+          <div className="hidden lg:flex items-center gap-4 shrink-0">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-emerald-500"/>
-              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Correct: {clientCorrectCount}</span>
+              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{clientCorrectCount}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-red-500"/>
-              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Wrong: {clientWrongCount}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-slate-600"/>
-              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Skipped: {clientSkipCount}</span>
+              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{clientWrongCount}</span>
             </div>
           </div>
-          <div className="h-8 w-px bg-white/5 mx-2"/>
-          <div className="flex flex-col items-end">
-            <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest">Final Score</p>
-            <p className={`text-lg font-black ${clientCorrectCount / questions.length >= 0.4 ? 'text-emerald-400' : 'text-red-400'}`}>
-              {questions.length > 0 ? Math.round((clientCorrectCount / questions.length) * 100) : 0}%
-            </p>
+
+          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#2a2a4a] bg-[#1a1a2e] font-black text-sm tabular-nums transition-all shrink-0`}>
+             <Trophy size={12} className={themeText}/>
+             <span className="text-sm text-white">{questions.length > 0 ? Math.round((clientCorrectCount / questions.length) * 100) : 0}%</span>
           </div>
+
+          {/* MOBILE TOGGLE - SYNCED WITH STUDENT TEST */}
+          <button 
+            onClick={() => setShowPalette(prev => !prev)}
+            className="lg:hidden p-2.5 rounded-xl border text-xs font-black transition-all bg-white/5 border-white/10 text-white active:scale-95 flex items-center gap-2"
+          >
+            <span className={themeText}>Q{currentIndex + 1}</span>
+            <span className="text-white/20">/</span>
+            <span>{questions.length}</span>
+          </button>
+
           <button 
             onClick={() => { setExitPath('/student/dashboard'); setShowExitConfirm(true); }} 
-            className="flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all group"
+            className="flex items-center gap-2 px-4 h-9 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all group shrink-0"
           >
-            <Home size={16} className="text-gray-400 group-hover:text-white transition-colors"/>
-            <span className="text-[10px] font-black text-gray-500 group-hover:text-white uppercase tracking-widest transition-colors">Dashboard</span>
+            <ArrowUpRight size={14} className="text-gray-400 group-hover:text-white transition-colors group-hover:rotate-45 transition-transform"/>
+            <span className="hidden sm:inline text-[10px] font-black text-gray-500 group-hover:text-white uppercase tracking-widest transition-colors whitespace-nowrap">Dashboard</span>
           </button>
         </div>
       </header>
@@ -273,60 +276,78 @@ const TestReview = () => {
             )}
           </div>
 
-          <div className="flex-shrink-0 border-t border-[#2a2a4a] bg-[#12122a] px-8 py-5 flex items-center justify-between">
+          <div className="flex-shrink-0 border-t border-[#2a2a4a] bg-[#12122a] px-4 sm:px-8 py-4 sm:py-5 flex items-center justify-between z-20">
             <button onClick={goPrev} disabled={currentIndex === 0}
-              className="flex items-center gap-2 px-6 py-3 rounded-xl border border-[#2a2a4a] bg-[#1a1a2e] text-gray-400 text-xs font-bold hover:text-white disabled:opacity-20 transition-all">
-              <ChevronLeft size={16}/> Previous Question
+              className="flex items-center gap-2 px-3 sm:px-6 py-2.5 sm:py-3 rounded-xl border border-[#2a2a4a] bg-[#1a1a2e] text-gray-400 text-[10px] sm:text-xs font-bold hover:text-white disabled:opacity-20 transition-all">
+              <ChevronLeft size={14}/> <span className="hidden sm:inline">Previous</span>
             </button>
             <div className="flex flex-col items-center">
-              <p className="text-[10px] font-black text-gray-600 uppercase tracking-widest mb-1">Navigation</p>
-              <p className="text-xs font-black text-white">{currentIndex + 1} / {questions.length}</p>
+              <p className="text-[8px] sm:text-[10px] font-black text-gray-600 uppercase tracking-widest mb-0.5">Progress</p>
+              <p className="text-[10px] sm:text-xs font-black text-white">{currentIndex + 1} / {questions.length}</p>
             </div>
             <button onClick={goNext} disabled={currentIndex === questions.length - 1}
-              className={`flex items-center gap-2 px-8 py-3 rounded-xl ${themeBg} ${themeHover} text-white text-xs font-black uppercase tracking-widest disabled:opacity-20 transition-all`}>
-              Next Question <ChevronRight size={16}/>
+              className={`flex items-center gap-2 px-4 sm:px-8 py-2.5 sm:py-3 rounded-xl ${themeBg} ${themeHover} text-white text-[10px] sm:text-xs font-black uppercase tracking-widest disabled:opacity-20 transition-all shadow-lg shadow-violet-600/10`}>
+              <span className="hidden sm:inline">Next Question</span> <ChevronRight size={14}/>
             </button>
           </div>
         </div>
 
+        {/* Mobile overlay backdrop */}
+        {showPalette && (
+          <div
+            className="fixed inset-0 bg-black/60 z-[40] lg:hidden"
+            onClick={() => setShowPalette(false)}
+          />
+        )}
+
         {/* ── PALETTE ────────────────────────────────────────────────── */}
-        <div className="w-72 flex-shrink-0 border-l border-[#2a2a4a] bg-[#12122a] flex flex-col overflow-hidden">
-          <div className="px-6 pt-6 pb-4 border-b border-white/5">
-            <div className="flex items-center gap-3 mb-6">
-              <div className={`w-10 h-10 rounded-xl ${themeLightBg} flex items-center justify-center border ${themeBorder}/20`}>
-                <Trophy size={20} className={themeText}/>
-              </div>
-              <div>
-                <h3 className="text-xs font-black text-white uppercase tracking-widest">Result Board</h3>
-                <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest">Attempt Review</p>
-              </div>
+        <div className={`
+          w-64 flex-shrink-0 border-l border-[#2a2a4a] bg-[#12122a] flex flex-col overflow-hidden
+          lg:relative lg:translate-x-0 lg:z-auto
+          fixed right-0 top-0 bottom-0 z-50 transition-transform duration-300
+          ${showPalette ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
+        `}>
+          <div className="px-5 pt-5 pb-3 border-b border-white/5 flex flex-col shrink-0">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-[9px] font-black text-gray-500 uppercase tracking-[0.3em]">Result Board</p>
+              <button onClick={() => setShowPalette(false)} className="lg:hidden p-1 text-gray-500 hover:text-white transition-colors">
+                <X size={18} />
+              </button>
             </div>
+            
             <div className="grid grid-cols-2 gap-3 mb-4">
               <div className="bg-[#0e0e1a] border border-white/5 rounded-xl p-3 text-center">
                 <p className="text-[7px] font-black text-gray-600 uppercase tracking-widest mb-1">Accuracy</p>
-                <p className="text-lg font-black text-white">
+                <p className="text-sm font-black text-white">
                   {questions.length > 0 ? Math.round((clientCorrectCount / questions.length) * 100) : 0}%
                 </p>
               </div>
               <div className="bg-[#0e0e1a] border border-white/5 rounded-xl p-3 text-center">
-                <p className="text-[7px] font-black text-gray-600 uppercase tracking-widest mb-1">Questions</p>
-                <p className="text-lg font-black text-white">{questions.length}</p>
+                <p className="text-[7px] font-black text-gray-600 uppercase tracking-widest mb-1">Items</p>
+                <p className="text-sm font-black text-white">{questions.length}</p>
               </div>
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-6">
-            <div className="grid grid-cols-5 gap-2">
+          <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+            <div className="grid grid-cols-4 gap-2">
               {questions.map((q, idx) => (
-                <button key={idx} onClick={() => setCurrentIndex(idx)} className={paletteStyle(q, idx, idx === currentIndex)}>
+                <button 
+                  key={idx} 
+                  onClick={() => {
+                    setCurrentIndex(idx);
+                    if (window.innerWidth < 1024) setShowPalette(false);
+                  }} 
+                  className={paletteStyle(q, idx, idx === currentIndex)}
+                >
                   {idx + 1}
                 </button>
               ))}
             </div>
           </div>
 
-          <div className="p-6 border-t border-white/5 bg-[#0e0e1a]/50">
-            <div className="space-y-3">
+          <div className="p-5 border-t border-white/5 bg-[#0e0e1a]/50 shrink-0">
+            <div className="space-y-2.5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-2.5 h-2.5 rounded bg-emerald-500"/>

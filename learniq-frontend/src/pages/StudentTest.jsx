@@ -41,6 +41,7 @@ const normalizeQuestion = (q = {}) => {
 
 /* ═══════════════════════════════════════════════════════════════════ */
 const StudentTest = () => {
+  const [showPalette, setShowPalette] = useState(false);
   const { id } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -227,7 +228,6 @@ const StudentTest = () => {
         const res = await api.get(`/questions/test/${id}/time?attemptId=${new URLSearchParams(window.location.search).get('attemptId')}`);
         const serverTime = parseInt(res.data.remainingTime);
         if (!isNaN(serverTime)) {
-          console.log(`[SYNC] Server: ${serverTime}s (Local: ${timeLeft}s)`);
           setTimeLeft(serverTime);
           if (serverTime <= 0 && !autoSubmitted) handleAutoSubmit('time');
         }
@@ -441,17 +441,17 @@ const StudentTest = () => {
   return (
     <div className="h-screen bg-[#0e0e1a] text-white flex flex-col overflow-hidden" style={{ fontFamily: "'Inter', sans-serif" }}>
       {/* ── TOP BAR ─────────────────────────────────────────────────── */}
-      <header className="flex items-center justify-between px-6 py-3 bg-[#12122a] border-b border-[#2a2a4a] flex-shrink-0">
-        <div className="flex items-center gap-4">
+      <header className="flex items-center justify-between px-3 md:px-6 py-2 md:py-3 bg-[#12122a] border-b border-[#2a2a4a] flex-shrink-0 gap-2">
+        <div className="flex items-center gap-2 md:gap-4 min-w-0">
           <button
             onClick={handleExit}
-            className="flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all group"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all group shrink-0"
           >
-            <ChevronLeft size={16} className="text-gray-400 group-hover:text-white transition-colors"/>
-            <span className="text-[10px] font-black text-gray-500 group-hover:text-white uppercase tracking-widest transition-colors">Exit Exam</span>
+            <ChevronLeft size={14} className="text-gray-400 group-hover:text-white transition-colors"/>
+            <span className="hidden sm:inline text-[10px] font-black text-gray-500 group-hover:text-white uppercase tracking-widest transition-colors">Exit</span>
           </button>
-          <div className="h-5 w-px bg-white/5 mx-1"/>
-          <div className="flex flex-col">
+          <div className="hidden md:block h-5 w-px bg-white/5"/>
+          <div className="hidden md:flex flex-col">
             <span className="text-[10px] font-black uppercase tracking-[0.2em] mb-0.5">
               <span className="text-white/40">LEARN</span>
               <span className="text-violet-500">IQ</span>
@@ -460,45 +460,56 @@ const StudentTest = () => {
               EXAM <span className="text-white">CENTER</span>
             </span>
           </div>
-          <div className="h-8 w-px bg-white/5 mx-2"/>
-          <div className="flex flex-col">
+          <div className="hidden md:block h-8 w-px bg-white/5"/>
+          <div className="hidden md:flex flex-col min-w-0">
              <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest">Student</span>
-             <span className="text-[10px] font-bold text-white uppercase tracking-wider">{user?.name || 'Scholar'}</span>
+             <span className="text-[10px] font-bold text-white uppercase tracking-wider truncate">{user?.name || 'Scholar'}</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 md:gap-4 shrink-0">
           <button
             onClick={() => setShowReloadConfirm(true)}
-            className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-slate-400 hover:text-amber-400 hover:bg-amber-400/10 transition-all group"
+            className="hidden sm:flex p-2 md:p-2.5 bg-white/5 border border-white/10 rounded-xl text-slate-400 hover:text-amber-400 hover:bg-amber-400/10 transition-all group"
             title="Sync & Refresh Session"
           >
-            <RotateCcw size={16} className="group-hover:rotate-[-180deg] transition-transform duration-500" />
+            <RotateCcw size={14} className="group-hover:rotate-[-180deg] transition-transform duration-500" />
           </button>
 
-          <div className={`flex items-center gap-2 px-4 py-2 rounded-lg border font-black text-sm tabular-nums transition-all ${
+          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border font-black text-sm tabular-nums transition-all ${
             isExpiring
               ? 'bg-red-600/20 border-red-500/40 text-red-400 animate-pulse'
               : 'bg-[#1a1a2e] border-[#2a2a4a] text-white'
           }`}>
-            <Clock size={14} className={isExpiring ? 'text-red-400' : themeText}/>
-            <span>{formatTime(timeLeft)}</span>
+            <Clock size={12} className={isExpiring ? 'text-red-400' : themeText}/>
+            <span className="text-sm">{formatTime(timeLeft)}</span>
           </div>
+
+          {/* Mobile palette toggle */}
+          <button
+            onClick={() => setShowPalette(prev => !prev)}
+            className={`lg:hidden p-2.5 rounded-xl border text-xs font-black transition-all bg-white/5 border-white/10 text-white active:scale-95 flex items-center gap-2`}
+            title="Question Palette"
+          >
+            <span className={themeText}>Q{currentIndex + 1}</span>
+            <span className="text-white/20">/</span>
+            <span>{questions.length}</span>
+          </button>
 
           <button
             onClick={() => setShowConfirm(true)}
             disabled={submitting}
-            className={`px-6 py-2 ${themeBg} ${themeHover} disabled:opacity-50 text-white rounded-lg font-black text-sm uppercase tracking-widest transition-all`}
+            className={`px-3 md:px-6 py-2 ${themeBg} ${themeHover} disabled:opacity-50 text-white rounded-lg font-black text-xs md:text-sm uppercase tracking-widest transition-all`}
           >
-            {submitting ? 'Submitting...' : 'FINISH'}
+            {submitting ? '...' : 'FINISH'}
           </button>
         </div>
       </header>
 
       {/* ── BODY ────────────────────────────────────────────────────── */}
-      <div className="flex flex-1 overflow-hidden">
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="flex-1 overflow-y-auto px-8 pt-6 pb-2">
+      <div className="flex flex-1 overflow-hidden relative">
+        <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+          <div className="flex-1 overflow-y-auto px-4 md:px-8 pt-4 md:pt-6 pb-2">
             <p className={`text-[10px] font-black ${themeText}/70 uppercase tracking-[0.3em] mb-3`}>
               Question {currentIndex + 1} of {questions.length}
             </p>
@@ -535,7 +546,7 @@ const StudentTest = () => {
             </div>
           </div>
 
-          <div className="flex-shrink-0 border-t border-[#2a2a4a] bg-[#12122a] px-8 py-4 flex items-center gap-3">
+          <div className="flex-shrink-0 border-t border-[#2a2a4a] bg-[#12122a] px-3 md:px-8 py-3 flex flex-wrap items-center gap-2 md:gap-3">
             <button
               onClick={() => toggleMark(currentQ?.id)}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border text-xs font-bold transition-all ${
@@ -576,7 +587,19 @@ const StudentTest = () => {
           </div>
         </div>
 
-        <div className="w-64 flex-shrink-0 border-l border-[#2a2a4a] bg-[#12122a] flex flex-col overflow-hidden">
+        {/* Mobile overlay backdrop */}
+        {showPalette && (
+          <div
+            className="fixed inset-0 bg-black/60 z-[40] lg:hidden"
+            onClick={() => setShowPalette(false)}
+          />
+        )}
+        <div className={`
+          w-64 flex-shrink-0 border-l border-[#2a2a4a] bg-[#12122a] flex flex-col overflow-hidden
+          lg:relative lg:translate-x-0 lg:z-auto
+          fixed right-0 top-0 bottom-0 z-50 transition-transform duration-300
+          ${showPalette ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
+        `}>
           <div className="px-5 pt-5 pb-3 flex-shrink-0">
             <p className="text-[9px] font-black text-gray-500 uppercase tracking-[0.3em] mb-4">Question Palette</p>
             <div className="space-y-1.5 mb-4">

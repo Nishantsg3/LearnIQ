@@ -176,7 +176,7 @@ public class AuthController {
             userRepository.save(user);
             
             // Send Reset Link via Email.
-            String resetLink = frontendUrl + "/reset-password?token=" + token;
+            String resetLink = frontendUrl + "/reset-password/" + token;
             emailService.sendResetPasswordEmail(user.getEmail(), resetLink);
         });
 
@@ -195,7 +195,7 @@ public class AuthController {
             return ResponseEntity.badRequest().body(Map.of("message", "Invalid or expired reset token"));
         }
 
-        user.setPassword(passwordEncoder.encode(request.newPassword())); // Encoded password
+        user.setPassword(passwordEncoder.encode(request.password())); // Encoded password
         user.setResetToken(null);
         user.setResetTokenExpiry(null);
         userRepository.save(user);

@@ -64,7 +64,7 @@ const AdminProfileModal = ({ isOpen, onClose }) => {
           <h2 className="text-[11px] font-black text-white uppercase tracking-[0.4em]">Identity Synchronization</h2>
           <button 
             onClick={onClose}
-            className="p-2 text-white/20 hover:text-white transition-colors rounded-xl hover:bg-white/5"
+            className="p-2 text-white/20 hover:text-white transition-colors rounded-full hover:bg-white/5"
           >
             <X size={18} />
           </button>
@@ -74,7 +74,7 @@ const AdminProfileModal = ({ isOpen, onClose }) => {
           {/* Avatar Section */}
           <div className="flex flex-col items-center">
             <div className="relative group">
-              <div className="w-24 h-24 rounded-3xl bg-black/40 border border-white/10 flex items-center justify-center overflow-hidden transition-all group-hover:border-[#7c3aed]/50">
+              <div className="w-24 h-24 rounded-2xl bg-black/40 border border-white/10 flex items-center justify-center overflow-hidden transition-all group-hover:border-[#7c3aed]/50 shadow-2xl">
                 {previewImage ? (
                   <img src={previewImage} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
@@ -86,7 +86,7 @@ const AdminProfileModal = ({ isOpen, onClose }) => {
                   <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
                 </label>
               </div>
-              <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-lg bg-[#7c3aed] flex items-center justify-center border-2 border-[#111118]">
+              <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[#7c3aed] flex items-center justify-center border-2 border-[#111118]">
                 <Camera size={12} className="text-white" />
               </div>
             </div>
@@ -101,7 +101,7 @@ const AdminProfileModal = ({ isOpen, onClose }) => {
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full px-4 py-3 bg-[#0a0a0f] border border-white/5 rounded-xl text-white text-xs placeholder:text-white/5 outline-none focus:border-[#7c3aed]/50 transition-all duration-200"
+                className="w-full px-6 py-3 bg-[#0a0a0f] border border-white/5 rounded-full text-white text-xs placeholder:text-white/5 outline-none focus:border-[#7c3aed]/50 transition-all duration-200"
                 placeholder="Identity Reference"
                 required
               />
@@ -113,7 +113,7 @@ const AdminProfileModal = ({ isOpen, onClose }) => {
             type="submit"
             disabled={isSaving}
             style={{ background: 'linear-gradient(135deg, #7c3aed, #6d28d9)' }}
-            className="w-full py-4 rounded-2xl flex items-center justify-center gap-3 text-white font-black uppercase text-[11px] tracking-[0.3em] transition-all hover:brightness-110 hover:-translate-y-0.5 hover:shadow-[0_0_20px_rgba(124,58,237,0.3)] disabled:opacity-50"
+            className="w-full py-4 rounded-full flex items-center justify-center gap-3 text-white font-black uppercase text-[11px] tracking-[0.3em] transition-all hover:brightness-110 hover:-translate-y-0.5 hover:shadow-[0_0_20px_rgba(124,58,237,0.3)] disabled:opacity-50"
           >
             {isSaving ? (
               <>
