@@ -1,51 +1,30 @@
-# LearnIQ — Research-Grade Assessment Platform
+# LearnIQ
 
-![LearnIQ Cover](https://via.placeholder.com/1200x600/0d0d10/8b5cf6?text=LearnIQ+Assessment+Platform)
+LearnIQ is an assessment and learning platform designed for structured testing and performance tracking. It provides a synchronized testing environment for students and a management dashboard for administrators.
 
-LearnIQ is a high-fidelity, enterprise-grade assessment ecosystem designed for precision testing and deep academic analytics. Built with a futuristic, dark-themed aesthetic, it provides a premium experience for both educators and students.
+## Features
 
-## 🚀 Live Demo & Deployment
+### Student Portal
+*   **Assessment Dashboard:** View upcoming and completed tests.
+*   **Test Environment:** Synchronized interface with auto-save and time-sync logic.
+*   **Performance Analysis:** Summary reports with score, rank, and time taken.
+*   **Automated Results:** Performance summaries delivered via email upon submission.
 
-*   **Frontend:** [Vercel Deployment](https://learniq-frontend.vercel.app)
-*   **Backend:** [Render Hosting](https://learniq-backend.onrender.com)
-*   **Database:** [Neon PostgreSQL](https://neon.tech)
+### Admin Portal
+*   **Test Management:** Create, schedule, and monitor assessments.
+*   **Question Bank:** Manage questions with multi-option support.
+*   **Analytics:** View test results, leaderboards, and student statistics.
+*   **Access Control:** Role-based authentication and secure identity management.
 
-## ✨ Core Features
+## Tech Stack
 
-### 👨‍🎓 Student Experience
-*   **Dynamic Dashboard:** Real-time progress tracking and upcoming assessments.
-*   **High-Fidelity Testing:** Secure, synchronized test environment with auto-save and proctor-ready logic.
-*   **Deep Analysis:** Automated performance summaries with rank calculation, duration tracking, and correct/wrong heatmaps.
-*   **Automated Results:** Instant branded HTML reports delivered directly to the student's inbox.
+*   **Frontend:** React 18, Vite, Lucide Icons, CSS3
+*   **Backend:** Java 17, Spring Boot 3, Spring Security, JWT
+*   **Email:** JavaMail with SMTP integration
+*   **Database:** PostgreSQL (Production), H2 (Local)
+*   **Hosting:** Render (Static Site & Web Service)
 
-### 👩‍💼 Admin Intelligence
-*   **Test Lifecycle Management:** Create, schedule, and live-monitor assessments with granular control.
-*   **Question Bank:** Modular repository for managing complex questions with multi-option support.
-*   **Academic Analytics:** Comprehensive data visualization for test scores, leaderboards, and student engagement.
-*   **Premium Controls:** Role-based access control with secure identity verification.
-
-## 🛠️ Technology Stack
-
-*   **Frontend:** React 18, Vite, Lucide Icons, Vanilla CSS (Premium Dark System)
-*   **Backend:** Java 17, Spring Boot 3, Spring Security, JWT (Token-based Auth)
-*   **Email Engine:** JavaMail (Gmail SMTP Integration) with HTML Template System
-*   **Database:** PostgreSQL (Production), H2 (Local Development)
-*   **Deployment:** Vercel (Frontend), Render (Backend), Neon (Database)
-
-## 🏗️ Architecture Overview
-
-LearnIQ follows a decoupled, stateless architecture ensuring maximum scalability:
-1.  **Frontend:** Single Page Application (SPA) communicating via a secure REST API.
-2.  **Backend:** Modular Spring Boot service layer with JWT-based stateless authentication.
-3.  **Data Layer:** JPA/Hibernate for database abstraction with profile-based storage logic.
-
-## 📸 Screenshots
-
-| Login Portal | Student Dashboard | Test Environment |
-| :--- | :--- | :--- |
-| ![Login](https://via.placeholder.com/400x300/0d0d10/8b5cf6?text=Login+Portal) | ![Dashboard](https://via.placeholder.com/400x300/0d0d10/8b5cf6?text=Dashboard) | ![Testing](https://via.placeholder.com/400x300/0d0d10/8b5cf6?text=Testing+UI) |
-
-## ⚙️ Local Setup
+## Local Setup
 
 ### 1. Clone the Repository
 ```bash
@@ -56,8 +35,7 @@ cd LearnIQ
 ### 2. Backend Setup
 1.  Navigate to `learniq-backend`.
 2.  Create a `.env` file based on `.env.example`.
-3.  Configure your **Gmail App Password** for SMTP.
-4.  Run the application:
+3.  Run the application:
 ```bash
 mvn spring-boot:run
 ```
@@ -68,58 +46,32 @@ mvn spring-boot:run
 ```bash
 npm install
 ```
-3.  Run the dev server:
+3.  Run the development server:
 ```bash
 npm run dev
 ```
 
-## 🚀 Render Deployment Guide
+## Deployment Guide (Render)
 
-LearnIQ is optimized for zero-config deployment on **Render**.
-
-### 1. Frontend (Static Site)
+### Frontend (Static Site)
 *   **Root Directory:** `learniq-frontend`
 *   **Build Command:** `npm install && npm run build`
 *   **Publish Directory:** `dist`
-*   **Redirects/Rewrites:** 
-    *   Source: `/*`
-    *   Destination: `/index.html`
-    *   Action: `Rewrite`
-*   **Env Vars:** 
-    *   `VITE_API_URL`: Your deployed backend URL (e.g., `https://learniq-backend.onrender.com/api/v1`)
+*   **Environment Variable:** `VITE_API_URL` (Backend API URL)
 
-### 2. Backend (Web Service)
+### Backend (Web Service)
 *   **Root Directory:** `learniq-backend`
 *   **Runtime:** `Java`
 *   **Build Command:** `mvn clean package -DskipTests`
 *   **Start Command:** `java -jar target/*.jar`
-*   **Env Vars:**
+*   **Environment Variables:**
     *   `SPRING_PROFILES_ACTIVE`: `prod`
-    *   `MAIL_USERNAME`: Your Gmail address
-    *   `MAIL_PASSWORD`: Your Gmail App Password
-    *   `APP_JWT_SECRET`: A long random string
-    *   `SPRING_DATASOURCE_URL`: PostgreSQL JDBC URL (from Neon)
+    *   `MAIL_USERNAME`: Gmail address
+    *   `MAIL_PASSWORD`: Gmail App Password
+    *   `SPRING_DATASOURCE_URL`: PostgreSQL JDBC URL
     *   `SPRING_DATASOURCE_USERNAME`: DB Username
     *   `SPRING_DATASOURCE_PASSWORD`: DB Password
 
-## 📬 SMTP Configuration
-
-LearnIQ uses **Gmail SMTP** for free production email delivery. 
-1.  Go to your Google Account Settings.
-2.  Enable 2FA.
-3.  Search for **App Passwords**.
-4.  Generate a "Mail" password and add it to your `.env` as `MAIL_PASSWORD`.
-
-## 🗺️ Roadmap
-
-- [ ] PDF Scorecard Generation
-- [ ] AI-Powered Question Recommendations
-- [ ] Advanced Proctoring with Tab-Switch Detection
-- [ ] Excel/CSV Bulk Question Import
-
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-**Built with precision by LearnIQ Engineering.**
