@@ -2,6 +2,11 @@
 
 LearnIQ is an assessment and learning platform designed for structured testing and performance tracking. It provides a synchronized testing environment for students and a management dashboard for administrators.
 
+## 🚀 Live Demo
+
+*   **Platform URL:** [https://learniq-frontend.onrender.com](https://learniq-frontend.onrender.com)
+*   **API Endpoint:** [https://learniq-backend-ksug.onrender.com](https://learniq-backend-ksug.onrender.com)
+
 ## Features
 
 ### Student Portal
