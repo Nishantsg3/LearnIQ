@@ -3,6 +3,7 @@ package learniq_backend.service;
 import learniq_backend.model.*;
 import learniq_backend.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +22,15 @@ public class DataSeederService {
     private final org.springframework.transaction.support.TransactionTemplate transactionTemplate;
     private final PasswordEncoder passwordEncoder;
     private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
+    @Value("${app.seed.admin.email}")
+    private String adminEmail;
+
+    @Value("${app.seed.admin.password}")
+    private String adminPassword;
+
+    @Value("${app.seed.admin.name}")
+    private String adminName;
 
     @Transactional
     public void resetAndSeed() {
@@ -41,20 +51,20 @@ public class DataSeederService {
     }
 
     private void seedUsers() {
-        // 1. SEED ADMIN (admin@learniq.com / admin@123)
-        userRepository.findByEmail("admin@learniq.com").ifPresentOrElse(
+        // 1. SEED ADMIN
+        userRepository.findByEmail(adminEmail).ifPresentOrElse(
             admin -> {
-                admin.setName("ADMIN");
-                admin.setPassword(passwordEncoder.encode("admin@123"));
+                admin.setName(adminName);
+                admin.setPassword(passwordEncoder.encode(adminPassword));
                 admin.setRole(User.Role.ADMIN);
                 admin.setVerified(true);
                 userRepository.save(admin);
             },
             () -> {
                 User admin = new User();
-                admin.setEmail("admin@learniq.com");
-                admin.setName("ADMIN");
-                admin.setPassword(passwordEncoder.encode("admin@123"));
+                admin.setEmail(adminEmail);
+                admin.setName(adminName);
+                admin.setPassword(passwordEncoder.encode(adminPassword));
                 admin.setRole(User.Role.ADMIN);
                 admin.setVerified(true);
                 userRepository.save(admin);

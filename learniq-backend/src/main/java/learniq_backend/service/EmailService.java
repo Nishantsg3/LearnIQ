@@ -22,6 +22,11 @@ public class EmailService {
     @Value("${spring.mail.username}")
     private String fromEmail;
 
+    @jakarta.annotation.PostConstruct
+    public void init() {
+        log.info("[EMAIL-SERVICE] Starting with sender: {}", fromEmail);
+    }
+
     private static final String BRAND_COLOR = "#8b5cf6";
     private static final String DARK_BG = "#0d0d10";
     private static final String CARD_BG = "#16161a";
@@ -75,6 +80,7 @@ public class EmailService {
     }
 
     public boolean sendResetPasswordEmail(String toEmail, String resetLink) {
+        log.info("[EMAIL-SERVICE] sendResetPasswordEmail invoked for: {}", toEmail);
         try {
             String content = "<h2 style=\"margin: 0 0 20px; font-size: 22px;\">Reset Your Password</h2>" +
                              "<p style=\"color: rgba(255,255,255,0.6); line-height: 1.6; margin-bottom: 30px;\">We received a request to reset your LearnIQ password. Click the button below to proceed.</p>" +
@@ -83,10 +89,12 @@ public class EmailService {
                              "</div>" +
                              "<p style=\"color: rgba(255,255,255,0.4); font-size: 13px;\">If you didn't request this, you can safely ignore this email.</p>";
             
+            log.info("[EMAIL-SERVICE] Attempting SMTP send to: {}", toEmail);
             sendHtmlEmail(toEmail, "Reset Your LearnIQ Password", getBaseTemplate(content));
+            log.info("[EMAIL-SERVICE] SMTP send successful to: {}", toEmail);
             return true;
         } catch (Exception e) {
-            log.error("[MAIL] Reset password email failed to {}: {}", toEmail, e.getMessage(), e);
+            log.error("[EMAIL-SERVICE] SMTP send FAILED to {}: {}", toEmail, e.getMessage(), e);
             return false;
         }
     }
