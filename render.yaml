@@ -52,4 +52,4 @@ services:
         generateValue: true
 
       - key: APP_FRONTEND_URL
-        value: https://learniq-frontend.onrender.com
+        value: https://learniq-frontend-7oyn.onrender.com

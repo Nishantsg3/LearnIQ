@@ -4,7 +4,7 @@ LearnIQ is an assessment and learning platform designed for structured testing a
 
 ## 🚀 Live Demo
 
-*   **Platform URL:** [https://learniq-frontend.onrender.com](https://learniq-frontend.onrender.com)
+*   **Platform URL:** [https://learniq-frontend-7oyn.onrender.com](https://learniq-frontend-7oyn.onrender.com)
 *   **API Endpoint:** [https://learniq-backend-vglf.onrender.com/api/v1](https://learniq-backend-vglf.onrender.com/api/v1)
 
 ## Features
