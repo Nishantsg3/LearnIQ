@@ -441,16 +441,16 @@ const StudentTest = () => {
   return (
     <div className="h-screen bg-[#0e0e1a] text-white flex flex-col overflow-hidden" style={{ fontFamily: "'Inter', sans-serif" }}>
       {/* ── TOP BAR ─────────────────────────────────────────────────── */}
-      <header className="flex items-center justify-between px-3 md:px-6 py-2 md:py-3 bg-[#12122a] border-b border-[#2a2a4a] flex-shrink-0 gap-2">
-        <div className="flex items-center gap-2 md:gap-4 min-w-0">
+      <header className="flex items-center justify-between px-3 md:px-6 py-2 md:py-3 bg-[#12122a] border-b border-[#2a2a4a] flex-shrink-0 gap-2 z-[60]">
+        <div className="flex items-center gap-1.5 md:gap-4 min-w-0">
           <button
             onClick={handleExit}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all group shrink-0"
+            className="flex items-center gap-1.5 px-2 md:px-2.5 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all group shrink-0"
           >
             <ChevronLeft size={14} className="text-gray-400 group-hover:text-white transition-colors"/>
             <span className="hidden sm:inline text-[10px] font-black text-gray-500 group-hover:text-white uppercase tracking-widest transition-colors">Exit</span>
           </button>
-          <div className="hidden md:block h-5 w-px bg-white/5"/>
+          
           <div className="hidden md:flex flex-col">
             <span className="text-[10px] font-black uppercase tracking-[0.2em] mb-0.5">
               <span className="text-white/40">LEARN</span>
@@ -460,14 +460,14 @@ const StudentTest = () => {
               EXAM <span className="text-white">CENTER</span>
             </span>
           </div>
-          <div className="hidden md:block h-8 w-px bg-white/5"/>
-          <div className="hidden md:flex flex-col min-w-0">
-             <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest">Student</span>
-             <span className="text-[10px] font-bold text-white uppercase tracking-wider truncate">{user?.name || 'Scholar'}</span>
+
+          {/* Compact Branding for Mobile */}
+          <div className="md:hidden flex items-center bg-violet-500/10 px-2 py-1 rounded-lg border border-violet-500/20">
+             <span className="text-[10px] font-black text-violet-500 tracking-tighter">IQ</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 md:gap-4 shrink-0">
+        <div className="flex items-center gap-1.5 md:gap-4 shrink-0">
           <button
             onClick={() => setShowReloadConfirm(true)}
             className="hidden sm:flex p-2 md:p-2.5 bg-white/5 border border-white/10 rounded-xl text-slate-400 hover:text-amber-400 hover:bg-amber-400/10 transition-all group"
@@ -476,20 +476,18 @@ const StudentTest = () => {
             <RotateCcw size={14} className="group-hover:rotate-[-180deg] transition-transform duration-500" />
           </button>
 
-          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border font-black text-sm tabular-nums transition-all ${
+          <div className={`flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1.5 rounded-lg border font-black text-xs md:text-sm tabular-nums transition-all ${
             isExpiring
               ? 'bg-red-600/20 border-red-500/40 text-red-400 animate-pulse'
               : 'bg-[#1a1a2e] border-[#2a2a4a] text-white'
           }`}>
             <Clock size={12} className={isExpiring ? 'text-red-400' : themeText}/>
-            <span className="text-sm">{formatTime(timeLeft)}</span>
+            <span className="text-xs md:text-sm">{formatTime(timeLeft)}</span>
           </div>
 
-          {/* Mobile palette toggle */}
           <button
             onClick={() => setShowPalette(prev => !prev)}
-            className={`lg:hidden p-2.5 rounded-xl border text-xs font-black transition-all bg-white/5 border-white/10 text-white active:scale-95 flex items-center gap-2`}
-            title="Question Palette"
+            className={`lg:hidden p-2 md:p-2.5 rounded-xl border text-[10px] md:text-xs font-black transition-all bg-white/5 border-white/10 text-white active:scale-95 flex items-center gap-1 md:gap-2`}
           >
             <span className={themeText}>Q{currentIndex + 1}</span>
             <span className="text-white/20">/</span>
@@ -499,7 +497,7 @@ const StudentTest = () => {
           <button
             onClick={() => setShowConfirm(true)}
             disabled={submitting}
-            className={`px-3 md:px-6 py-2 ${themeBg} ${themeHover} disabled:opacity-50 text-white rounded-lg font-black text-xs md:text-sm uppercase tracking-widest transition-all`}
+            className={`px-3 md:px-6 py-2 ${themeBg} ${themeHover} disabled:opacity-50 text-white rounded-lg font-black text-[10px] md:text-sm uppercase tracking-widest transition-all shadow-lg ${themeShadow}`}
           >
             {submitting ? '...' : 'FINISH'}
           </button>
@@ -546,44 +544,56 @@ const StudentTest = () => {
             </div>
           </div>
 
-          <div className="flex-shrink-0 border-t border-[#2a2a4a] bg-[#12122a] px-3 md:px-8 py-3 flex flex-wrap items-center gap-2 md:gap-3">
-            <button
-              onClick={() => toggleMark(currentQ?.id)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border text-xs font-bold transition-all ${
-                marked[currentQ?.id]
-                  ? 'bg-orange-500/20 border-orange-500/60 text-orange-400'
-                  : 'bg-[#1a1a2e] border-[#2a2a4a] text-gray-400 hover:border-orange-500/40 hover:text-orange-400'
-              }`}
-            >
-              <Bookmark size={13}/>
-              Mark for Review
-            </button>
+          {/* ── BOTTOM ACTION BAR ─────────────────────────────────────── */}
+          <div className="flex-shrink-0 border-t border-[#2a2a4a] bg-[#12122a] px-3 md:px-8 pt-3 pb-[calc(env(safe-area-inset-bottom)+12px)] shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
+            <div className="flex flex-wrap items-center justify-between gap-2 md:gap-4 max-w-full overflow-hidden">
+              
+              {/* Left Group: Action Toggles */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => toggleMark(currentQ?.id)}
+                  className={`flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-lg border text-[10px] md:text-xs font-bold transition-all ${
+                    marked[currentQ?.id]
+                      ? 'bg-orange-500/20 border-orange-500/60 text-orange-400'
+                      : 'bg-[#1a1a2e] border-[#2a2a4a] text-gray-400 hover:border-orange-500/40 hover:text-orange-400'
+                  }`}
+                >
+                  <Bookmark size={13} className="shrink-0"/>
+                  <span className="hidden xs:inline">Mark for Review</span>
+                  <span className="xs:hidden">Review</span>
+                </button>
 
-            <button
-              onClick={clearAnswer}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-[#2a2a4a] bg-[#1a1a2e] text-rose-400 text-xs font-bold hover:border-rose-500/40 hover:bg-rose-900/10 transition-all"
-            >
-              <RotateCcw size={13}/>
-              Clear Response
-            </button>
+                <button
+                  onClick={clearAnswer}
+                  className="flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-lg border border-[#2a2a4a] bg-[#1a1a2e] text-rose-400 text-[10px] md:text-xs font-bold hover:border-rose-500/40 hover:bg-rose-900/10 transition-all"
+                >
+                  <RotateCcw size={13} className="shrink-0"/>
+                  <span className="hidden xs:inline">Clear Response</span>
+                  <span className="xs:hidden">Clear</span>
+                </button>
+              </div>
 
-            <div className="flex-1"/>
+              {/* Right Group: Navigation */}
+              <div className="flex items-center gap-2 ml-auto">
+                <button
+                  onClick={goPrev}
+                  disabled={currentIndex === 0}
+                  className={`flex items-center gap-2 px-3 md:px-5 py-2.5 rounded-lg border border-[#2a2a4a] bg-[#1a1a2e] text-gray-300 text-[10px] md:text-xs font-bold hover:${themeBorder}/40 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all`}
+                >
+                  <ChevronLeft size={14} className="shrink-0"/> 
+                  <span className="hidden sm:inline">Prev</span>
+                </button>
 
-            <button
-              onClick={goPrev}
-              disabled={currentIndex === 0}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-lg border border-[#2a2a4a] bg-[#1a1a2e] text-gray-300 text-xs font-bold hover:${themeBorder}/40 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all`}
-            >
-              <ChevronLeft size={14}/> Prev
-            </button>
-
-            <button
-              onClick={goNext}
-              disabled={currentIndex === questions.length - 1}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded-lg ${themeBg} ${themeHover} text-white text-xs font-black uppercase tracking-widest disabled:opacity-40 disabled:cursor-not-allowed transition-all`}
-            >
-              Save & Next <ChevronRight size={14}/>
-            </button>
+                <button
+                  onClick={goNext}
+                  disabled={currentIndex === questions.length - 1}
+                  className={`flex items-center gap-2 px-4 md:px-8 py-2.5 rounded-lg ${themeBg} ${themeHover} text-white text-[10px] md:text-xs font-black uppercase tracking-widest disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-lg ${themeShadow}`}
+                >
+                  <span className="whitespace-nowrap">Save & Next</span>
+                  <ChevronRight size={14} className="shrink-0"/>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 

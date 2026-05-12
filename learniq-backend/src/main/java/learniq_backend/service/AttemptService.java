@@ -33,59 +33,81 @@ public class AttemptService {
     @Transactional
     public TestAttempt startOrResumeAttempt(String userEmail, Long testId) {
         Test test = testRepository.findById(testId)
-                .orElseThrow(() -> new RuntimeException("Test not found"));
+                .orElseThrow(() -> new RuntimeException("Assessment [ID: " + testId + "] not found. Please refresh."));
 
         User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new RuntimeException("User profile [" + userEmail + "] not found."));
 
+        // 1. Fetch questions early to validate
         List<Question> questions = questionRepository.findByTestId(test.getId());
+        if (questions.isEmpty()) {
+            System.err.println("[CRITICAL] MAIN INITIALIZATION FAILED: Test " + testId + " has NO questions.");
+            throw new RuntimeException("This assessment has no questions assigned yet. Please contact your administrator.");
+        }
+        
+        System.out.println("[ATTEMPT] Initializing lifecycle for " + userEmail + " on Test: " + test.getTitle() + " (Type: " + test.getTestType() + ")");
 
-        // 1. Check for existing IN_PROGRESS attempt
+        // 2. Comprehensive check for existing IN_PROGRESS attempt
+        // We check by both UserId (modern) and UserEmail (legacy/safety fallback)
         Optional<TestAttempt> existingOpt = testAttemptRepository
                 .findFirstByUserIdAndTestIdAndStatus(user.getId(), testId, TestAttempt.Status.IN_PROGRESS);
+        
+        if (existingOpt.isEmpty()) {
+            existingOpt = testAttemptRepository
+                .findFirstByUserEmailAndTestIdAndStatusOrderByStartedAtDesc(userEmail, testId, TestAttempt.Status.IN_PROGRESS);
+        }
 
         if (existingOpt.isPresent()) {
             TestAttempt active = existingOpt.get();
 
-            // Check for expiration
+            // Auto-link user if missing (legacy data cleanup)
+            if (active.getUser() == null) active.setUser(user);
+
+            // Check for individual session expiration
             if (active.getEndTime() != null && LocalDateTime.now().isAfter(active.getEndTime())) {
                 System.out.println("[AUTO-SUBMIT] Active attempt " + active.getId() + " expired on resume. Finalizing...");
                 return finalizeAndSubmit(active, null);
             }
 
-            // Resume Logic: If Main, we need to handle the "Timer Resume from where left off"
+            // Resume Logic: If Main, we handle "Timer Resume"
             if ("MAIN".equalsIgnoreCase(test.getTestType())) {
-                // If it was paused (remainingSeconds set), recalculate endTime
                 if (active.getRemainingSeconds() != null) {
                     active.setEndTime(LocalDateTime.now().plusSeconds(active.getRemainingSeconds()));
-                    active.setRemainingSeconds(null); // Clear pause state
+                    active.setRemainingSeconds(null); 
                     return testAttemptRepository.save(active);
                 }
             }
             return active;
         }
 
-        // 2. New Attempt Logic
-        // For MAIN: Check if within START window (within duration minutes of startTime)
+        // 3. New Attempt Validation logic
         if ("MAIN".equalsIgnoreCase(test.getTestType())) {
             LocalDateTime now = LocalDateTime.now();
-            LocalDateTime startThreshold = test.getStartTime() != null ? test.getStartTime() : test.getCreatedAt();
-            LocalDateTime endThreshold = startThreshold.plusMinutes(test.getDurationMinutes());
-
-            if (now.isBefore(startThreshold)) {
-                throw new RuntimeException("This test has not started yet.");
+            
+            // Start Window Logic: Use startTime or createdAt
+            LocalDateTime startAt = test.getStartTime() != null ? test.getStartTime() : test.getCreatedAt();
+            
+            // End Window Logic: Use explicit endTime or calculate from duration
+            LocalDateTime endAt = test.getEndTime();
+            if (endAt == null && startAt != null) {
+                endAt = startAt.plusMinutes(test.getDurationMinutes());
             }
-            if (now.isAfter(endThreshold)) {
-                throw new RuntimeException("The window to start this test has expired.");
+
+            // Validation checks
+            if (startAt != null && now.isBefore(startAt)) {
+                throw new RuntimeException("Access Denied: This assessment is scheduled to start at " + startAt);
+            }
+            if (endAt != null && now.isAfter(endAt)) {
+                throw new RuntimeException("Access Denied: The window to participate in this assessment has closed.");
             }
             
-            // Check if already submitted
+            // One-attempt rule for MAIN
             if (testAttemptRepository.existsByUserEmailAndTestIdAndSubmitted(userEmail, testId, true)) {
-                throw new RuntimeException("Only one attempt allowed for MAIN test.");
+                throw new RuntimeException("Assessment Policy: You have already submitted an attempt for this main evaluation.");
             }
         }
 
-        // Create fresh attempt
+        // 4. Create fresh attempt
         LocalDateTime now = LocalDateTime.now();
         TestAttempt attempt = new TestAttempt();
         attempt.setUser(user);
@@ -93,6 +115,8 @@ public class AttemptService {
         attempt.setUserName(user.getName());
         attempt.setTest(test);
         attempt.setStartedAt(now);
+        
+        // Individual duration
         attempt.setEndTime(now.plusMinutes(test.getDurationMinutes()));
         attempt.setStatus(TestAttempt.Status.IN_PROGRESS);
         attempt.setScorePercent(-1);
