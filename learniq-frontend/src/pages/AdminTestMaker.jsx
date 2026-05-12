@@ -44,6 +44,8 @@ const AdminTestMaker = () => {
         {Array.from({length: 31}).map((_, i) => {
           const day = i + 1;
           const isSelected = formData.startTime?.split('T')[0]?.endsWith(`-${day.toString().padStart(2, '0')}`);
+          const isToday = new Date().getDate() === day && new Date().getMonth() === 4 && new Date().getFullYear() === 2026;
+          
           return (
             <button
               key={day}
@@ -53,7 +55,13 @@ const AdminTestMaker = () => {
                 setFormData({...formData, startTime: `2026-05-${day.toString().padStart(2, '0')}T${time}`});
                 setShowCalendar(false);
               }}
-              className={`aspect-square flex items-center justify-center rounded-lg text-[9px] font-bold transition-all ${isSelected ? 'bg-violet-500 text-white shadow-[0_0_10px_rgba(124,58,237,0.4)]' : 'text-white/30 hover:bg-white/5 hover:text-white'}`}
+              className={`aspect-square flex items-center justify-center rounded-lg text-[9px] font-bold transition-all ${
+                isSelected 
+                  ? 'bg-violet-500 text-white shadow-[0_0_10px_rgba(124,58,237,0.4)]' 
+                  : isToday 
+                    ? 'text-violet-400 border border-violet-500/30 bg-violet-500/5' 
+                    : 'text-white/30 hover:bg-white/5 hover:text-white'
+              }`}
             >
               {day}
             </button>
