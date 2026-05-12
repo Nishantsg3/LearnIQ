@@ -282,9 +282,6 @@ public class TestController {
             // 3. Wipe join table
             jdbcTemplate.update("DELETE FROM test_questions WHERE test_id = ?", id);
             
-            // 3.5 Wipe legacy foreign key
-            jdbcTemplate.update("UPDATE question SET test_id = NULL WHERE test_id = ?", id);
-            
             // 4. Wipe test
             int deleted = jdbcTemplate.update("DELETE FROM test WHERE id = ?", id);
             
