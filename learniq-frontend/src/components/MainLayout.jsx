@@ -117,8 +117,8 @@ const MainLayout = ({ children, onProfileClick }) => {
                 <span className="text-[11px] font-black text-white/80 tracking-[0.15em]">{date}</span>
               </div>
               <div className="flex items-baseline gap-2">
-                <span className="text-[11px] font-black text-violet-400 tracking-[0.2em]">{time}</span>
-                <span className="text-[9px] font-bold text-violet-400/50 uppercase">{ampm}</span>
+                <span className="text-[11px] font-black text-violet-300 tracking-[0.2em] drop-shadow-[0_0_8px_rgba(167,139,250,0.3)]">{time}</span>
+                <span className="text-[9px] font-bold text-violet-300/60 uppercase">{ampm}</span>
               </div>
             </div>
           </div>
