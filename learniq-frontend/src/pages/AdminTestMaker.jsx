@@ -33,6 +33,160 @@ const AdminTestMaker = () => {
     startTime: ''
   });
 
+  const renderCalendarContent = () => (
+    <div className="p-3 bg-[#0f0f14] border border-white/5 rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200 max-h-56 overflow-y-auto box-border custom-scrollbar">
+      <div className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mb-3 text-center">May 2026</div>
+      <div className="grid grid-cols-7 gap-1 mb-1">
+        {['S','M','T','W','T','F','S'].map(d => <div key={d} className="text-[8px] font-black text-violet-500/40 text-center">{d}</div>)}
+      </div>
+      <div className="grid grid-cols-7 gap-1">
+        {Array.from({length: 5}).map((_, i) => <div key={`empty-${i}`} className="aspect-square" />)}
+        {Array.from({length: 31}).map((_, i) => {
+          const day = i + 1;
+          const isSelected = formData.startTime?.split('T')[0]?.endsWith(`-${day.toString().padStart(2, '0')}`);
+          return (
+            <button
+              key={day}
+              type="button"
+              onClick={() => {
+                const time = formData.startTime?.split('T')[1] || '12:00';
+                setFormData({...formData, startTime: `2026-05-${day.toString().padStart(2, '0')}T${time}`});
+                setShowCalendar(false);
+              }}
+              className={`aspect-square flex items-center justify-center rounded-lg text-[9px] font-bold transition-all ${isSelected ? 'bg-violet-500 text-white shadow-[0_0_10px_rgba(124,58,237,0.4)]' : 'text-white/30 hover:bg-white/5 hover:text-white'}`}
+            >
+              {day}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  const renderClockContent = () => (
+    <div className="p-5 bg-[#0a0a0f] border border-white/10 rounded-[2rem] shadow-[0_30px_100px_rgba(0,0,0,0.9)] animate-in zoom-in-95 duration-300 max-h-[80vh] md:max-h-56 overflow-y-auto box-border custom-scrollbar">
+       <div className="flex items-center justify-between gap-2 mb-4">
+            <div className="flex items-baseline gap-1 bg-white/5 px-3 py-1.5 rounded-xl border border-white/5">
+              <button 
+                type="button"
+                onClick={() => setClockMode('HOUR')}
+                className={`text-xl font-black transition-all ${clockMode === 'HOUR' ? 'text-violet-400' : 'text-white/20 hover:text-white/40'}`}
+              >
+                {formData.startTime?.split('T')[1] ? (parseInt(formData.startTime.split('T')[1].split(':')[0]) % 12 || 12).toString().padStart(2, '0') : '12'}
+              </button>
+              <span className="text-white/10 font-black text-lg">:</span>
+              <button 
+                type="button"
+                onClick={() => setClockMode('MINUTE')}
+                className={`text-xl font-black transition-all ${clockMode === 'MINUTE' ? 'text-violet-400' : 'text-white/20 hover:text-white/40'}`}
+              >
+                {formData.startTime?.split('T')[1]?.split(':')[1] || '00'}
+              </button>
+            </div>
+
+            <div className="flex gap-1 bg-white/5 rounded-lg p-0.5">
+              {['AM', 'PM'].map(p => {
+                const hour = parseInt(formData.startTime?.split('T')[1]?.split(':')[0] || '12');
+                const isPM = hour >= 12;
+                const active = (p === 'PM' && isPM) || (p === 'AM' && !isPM);
+                return (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => {
+                      const [date, time] = (formData.startTime || '2026-05-01T12:00').split('T');
+                      let [h, m] = time.split(':');
+                      let hourInt = parseInt(h);
+                      if (p === 'PM' && hourInt < 12) hourInt += 12;
+                      if (p === 'AM' && hourInt >= 12) hourInt -= 12;
+                      setFormData({...formData, startTime: `${date}T${hourInt.toString().padStart(2, '0')}:${m}`});
+                    }}
+                    className={`px-2 py-0.5 rounded-md text-[8px] font-black transition-all ${active ? 'bg-violet-600 text-white shadow-lg' : 'text-white/20 hover:text-white/40'}`}
+                  >
+                    {p}
+                  </button>
+                );
+              })}
+            </div>
+        </div>
+
+        <div className="relative aspect-square w-full bg-white/[0.02] rounded-full border border-white/5 flex items-center justify-center mb-5">
+            <div 
+              className="absolute w-0.5 bg-violet-500 origin-bottom transition-all duration-300"
+              style={{ 
+                height: '38%', 
+                bottom: '50%',
+                left: 'calc(50% - 0.5px)',
+                transform: `rotate(${(() => {
+                    const hour = parseInt(formData.startTime?.split('T')[1]?.split(':')[0] || '12');
+                    const min = parseInt(formData.startTime?.split('T')[1]?.split(':')[1] || '00');
+                    const val = clockMode === 'HOUR' ? (hour % 12) : (min / 5);
+                    return val * 30;
+                })()}deg)` 
+              }}
+            >
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-violet-600 shadow-[0_0_15px_rgba(124,58,237,0.5)] border-2 border-violet-400/50" />
+            </div>
+
+            {Array.from({length: 12}).map((_, i) => {
+              const val = i === 0 ? (clockMode === 'HOUR' ? 12 : 0) : (clockMode === 'HOUR' ? i : i * 5);
+              const angle = (i * 30) - 90;
+              const x = 40 * Math.cos(angle * Math.PI / 180);
+              const y = 40 * Math.sin(angle * Math.PI / 180);
+              
+              const currentVal = clockMode === 'HOUR' 
+                ? (parseInt(formData.startTime?.split('T')[1]?.split(':')[0] || '12') % 12 || 12)
+                : (parseInt(formData.startTime?.split('T')[1]?.split(':')[1] || '00'));
+              const active = val === currentVal;
+
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => {
+                    const [date, time] = (formData.startTime || '2026-05-01T12:00').split('T');
+                    let [h, m] = time.split(':');
+                    if (clockMode === 'HOUR') {
+                        const isPM = parseInt(h) >= 12;
+                        let finalH = isPM ? (val === 12 ? 12 : val + 12) : (val === 12 ? 0 : val);
+                        setFormData({...formData, startTime: `${date}T${finalH.toString().padStart(2, '0')}:${m}`});
+                        setTimeout(() => setClockMode('MINUTE'), 300);
+                    } else {
+                        setFormData({...formData, startTime: `${date}T${h}:${val.toString().padStart(2, '0')}`});
+                    }
+                  }}
+                  className={`absolute w-7 h-7 flex items-center justify-center text-[10px] font-black transition-all rounded-full z-20 ${active ? 'text-white' : 'text-white/20 hover:text-white'}`}
+                  style={{ left: `${50 + x}%`, top: `${50 + y}%`, transform: 'translate(-50%, -50%)' }}
+                >
+                  {clockMode === 'HOUR' ? val : val.toString().padStart(2, '0')}
+                </button>
+              );
+            })}
+            <div className="w-1.5 h-1.5 bg-violet-500 rounded-full z-10" />
+        </div>
+
+        <div className="flex gap-2">
+             <button 
+               type="button"
+               onClick={() => {
+                 setFormData({...formData, startTime: ''});
+                 setShowClock(false);
+               }}
+               className="btn-secondary flex-1 py-2"
+             >
+               Clear
+             </button>
+             <button 
+               type="button"
+               onClick={() => setShowClock(false)}
+               className="btn-white flex-1 py-2"
+             >
+               Finalize
+             </button>
+         </div>
+    </div>
+  );
+
   const categories = ["Java", "Python", "ASP.NET", "Aptitude", "DBMS", "Cloud"];
 
   useEffect(() => {
@@ -238,38 +392,29 @@ const AdminTestMaker = () => {
                           <Calendar size={12} className="text-violet-400" />
                         </button>
                         
-                        {showCalendar && createPortal(
+                        {showCalendar && (
                           <>
-                            <div className="fixed inset-0 z-[100] md:hidden bg-black/60 backdrop-blur-sm" onClick={() => setShowCalendar(false)} />
-                            <div className="fixed md:absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 md:top-[calc(100%+4px)] md:left-0 md:right-0 md:translate-x-0 md:translate-y-0 w-[90%] max-w-[320px] md:w-full p-3 bg-[#0f0f14] border border-white/5 rounded-2xl shadow-2xl z-[101] md:z-50 animate-in zoom-in-95 duration-200 max-h-56 overflow-y-auto box-border custom-scrollbar">
-                              <div className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mb-3 text-center">May 2026</div>
-                              <div className="grid grid-cols-7 gap-1 mb-1">
-                                {['S','M','T','W','T','F','S'].map(d => <div key={d} className="text-[8px] font-black text-violet-500/40 text-center">{d}</div>)}
-                              </div>
-                              <div className="grid grid-cols-7 gap-1">
-                                {Array.from({length: 5}).map((_, i) => <div key={`empty-${i}`} className="aspect-square" />)}
-                                {Array.from({length: 31}).map((_, i) => {
-                                  const day = i + 1;
-                                  const isSelected = formData.startTime?.split('T')[0]?.endsWith(`-${day.toString().padStart(2, '0')}`);
-                                  return (
-                                    <button
-                                      key={day}
-                                      type="button"
-                                      onClick={() => {
-                                        const time = formData.startTime?.split('T')[1] || '12:00';
-                                        setFormData({...formData, startTime: `2026-05-${day.toString().padStart(2, '0')}T${time}`});
-                                        setShowCalendar(false);
-                                      }}
-                                      className={`aspect-square flex items-center justify-center rounded-lg text-[9px] font-bold transition-all ${isSelected ? 'bg-violet-500 text-white shadow-[0_0_10px_rgba(124,58,237,0.4)]' : 'text-white/30 hover:bg-white/5 hover:text-white'}`}
-                                    >
-                                      {day}
-                                    </button>
-                                  );
-                                })}
+                            {/* MOBILE MODAL */}
+                            <div className="md:hidden">
+                              {createPortal(
+                                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                                  <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowCalendar(false)} />
+                                  <div className="relative w-full max-w-[320px]">
+                                    {renderCalendarContent()}
+                                  </div>
+                                </div>,
+                                document.body
+                              )}
+                            </div>
+                            
+                            {/* DESKTOP DROPDOWN */}
+                            <div className="hidden md:block">
+                              <div className="fixed inset-0 z-40" onClick={() => setShowCalendar(false)} />
+                              <div className="absolute top-[calc(100%+4px)] left-0 right-0 z-50">
+                                {renderCalendarContent()}
                               </div>
                             </div>
-                          </>,
-                          document.body
+                          </>
                         )}
                       </div>
 
@@ -291,136 +436,29 @@ const AdminTestMaker = () => {
                             <Clock size={12} className="text-violet-400" />
                           </button>
                         
-                        {showClock && createPortal(
+                        {showClock && (
                           <>
-                            <div className="fixed inset-0 z-[100] md:hidden bg-black/60 backdrop-blur-sm" onClick={() => setShowClock(false)} />
-                            <div className="fixed md:absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 md:top-[calc(100%+4px)] md:left-0 md:right-0 md:translate-x-0 md:translate-y-0 w-[95%] max-w-[340px] md:w-full p-5 bg-[#0a0a0f] border border-white/10 rounded-[2rem] shadow-[0_30px_100px_rgba(0,0,0,0.9)] z-[101] md:z-50 animate-in zoom-in-95 duration-300 max-h-[80vh] md:max-h-56 overflow-y-auto box-border custom-scrollbar">
-                               {/* COMPACT DIGITAL DISPLAY */}
-                               <div className="flex items-center justify-between gap-2 mb-4">
-                                    <div className="flex items-baseline gap-1 bg-white/5 px-3 py-1.5 rounded-xl border border-white/5">
-                                      <button 
-                                        type="button"
-                                        onClick={() => setClockMode('HOUR')}
-                                        className={`text-xl font-black transition-all ${clockMode === 'HOUR' ? 'text-violet-400' : 'text-white/20 hover:text-white/40'}`}
-                                      >
-                                        {formData.startTime?.split('T')[1] ? (parseInt(formData.startTime.split('T')[1].split(':')[0]) % 12 || 12).toString().padStart(2, '0') : '12'}
-                                      </button>
-                                      <span className="text-white/10 font-black text-lg">:</span>
-                                      <button 
-                                        type="button"
-                                        onClick={() => setClockMode('MINUTE')}
-                                        className={`text-xl font-black transition-all ${clockMode === 'MINUTE' ? 'text-violet-400' : 'text-white/20 hover:text-white/40'}`}
-                                      >
-                                        {formData.startTime?.split('T')[1]?.split(':')[1] || '00'}
-                                      </button>
-                                    </div>
+                            {/* MOBILE MODAL */}
+                            <div className="md:hidden">
+                              {createPortal(
+                                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                                  <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowClock(false)} />
+                                  <div className="relative w-full max-w-[340px]">
+                                    {renderClockContent()}
+                                  </div>
+                                </div>,
+                                document.body
+                              )}
+                            </div>
 
-                                    <div className="flex gap-1 bg-white/5 rounded-lg p-0.5">
-                                      {['AM', 'PM'].map(p => {
-                                        const hour = parseInt(formData.startTime?.split('T')[1]?.split(':')[0] || '12');
-                                        const isPM = hour >= 12;
-                                        const active = (p === 'PM' && isPM) || (p === 'AM' && !isPM);
-                                        return (
-                                          <button
-                                            key={p}
-                                            type="button"
-                                            onClick={() => {
-                                              const [date, time] = (formData.startTime || '2026-05-01T12:00').split('T');
-                                              let [h, m] = time.split(':');
-                                              let hourInt = parseInt(h);
-                                              if (p === 'PM' && hourInt < 12) hourInt += 12;
-                                              if (p === 'AM' && hourInt >= 12) hourInt -= 12;
-                                              setFormData({...formData, startTime: `${date}T${hourInt.toString().padStart(2, '0')}:${m}`});
-                                            }}
-                                            className={`px-2 py-0.5 rounded-md text-[8px] font-black transition-all ${active ? 'bg-violet-600 text-white shadow-lg' : 'text-white/20 hover:text-white/40'}`}
-                                          >
-                                            {p}
-                                          </button>
-                                        );
-                                      })}
-                                    </div>
-                                </div>
-
-                                {/* SCALED CIRCULAR CLOCK FACE */}
-                                <div className="relative aspect-square w-full bg-white/[0.02] rounded-full border border-white/5 flex items-center justify-center mb-5">
-                                    {/* CLOCK HAND */}
-                                    <div 
-                                      className="absolute w-0.5 bg-violet-500 origin-bottom transition-all duration-300"
-                                      style={{ 
-                                        height: '38%', 
-                                        bottom: '50%',
-                                        left: 'calc(50% - 0.5px)',
-                                        transform: `rotate(${(() => {
-                                            const hour = parseInt(formData.startTime?.split('T')[1]?.split(':')[0] || '12');
-                                            const min = parseInt(formData.startTime?.split('T')[1]?.split(':')[1] || '00');
-                                            const val = clockMode === 'HOUR' ? (hour % 12) : (min / 5);
-                                            return val * 30;
-                                        })()}deg)` 
-                                      }}
-                                    >
-                                        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-violet-600 shadow-[0_0_15px_rgba(124,58,237,0.5)] border-2 border-violet-400/50" />
-                                    </div>
-
-                                    {/* NUMBERS */}
-                                    {Array.from({length: 12}).map((_, i) => {
-                                      const val = i === 0 ? (clockMode === 'HOUR' ? 12 : 0) : (clockMode === 'HOUR' ? i : i * 5);
-                                      const angle = (i * 30) - 90;
-                                      const x = 40 * Math.cos(angle * Math.PI / 180);
-                                      const y = 40 * Math.sin(angle * Math.PI / 180);
-                                      
-                                      const currentVal = clockMode === 'HOUR' 
-                                        ? (parseInt(formData.startTime?.split('T')[1]?.split(':')[0] || '12') % 12 || 12)
-                                        : (parseInt(formData.startTime?.split('T')[1]?.split(':')[1] || '00'));
-                                      const active = val === currentVal;
-
-                                      return (
-                                        <button
-                                          key={i}
-                                          type="button"
-                                          onClick={() => {
-                                            const [date, time] = (formData.startTime || '2026-05-01T12:00').split('T');
-                                            let [h, m] = time.split(':');
-                                            if (clockMode === 'HOUR') {
-                                                const isPM = parseInt(h) >= 12;
-                                                let finalH = isPM ? (val === 12 ? 12 : val + 12) : (val === 12 ? 0 : val);
-                                                setFormData({...formData, startTime: `${date}T${finalH.toString().padStart(2, '0')}:${m}`});
-                                                setTimeout(() => setClockMode('MINUTE'), 300);
-                                            } else {
-                                                setFormData({...formData, startTime: `${date}T${h}:${val.toString().padStart(2, '0')}`});
-                                            }
-                                          }}
-                                          className={`absolute w-7 h-7 flex items-center justify-center text-[10px] font-black transition-all rounded-full z-20 ${active ? 'text-white' : 'text-white/20 hover:text-white'}`}
-                                          style={{ left: `${50 + x}%`, top: `${50 + y}%`, transform: 'translate(-50%, -50%)' }}
-                                        >
-                                          {clockMode === 'HOUR' ? val : val.toString().padStart(2, '0')}
-                                        </button>
-                                      );
-                                    })}
-                                    <div className="w-1.5 h-1.5 bg-violet-500 rounded-full z-10" />
-                                </div>
-
-                                <div className="flex gap-2">
-                                     <button 
-                                       type="button"
-                                       onClick={() => {
-                                         setFormData({...formData, startTime: ''});
-                                         setShowClock(false);
-                                       }}
-                                       className="btn-secondary flex-1 py-2"
-                                     >
-                                       Clear
-                                     </button>
-                                     <button 
-                                       type="button"
-                                       onClick={() => setShowClock(false)}
-                                       className="btn-white flex-1 py-2"
-                                     >
-                                       Finalize
-                                     </button>
-                                 </div>
+                            {/* DESKTOP DROPDOWN */}
+                            <div className="hidden md:block">
+                              <div className="fixed inset-0 z-40" onClick={() => setShowClock(false)} />
+                              <div className="absolute top-[calc(100%+4px)] left-0 right-0 z-50">
+                                {renderClockContent()}
                               </div>
-                          </>,
-                          document.body
+                            </div>
+                          </>
                         )}
                         </div>
                       </div>
