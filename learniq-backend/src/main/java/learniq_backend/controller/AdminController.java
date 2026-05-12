@@ -23,7 +23,7 @@ import java.util.Map;
 @CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 public class AdminController {
-
+    private final learniq_backend.service.TestLifecycleService testLifecycleService;
     private final TestRepository testRepository;
     private final QuestionRepository questionRepository;
     private final UserRepository userRepository;
@@ -34,24 +34,26 @@ public class AdminController {
 
     @GetMapping("/stats")
     public ResponseEntity<Map<String, Long>> getDashboardStats() {
-        System.out.println("\n--- [DEBUG] SYSTEM STATS AUDIT ---");
-        List<Test> allTests = testRepository.findAll();
-        System.out.println("TOTAL RECORDS IN DB: " + allTests.size());
-        allTests.forEach(t -> System.out.println(" - ID: " + t.getId() + " | TITLE: " + t.getTitle() + " | STATUS: " + t.getStatus()));
+        // 🔥 FORCE SYNC before stats
+        testLifecycleService.syncAllTests();
         
-        long activeCount = testRepository.countByStatus("ACTIVE");
-        long practiceCount = allTests.stream()
-                .filter(t -> "ACTIVE".equals(t.getStatus()) && "PRACTICE".equalsIgnoreCase(t.getTestType()))
+        LocalDateTime now = LocalDateTime.now();
+        List<Test> allTests = testRepository.findAll();
+        
+        long activeCount = allTests.stream()
+                .filter(t -> testLifecycleService.isActuallyActive(t, now))
                 .count();
+        
+        long practiceCount = allTests.stream()
+                .filter(t -> testLifecycleService.isActuallyActive(t, now) && "PRACTICE".equalsIgnoreCase(t.getTestType()))
+                .count();
+                
         long mainCount = allTests.stream()
-                .filter(t -> "ACTIVE".equals(t.getStatus()) && "MAIN".equalsIgnoreCase(t.getTestType()))
+                .filter(t -> testLifecycleService.isActuallyActive(t, now) && "MAIN".equalsIgnoreCase(t.getTestType()))
                 .count();
         
         long studentCount = userRepository.countByRole(User.Role.STUDENT);
         long questionCount = questionRepository.count();
-
-        System.out.println("CALCULATED ACTIVE: " + activeCount);
-        System.out.println("----------------------------------\n");
 
         return ResponseEntity.ok(Map.of(
                 "totalAssessments", activeCount,
@@ -80,6 +82,7 @@ public class AdminController {
 
     @GetMapping("/tests")
     public ResponseEntity<List<Test>> getAllTests() {
+        testLifecycleService.syncAllTests();
         return ResponseEntity.ok(testRepository.findAll());
     }
 
@@ -194,7 +197,16 @@ public class AdminController {
 
     @GetMapping("/tests/archived")
     public ResponseEntity<?> getArchivedTests() {
-        List<Test> archived = testRepository.findByStatus("ARCHIVED");
+        testLifecycleService.syncAllTests();
+        
+        LocalDateTime now = LocalDateTime.now();
+        List<Test> all = testRepository.findAll();
+        
+        // Archived tests are those EXPLICITLY archived OR technically expired
+        List<Test> archived = all.stream()
+                .filter(t -> "ARCHIVED".equalsIgnoreCase(t.getStatus()) || !testLifecycleService.isActuallyActive(t, now))
+                .toList();
+
         List<Map<String, Object>> result = archived.stream().map(t -> {
             Map<String, Object> map = new HashMap<>();
             map.put("id", t.getId());

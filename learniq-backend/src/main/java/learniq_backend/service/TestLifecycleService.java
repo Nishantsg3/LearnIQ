@@ -26,6 +26,21 @@ public class TestLifecycleService {
      * 2. LIVE      -> COMPLETED when now >= endTime (MAIN tests only)
      * 3. Move to History: When status is COMPLETED, set archived=true and active=false
      */
+    public boolean isActuallyActive(Test test, LocalDateTime now) {
+        if (!"ACTIVE".equalsIgnoreCase(test.getStatus())) return false;
+        
+        // For MAIN tests, also check the window
+        if ("MAIN".equalsIgnoreCase(test.getTestType())) {
+            LocalDateTime endAt = test.getEndTime();
+            if (endAt == null && test.getStartTime() != null) {
+                endAt = test.getStartTime().plusMinutes(test.getDurationMinutes());
+            }
+            if (endAt != null && now.isAfter(endAt)) return false;
+        }
+        
+        return true;
+    }
+
     @Transactional
     public Test syncTestLifecycle(Test test) {
         LocalDateTime now = LocalDateTime.now();
