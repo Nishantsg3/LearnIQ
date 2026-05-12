@@ -224,9 +224,6 @@ public class AdminController {
             // 3. Wipe join table
             jdbcTemplate.update("DELETE FROM test_questions WHERE test_id = ?", id);
             
-            // 3.5 Wipe legacy foreign key
-            jdbcTemplate.update("UPDATE question SET test_id = NULL WHERE test_id = ?", id);
-            
             // 4. Wipe test
             int deleted = jdbcTemplate.update("DELETE FROM test WHERE id = ?", id);
             
@@ -269,9 +266,6 @@ public class AdminController {
         
         // 3. Wipe join table
         jdbcTemplate.update("DELETE FROM test_questions WHERE test_id IN (SELECT id FROM test WHERE LOWER(title) = LOWER(?))", name);
-        
-        // 3.5 Wipe legacy foreign key
-        jdbcTemplate.update("UPDATE question SET test_id = NULL WHERE test_id IN (SELECT id FROM test WHERE LOWER(title) = LOWER(?))", name);
         
         // 4. Wipe tests
         int deleted = jdbcTemplate.update("DELETE FROM test WHERE LOWER(title) = LOWER(?)", name);
