@@ -3,6 +3,7 @@ import Sidebar from './Sidebar';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { LogOut, UserCircle, Menu } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { BRANDING } from '../config/branding';
 
 const MainLayout = ({ children, onProfileClick }) => {
   const { user, logout, isOffline } = useAuth();
@@ -99,10 +100,13 @@ const MainLayout = ({ children, onProfileClick }) => {
             </button>
 
             <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">
-              <h1 className="text-[9px] sm:text-[10px] lg:text-xs font-black uppercase tracking-[0.2em] shrink-0">
-                <span className="text-white">LEARN</span>
-                <span className="text-violet-500">IQ</span>
-              </h1>
+              <div className="flex items-center gap-3">
+                <img 
+                  src={BRANDING.logos.icon} 
+                  alt="LearnIQ" 
+                  className="h-8 w-8 object-contain" 
+                />
+              </div>
               <span className="text-white/10 font-thin text-lg sm:text-xl select-none">/</span>
               <h1 className="text-[9px] sm:text-[10px] lg:text-sm font-black text-white uppercase tracking-[0.2em] sm:tracking-[0.25em] truncate italic flex-1">
                 {getPageTitle()}

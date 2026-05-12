@@ -1,4 +1,5 @@
 import React from 'react';
+import { BRANDING } from '../config/branding';
 
 const AuthLayout = ({ children, panelColor = '#7c3aed', accentColor = '#a78bfa', title, description, showMobileDecorations = false }) => {
   return (
@@ -52,27 +53,12 @@ const AuthLayout = ({ children, panelColor = '#7c3aed', accentColor = '#a78bfa',
         ))}
 
         {/* Logo */}
-        <div className="relative z-10 flex items-center gap-3">
-          <div
-            style={{
-              width: 40,
-              height: 40,
-              background: 'rgba(255,255,255,0.2)',
-              borderRadius: 10,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#fff',
-              fontWeight: 700,
-              fontSize: 16,
-            }}
-          >
-            L
-          </div>
-          <span style={{ fontWeight: 700, fontSize: 18, letterSpacing: '0.02em', textTransform: 'uppercase' }}>
-            <span style={{ color: '#fff' }}>Learn</span>
-            <span style={{ color: 'rgba(255,255,255,0.5)' }}>IQ</span>
-          </span>
+        <div className="relative z-10">
+          <img 
+            src={BRANDING.logos.primary} 
+            alt="LearnIQ" 
+            className="h-10 w-auto object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]" 
+          />
         </div>
 
         {/* Brand copy */}
@@ -130,26 +116,12 @@ const AuthLayout = ({ children, panelColor = '#7c3aed', accentColor = '#a78bfa',
         }}
       >
         {/* Mobile logo */}
-        <div className="lg:hidden flex items-center gap-2 mb-6 sm:mb-10">
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              background: panelColor,
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#fff',
-              fontWeight: 700,
-            }}
-          >
-            L
-          </div>
-          <span style={{ fontWeight: 700, fontSize: 18, textTransform: 'uppercase' }}>
-            <span style={{ color: '#fff' }}>Learn</span>
-            <span style={{ color: panelColor }}>IQ</span>
-          </span>
+        <div className="lg:hidden mb-6 sm:mb-10">
+          <img 
+            src={BRANDING.logos.icon} 
+            alt="LearnIQ" 
+            className="h-10 w-auto object-contain" 
+          />
         </div>
 
         <div style={{ maxWidth: 500, width: '100%', position: 'relative', zIndex: 10 }}>

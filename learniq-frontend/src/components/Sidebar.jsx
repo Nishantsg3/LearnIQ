@@ -16,7 +16,7 @@ import {
   X
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import Logo from './Logo';
+import { BRANDING } from '../config/branding';
 
 const Sidebar = ({ onProfileClick, isOpen, onClose }) => {
   const { user, logout } = useAuth();
@@ -89,7 +89,7 @@ const Sidebar = ({ onProfileClick, isOpen, onClose }) => {
         </button>
 
         {/* Concentric circles background (very subtle) */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-[0.02]">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-[0.04]">
           {[180, 350, 520, 700].map((size, i) => (
             <div
               key={i}
@@ -107,7 +107,13 @@ const Sidebar = ({ onProfileClick, isOpen, onClose }) => {
 
         {/* Brand Header */}
         <div className="p-8 pb-4 relative z-10 flex-shrink-0" style={{ paddingRight: '30px' }}>
-          <Logo variant="horizontal" className="pl-2" />
+          <div className="inline-flex items-center gap-3">
+            <img 
+              src={BRANDING.logos.navbar} 
+              alt="LearnIQ" 
+              className="h-9 w-auto object-contain drop-shadow-[0_0_15px_rgba(124,58,237,0.3)]" 
+            />
+          </div>
         </div>
 
         {/* Navigation */}
