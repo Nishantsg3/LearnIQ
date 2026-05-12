@@ -10,6 +10,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -82,23 +84,22 @@ public class AttemptService {
 
         // 3. New Attempt Validation logic
         if ("MAIN".equalsIgnoreCase(test.getTestType())) {
-            // Use Instant for deterministic UTC comparison across server/client timezones
+            // Use Instant for deterministic UTC comparison
             Instant now = Instant.now();
             
-            // Start Window Logic: Use startTime or createdAt, normalized to UTC
+            // Start Window Logic
             LocalDateTime rawStart = test.getStartTime() != null ? test.getStartTime() : test.getCreatedAt();
             Instant startInstant = rawStart.atZone(ZoneOffset.UTC).toInstant();
             
-            // End Window Logic: Use explicit endTime or calculate from duration, normalized to UTC
+            // End Window Logic
             LocalDateTime rawEnd = test.getEndTime();
             if (rawEnd == null && rawStart != null) {
                 rawEnd = rawStart.plusMinutes(test.getDurationMinutes());
             }
             Instant endInstant = rawEnd != null ? rawEnd.atZone(ZoneOffset.UTC).toInstant() : null;
 
-            // Validation checks using absolute time
+            // Logic: DENY if early OR late
             if (now.isBefore(startInstant)) {
-                // Formatting helpful message with current server time for diagnostics
                 throw new RuntimeException("Access Denied: This assessment is scheduled to start at " + rawStart + " (Server Time: " + now + ")");
             }
             if (endInstant != null && now.isAfter(endInstant)) {
@@ -112,16 +113,16 @@ public class AttemptService {
         }
 
         // 4. Create fresh attempt
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime nowLocal = LocalDateTime.now();
         TestAttempt attempt = new TestAttempt();
         attempt.setUser(user);
         attempt.setUserEmail(userEmail);
         attempt.setUserName(user.getName());
         attempt.setTest(test);
-        attempt.setStartedAt(now);
+        attempt.setStartedAt(nowLocal);
         
         // Individual duration
-        attempt.setEndTime(now.plusMinutes(test.getDurationMinutes()));
+        attempt.setEndTime(nowLocal.plusMinutes(test.getDurationMinutes()));
         attempt.setStatus(TestAttempt.Status.IN_PROGRESS);
         attempt.setScorePercent(-1);
         attempt.setTotalQuestions(questions.size());
