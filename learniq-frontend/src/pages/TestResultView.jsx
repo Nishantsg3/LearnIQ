@@ -178,7 +178,7 @@ const TestResultView = () => {
   }
 
   return (
-    <div className="flex flex-col animate-in fade-in duration-1000 min-h-screen pb-20 overflow-y-auto p-4 md:p-8 space-y-4 relative">
+    <div className="flex flex-col animate-in fade-in duration-1000 min-h-screen pb-[calc(env(safe-area-inset-bottom)+32px)] overflow-y-auto p-4 md:p-8 space-y-6 md:space-y-8 relative">
       <style>{`
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
@@ -188,13 +188,19 @@ const TestResultView = () => {
       {/* HEADER */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 shrink-0 no-print">
           <div className="space-y-1">
-              <div className="flex items-center gap-3 text-slate-500 text-[8px] font-black uppercase tracking-[0.4em]">
+              <div className="flex items-center gap-3 text-slate-500 text-[8px] md:text-[9px] font-black uppercase tracking-[0.4em]">
                   <Target size={10} className="text-violet-500" />
                   Performance Intelligence
               </div>
-              <h1 className="text-2xl font-black text-white uppercase tracking-tight leading-none">
-                  Assessment <span className="text-violet-500">Report</span>
-              </h1>
+              <div className="flex items-center gap-3">
+                  <h1 className="text-xl md:text-2xl font-black text-white uppercase tracking-tight leading-none">
+                      Assessment <span className="text-violet-500">Report</span>
+                  </h1>
+                  {/* Compact Branding for Mobile */}
+                  <div className="md:hidden flex items-center bg-violet-500/10 px-2 py-1 rounded-lg border border-violet-500/20">
+                    <span className="text-[10px] font-black text-violet-500 tracking-tighter">IQ</span>
+                  </div>
+              </div>
           </div>
 
           <div className="flex items-center gap-2">
@@ -204,7 +210,7 @@ const TestResultView = () => {
               </button>
               <button 
                 onClick={() => navigate('/student/dashboard')} 
-                className="shrink-0 h-8 px-4 flex items-center gap-2 bg-white/5 border border-white/10 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-all whitespace-nowrap group"
+                className="shrink-0 h-9 px-4 md:px-5 flex items-center gap-2 bg-white/5 border border-white/10 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-all whitespace-nowrap group"
               >
                   <ArrowUpRight size={12} className="group-hover:rotate-45 transition-transform shrink-0" />
                   <span className="text-[10px] font-black uppercase tracking-widest">Dashboard</span>
@@ -216,58 +222,63 @@ const TestResultView = () => {
       <div ref={reportRef} className="flex-1 flex flex-col gap-6 overflow-visible">
           
           {/* SUMMARY GRID */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 shrink-0 h-full max-h-fit">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6 shrink-0 h-full max-h-fit">
               {/* RADIAL SCORE CARD */}
-              <div className="lg:col-span-5 bg-gradient-to-b from-[#161622] to-[#0d0d12] border border-white/5 rounded-2xl sm:rounded-[2rem] p-4 sm:p-6 flex flex-col items-center justify-center relative overflow-hidden shadow-2xl h-full min-h-[240px] sm:min-h-[300px]">
+              <div className="lg:col-span-5 bg-gradient-to-b from-[#161622] to-[#0d0d12] border border-white/5 rounded-2xl md:rounded-[2rem] p-6 sm:p-8 flex flex-col items-center justify-center relative overflow-hidden shadow-2xl h-full min-h-[280px]">
                   <div className={`absolute top-0 left-0 w-full h-1 ${isPassed ? 'bg-emerald-500' : 'bg-rose-500'} opacity-30`}></div>
                   
-                  <div className="relative w-32 h-32 flex items-center justify-center mb-4">
+                  <div className="relative w-28 h-28 md:w-36 md:h-36 flex items-center justify-center mb-6">
                       <svg className="absolute inset-0 w-full h-full -rotate-90">
-                          <circle cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="4" fill="transparent" className="text-white/5" />
+                          <circle cx="56" cy="56" r="50" stroke="currentColor" strokeWidth="4" fill="transparent" className="text-white/5 md:hidden" />
+                          <circle cx="72" cy="72" r="66" stroke="currentColor" strokeWidth="4" fill="transparent" className="text-white/5 hidden md:block" />
+                          
                           <circle 
-                              cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="6" fill="transparent" 
+                              cx={window.innerWidth < 768 ? "56" : "72"} 
+                              cy={window.innerWidth < 768 ? "56" : "72"} 
+                              r={window.innerWidth < 768 ? "50" : "66"} 
+                              stroke="currentColor" strokeWidth="6" fill="transparent" 
                               className={isPassed ? 'text-emerald-500' : 'text-rose-500'}
-                              strokeDasharray={364.4}
-                              strokeDashoffset={364.4 - (364.4 * clientScore) / 100}
+                              strokeDasharray={window.innerWidth < 768 ? 314 : 414}
+                              strokeDashoffset={(window.innerWidth < 768 ? 314 : 414) - ((window.innerWidth < 768 ? 314 : 414) * clientScore) / 100}
                               strokeLinecap="round"
                           />
                       </svg>
                       <div className="text-center relative z-10">
-                          <span className="text-4xl font-black text-white tracking-tighter tabular-nums leading-none">
+                          <span className="text-3xl md:text-5xl font-black text-white tracking-tighter tabular-nums leading-none">
                               {clientScore}
                           </span>
-                          <span className="text-base text-slate-500 font-bold">%</span>
+                          <span className="text-sm md:text-xl text-slate-500 font-bold">%</span>
                       </div>
                   </div>
 
-                  <div className="text-center space-y-4">
-                      <div className="space-y-0.5">
-                        <p className={`text-[8px] font-black uppercase tracking-[0.4em] ${isPassed ? 'text-emerald-400' : 'text-rose-400'}`}>
-                            {isPassed ? 'Authorized' : 'Denied'}
+                  <div className="text-center space-y-5">
+                      <div className="space-y-1">
+                        <p className={`text-[8px] md:text-[9px] font-black uppercase tracking-[0.4em] ${isPassed ? 'text-emerald-400' : 'text-rose-400'}`}>
+                            Assessment {isPassed ? 'Authorized' : 'Denied'}
                         </p>
-                        <h3 className="text-base font-black text-white/90 uppercase tracking-tight">
-                            {isPassed ? 'Passed' : 'Failed'}
+                        <h3 className="text-lg md:text-xl font-black text-white/90 uppercase tracking-tight">
+                            Result: {isPassed ? 'Passed' : 'Failed'}
                         </h3>
                       </div>
 
                       <button
                         onClick={() => navigate('/review/' + attemptId)}
-                        className="px-8 py-3 bg-[#7c3aed] text-white rounded-full hover:bg-[#6d28d9] transition-all flex items-center gap-2 shadow-lg shadow-[#7c3aed]/20 no-print mx-auto"
+                        className="px-8 py-3.5 bg-[#7c3aed] text-white rounded-full hover:bg-[#6d28d9] transition-all flex items-center gap-2 shadow-lg shadow-[#7c3aed]/20 no-print mx-auto active:scale-95"
                       >
                         <Eye size={12} />
-                        <span className="text-[9px] font-black uppercase tracking-widest">Deep Analysis</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest">Deep Analysis</span>
                       </button>
                   </div>
               </div>
 
               {/* KPI TILES */}
-              <div className="lg:col-span-7 grid grid-cols-2 gap-2 sm:gap-3 h-full">
+              <div className="lg:col-span-7 grid grid-cols-2 gap-3 h-full">
                   <KPICard label="Correct" value={clientCorrect} color="#10b981" icon={<CheckCircle2 size={16} />} />
                   <KPICard label="Incorrect" value={clientWrong} color="#f43f5e" icon={<X size={16} />} />
                   <KPICard label="Items" value={reviewList.length || attempt?.totalQuestions} color="#6366f1" icon={<FileText size={16} />} />
                   {test?.testType === 'MAIN' ? (
                       <KPICard 
-                        label="Global Standing" 
+                        label="Global Rank" 
                         value={loading ? '...' : `#${globalStandingData.rank}`} 
                         color="#fbbf24" 
                         icon={<Award size={16} />} 

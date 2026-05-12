@@ -29,7 +29,8 @@ const MainTestsPage = () => {
         navigate(`/student/test/${testId}?attemptId=${err.response.data.attemptId}`);
         return;
       }
-      toast.error('Failed to initialize assessment');
+      const errorMsg = err.response?.data?.message || 'Failed to initialize assessment';
+      toast.error(errorMsg);
     } finally {
       setStartingTestId(null);
     }

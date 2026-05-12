@@ -262,10 +262,10 @@ public class AdminController {
         System.out.println("[AUDIT] SUPER PURGE INITIATED - Name Pattern: " + name);
         
         // 1. Wipe answers
-        jdbcTemplate.update("DELETE FROM attempt_answer WHERE attempt_id IN (SELECT id FROM test_attempt WHERE test_id IN (SELECT id FROM test WHERE LOWER(title) = LOWER(?)))", name);
+        jdbcTemplate.update("DELETE FROM attempt_answers WHERE attempt_id IN (SELECT id FROM test_attempts WHERE test_id IN (SELECT id FROM test WHERE LOWER(title) = LOWER(?)))", name);
         
         // 2. Wipe attempts
-        jdbcTemplate.update("DELETE FROM test_attempt WHERE test_id IN (SELECT id FROM test WHERE LOWER(title) = LOWER(?))", name);
+        jdbcTemplate.update("DELETE FROM test_attempts WHERE test_id IN (SELECT id FROM test WHERE LOWER(title) = LOWER(?))", name);
         
         // 3. Wipe join table
         jdbcTemplate.update("DELETE FROM test_questions WHERE test_id IN (SELECT id FROM test WHERE LOWER(title) = LOWER(?))", name);

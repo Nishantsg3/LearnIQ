@@ -273,11 +273,11 @@ public class TestController {
         try {
             System.out.println("[AUDIT] PHYSICAL WIPE INITIATED - Test ID: " + id);
             
-            // 1. Wipe answers
-            jdbcTemplate.update("DELETE FROM attempt_answer WHERE attempt_id IN (SELECT id FROM test_attempt WHERE test_id = ?)", id);
+            // 1. Wipe answers (Correct table name: attempt_answers)
+            jdbcTemplate.update("DELETE FROM attempt_answers WHERE attempt_id IN (SELECT id FROM test_attempts WHERE test_id = ?)", id);
             
-            // 2. Wipe attempts
-            jdbcTemplate.update("DELETE FROM test_attempt WHERE test_id = ?", id);
+            // 2. Wipe attempts (Correct table name: test_attempts)
+            jdbcTemplate.update("DELETE FROM test_attempts WHERE test_id = ?", id);
             
             // 3. Wipe join table
             jdbcTemplate.update("DELETE FROM test_questions WHERE test_id = ?", id);
@@ -295,8 +295,9 @@ public class TestController {
                 return ResponseEntity.notFound().build();
             }
         } catch (Exception e) {
-            System.err.println("[CRITICAL] Wipe Failed: " + e.getMessage());
-            return ResponseEntity.internalServerError().body(Map.of("message", "Purge failed: " + e.getMessage()));
+            System.err.println("[CRITICAL] Wipe Failed for Test " + id + ": " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of("message", "Purge failed: " + e.getMessage()));
         }
     }
 

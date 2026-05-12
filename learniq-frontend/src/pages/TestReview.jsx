@@ -116,10 +116,10 @@ const TestReview = () => {
     <div className="h-screen bg-[#0e0e1a] text-white flex flex-col overflow-hidden" style={{ fontFamily: "'Inter', sans-serif" }}>
       {/* ── TOP BAR ─────────────────────────────────────────────────── */}
       <header className="flex items-center justify-between px-3 sm:px-6 py-2 md:py-3 bg-[#12122a] border-b border-[#2a2a4a] flex-shrink-0 z-50 relative gap-2">
-        <div className="flex items-center gap-2 md:gap-4 min-w-0">
+        <div className="flex items-center gap-1.5 md:gap-4 min-w-0">
           <button 
             onClick={() => { setExitPath(-1); setShowExitConfirm(true); }} 
-            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all group shrink-0"
+            className="flex items-center gap-1.5 px-2 md:px-2.5 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all group shrink-0"
           >
             <ArrowLeft size={14} className="text-gray-400 group-hover:text-white transition-colors"/>
             <span className="hidden sm:inline text-[10px] font-black text-gray-500 group-hover:text-white uppercase tracking-widest transition-colors">Exit</span>
@@ -134,16 +134,14 @@ const TestReview = () => {
               REVIEW <span className="text-white">MODE</span>
             </span>
           </div>
-          <div className="hidden md:block h-8 w-px bg-white/5 mx-2 shrink-0"/>
-          <div className="hidden md:flex flex-col min-w-0">
-             <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest truncate">Student</span>
-             <span className="text-[10px] font-bold text-white uppercase tracking-wider truncate">
-               {attempt?.userName || 'STUDENT'}
-             </span>
+
+          {/* Compact Branding for Mobile */}
+          <div className="md:hidden flex items-center bg-violet-500/10 px-2 py-1 rounded-lg border border-violet-500/20">
+             <span className="text-[10px] font-black text-violet-500 tracking-tighter">IQ</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 md:gap-4 shrink-0">
+        <div className="flex items-center gap-1.5 md:gap-4 shrink-0">
           <div className="hidden lg:flex items-center gap-4 shrink-0">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-emerald-500"/>
@@ -155,15 +153,14 @@ const TestReview = () => {
             </div>
           </div>
 
-          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#2a2a4a] bg-[#1a1a2e] font-black text-sm tabular-nums transition-all shrink-0`}>
+          <div className={`flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1.5 rounded-lg border border-[#2a2a4a] bg-[#1a1a2e] font-black text-xs md:text-sm tabular-nums transition-all shrink-0`}>
              <Trophy size={12} className={themeText}/>
-             <span className="text-sm text-white">{questions.length > 0 ? Math.round((clientCorrectCount / questions.length) * 100) : 0}%</span>
+             <span className="text-xs md:text-sm text-white">{questions.length > 0 ? Math.round((clientCorrectCount / questions.length) * 100) : 0}%</span>
           </div>
 
-          {/* MOBILE TOGGLE - SYNCED WITH STUDENT TEST */}
           <button 
             onClick={() => setShowPalette(prev => !prev)}
-            className="lg:hidden p-2.5 rounded-xl border text-xs font-black transition-all bg-white/5 border-white/10 text-white active:scale-95 flex items-center gap-2"
+            className="lg:hidden p-2 md:p-2.5 rounded-xl border text-[10px] md:text-xs font-black transition-all bg-white/5 border-white/10 text-white active:scale-95 flex items-center gap-1 md:gap-2"
           >
             <span className={themeText}>Q{currentIndex + 1}</span>
             <span className="text-white/20">/</span>
@@ -172,7 +169,7 @@ const TestReview = () => {
 
           <button 
             onClick={() => { setExitPath('/student/dashboard'); setShowExitConfirm(true); }} 
-            className="flex items-center gap-2 px-4 h-9 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all group shrink-0"
+            className="flex items-center gap-2 px-3 md:px-4 h-8 md:h-9 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all group shrink-0"
           >
             <ArrowUpRight size={14} className="text-gray-400 group-hover:text-white transition-colors group-hover:rotate-45 transition-transform"/>
             <span className="hidden sm:inline text-[10px] font-black text-gray-500 group-hover:text-white uppercase tracking-widest transition-colors whitespace-nowrap">Dashboard</span>
@@ -182,8 +179,8 @@ const TestReview = () => {
 
       {/* ── BODY ────────────────────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden">
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="flex-1 overflow-y-auto px-8 pt-8 pb-4">
+        <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+          <div className="flex-1 overflow-y-auto px-4 md:px-8 pt-6 md:pt-8 pb-4">
 
             {/* ── STATUS BADGE ── uses qIsCorrect / qIsSkipped */}
             <div className="flex items-center justify-between mb-4">
@@ -276,18 +273,24 @@ const TestReview = () => {
             )}
           </div>
 
-          <div className="flex-shrink-0 border-t border-[#2a2a4a] bg-[#12122a] px-4 sm:px-8 py-4 sm:py-5 flex items-center justify-between z-20">
+          {/* ── BOTTOM NAV BAR ────────────────────────────────────────── */}
+          <div className="flex-shrink-0 border-t border-[#2a2a4a] bg-[#12122a] px-4 sm:px-8 pt-4 pb-[calc(env(safe-area-inset-bottom)+16px)] flex items-center justify-between z-20 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
             <button onClick={goPrev} disabled={currentIndex === 0}
               className="flex items-center gap-2 px-3 sm:px-6 py-2.5 sm:py-3 rounded-xl border border-[#2a2a4a] bg-[#1a1a2e] text-gray-400 text-[10px] sm:text-xs font-bold hover:text-white disabled:opacity-20 transition-all">
               <ChevronLeft size={14}/> <span className="hidden sm:inline">Previous</span>
+              <span className="sm:hidden">Prev</span>
             </button>
+
             <div className="flex flex-col items-center">
               <p className="text-[8px] sm:text-[10px] font-black text-gray-600 uppercase tracking-widest mb-0.5">Progress</p>
               <p className="text-[10px] sm:text-xs font-black text-white">{currentIndex + 1} / {questions.length}</p>
             </div>
+
             <button onClick={goNext} disabled={currentIndex === questions.length - 1}
               className={`flex items-center gap-2 px-4 sm:px-8 py-2.5 sm:py-3 rounded-xl ${themeBg} ${themeHover} text-white text-[10px] sm:text-xs font-black uppercase tracking-widest disabled:opacity-20 transition-all shadow-lg shadow-violet-600/10`}>
-              <span className="hidden sm:inline">Next Question</span> <ChevronRight size={14}/>
+              <span className="hidden sm:inline">Next Question</span>
+              <span className="sm:hidden">Next</span>
+              <ChevronRight size={14}/>
             </button>
           </div>
         </div>

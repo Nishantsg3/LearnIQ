@@ -33,25 +33,30 @@ public class TestAttemptController {
             return ResponseEntity.status(401).body(Map.of("message", "Unauthorized"));
         }
 
-        String userEmail = authentication.getName();
+        try {
+            String userEmail = authentication.getName();
+            TestAttempt attempt = attemptService.startOrResumeAttempt(userEmail, request.getTestId());
+            
+            // If already submitted, block re-attempt and return existing attempt ID
+            if (attempt.getStatus() == TestAttempt.Status.SUBMITTED) {
+                return ResponseEntity.status(409).body(Map.of(
+                    "message", "You have already completed this test.",
+                    "attemptId", attempt.getId()
+                ));
+            }
 
-        TestAttempt attempt = attemptService.startOrResumeAttempt(userEmail, request.getTestId());
-        attempt.setUserEmail(authentication.getName());
-
-
-        // If already submitted, block re-attempt and return existing attempt ID
-        if (attempt.getStatus() == TestAttempt.Status.SUBMITTED) {
-            return ResponseEntity.status(409).body(Map.of(
-                "message", "You have already completed this test.",
-                "attemptId", attempt.getId()
+            return ResponseEntity.ok(Map.of(
+                "attemptId", attempt.getId(),
+                "testId", attempt.getTest().getId(),
+                "status", attempt.getStatus()
             ));
+        } catch (RuntimeException e) {
+            System.err.println("[TestAttemptController] Start Failure: " + e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(Map.of("message", "Internal server error during initialization"));
         }
-
-        return ResponseEntity.ok(Map.of(
-            "attemptId", attempt.getId(),
-            "testId", attempt.getTest().getId(),
-            "status", attempt.getStatus()
-        ));
     }
 
     @GetMapping("/me")
