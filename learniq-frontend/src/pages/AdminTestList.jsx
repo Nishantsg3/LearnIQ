@@ -70,7 +70,21 @@ const AdminTestList = () => {
     }
   };
 
-  const activeTests = useMemo(() => tests.filter(t => t.status !== 'ARCHIVED'), [tests]);
+  const activeTests = useMemo(() => {
+    const now = new Date();
+    return tests.filter(t => {
+      if (t.status === 'ARCHIVED') return false;
+      
+      if (t.type === 'main') {
+        const startTime = t.startTime ? new Date(t.startTime) : null;
+        const duration = t.durationMinutes || t.duration || 60;
+        const endTime = startTime ? new Date(startTime.getTime() + duration * 60000) : (t.endTime ? new Date(t.endTime) : null);
+        if (endTime && now > endTime) return false;
+      }
+      
+      return true;
+    });
+  }, [tests]);
 
   const handleArchiveClick = (id) => {
     setConfirmConfig({

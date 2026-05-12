@@ -33,6 +33,7 @@ public class TestController {
     @GetMapping
     public ResponseEntity<List<Test>> getAllTests() {
         try {
+            testLifecycleService.syncAllTests();
             List<Test> tests = testRepository.findAll();
             return ResponseEntity.ok(tests);
         } catch (Exception e) {
@@ -58,11 +59,10 @@ public class TestController {
 
     @GetMapping("/active")
     public ResponseEntity<List<Test>> getActiveTests() {
+        testLifecycleService.syncAllTests();
         LocalDateTime now = LocalDateTime.now();
         return ResponseEntity.ok(testRepository.findAll().stream()
-                .filter(t -> "MAIN".equalsIgnoreCase(t.getTestType()))
-                .filter(t -> t.getStartTime() != null)
-                .filter(t -> now.isBefore(t.getStartTime().plusMinutes(t.getDurationMinutes())))
+                .filter(t -> "MAIN".equalsIgnoreCase(t.getTestType()) && testLifecycleService.isActuallyActive(t, now))
                 .toList());
     }
 

@@ -40,13 +40,13 @@ const StudentDashboard = () => {
           } else if (type === 'MAIN') {
             const startTime = t.startTime ? new Date(t.startTime) : null;
             const duration = t.durationMinutes || t.duration || 60;
-            const endTime = startTime ? new Date(startTime.getTime() + duration * 60000) : null;
+            const endTime = startTime ? new Date(startTime.getTime() + duration * 60000) : (t.endTime ? new Date(t.endTime) : null);
 
             if (startTime && now < startTime) {
               s++;
-            } else if (startTime && now >= startTime && now <= endTime) {
+            } else if (startTime && now >= startTime && (!endTime || now <= endTime)) {
               lm++;
-            } else if (status === 'ACTIVE' || status === 'LIVE') {
+            } else if ((status === 'ACTIVE' || status === 'LIVE') && (!endTime || now <= endTime)) {
               lm++;
             }
           }

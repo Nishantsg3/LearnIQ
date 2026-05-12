@@ -42,8 +42,21 @@ const AdminDashboard = () => {
       const questions = Array.isArray(questionsRes.data) ? questionsRes.data : [];
       const students = Array.isArray(studentsRes.data) ? studentsRes.data : [];
       
-      // Strict filtering: Synchronized with the 'ARCHIVED' status from the registry
-      const activeTests = tests.filter(t => t.status !== 'ARCHIVED');
+      const now = new Date();
+      // Strict filtering: Synchronized with the 'ARCHIVED' status and time window
+      const activeTests = tests.filter(t => {
+        const type = (t.testType || t.type || '').toUpperCase();
+        const status = (t.status || '').toUpperCase();
+        if (status === 'ARCHIVED') return false;
+        
+        if (type === 'MAIN') {
+           const startTime = t.startTime ? new Date(t.startTime) : null;
+           const duration = t.durationMinutes || t.duration || 60;
+           const endTime = startTime ? new Date(startTime.getTime() + duration * 60000) : (t.endTime ? new Date(t.endTime) : null);
+           if (endTime && now > endTime) return false;
+        }
+        return status === 'ACTIVE' || status === 'LIVE' || status === 'SCHEDULED';
+      });
       const practiceTests = activeTests.filter(t => (t.testType || t.type)?.toUpperCase() === "PRACTICE");
       const mainTests = activeTests.filter(t => (t.testType || t.type)?.toUpperCase() === "MAIN");
 
