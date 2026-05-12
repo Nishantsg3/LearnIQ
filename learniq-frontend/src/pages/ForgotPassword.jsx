@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { Mail, ArrowRight, ArrowLeft, KeyRound } from 'lucide-react';
 import api from '../utils/api';
 import AuthLayout from '../components/AuthLayout';
+import { BRANDING } from '../config/branding';
 
 const THEME_COLOR = '#7c3aed';
 const ACCENT_COLOR = '#a78bfa';
