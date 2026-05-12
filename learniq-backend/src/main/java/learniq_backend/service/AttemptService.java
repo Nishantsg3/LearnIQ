@@ -179,7 +179,9 @@ public class AttemptService {
         TestAttempt attempt = testAttemptRepository.findById(attemptId)
                 .orElseThrow(() -> new RuntimeException("Attempt not found"));
 
-        if (attempt.isSubmitted() || attempt.getStatus() == TestAttempt.Status.SUBMITTED) {
+        // 🔥 STRONGER IDEMPOTENCY: Check both boolean flag and status
+        if (Boolean.TRUE.equals(attempt.getSubmitted()) || attempt.getStatus() == TestAttempt.Status.SUBMITTED) {
+            System.out.println("[IDEMPOTENCY] submitAttempt blocked for " + attemptId + " (already submitted)");
             return attempt;
         }
 
@@ -188,6 +190,12 @@ public class AttemptService {
 
     @Transactional
     public TestAttempt finalizeAndSubmit(TestAttempt attempt, Map<String, String> answers) {
+        // 🔥 IDEMPOTENCY GATE: If already submitted, do not process again
+        if (Boolean.TRUE.equals(attempt.getSubmitted()) || attempt.getStatus() == TestAttempt.Status.SUBMITTED) {
+            System.out.println("[IDEMPOTENCY] Attempt " + attempt.getId() + " already finalized. Skipping duplicate logic.");
+            return attempt;
+        }
+
         if (attempt.getAnswers() == null) {
             attempt.setAnswers(new ArrayList<>());
         } else if (answers != null) {
@@ -275,9 +283,17 @@ public class AttemptService {
                 int rank = (int) betterAttempts + 1;
 
                 // Calculate Time Taken
-                Duration duration = Duration.between(attempt.getStartedAt(), attempt.getSubmittedAt());
-                long minutes = duration.toMinutes();
-                long seconds = duration.minusMinutes(minutes).getSeconds();
+                LocalDateTime end = attempt.getSubmittedAt();
+                LocalDateTime start = attempt.getStartedAt();
+                if (start == null) start = end.minusMinutes(1); // Safety fallback
+                
+                Duration duration = Duration.between(start, end);
+                long minutes = Math.max(0, duration.toMinutes());
+                long seconds = Math.max(0, duration.minusMinutes(minutes).getSeconds());
+                
+                // If 0:00 (race condition), show at least 1s for UX
+                if (minutes == 0 && seconds == 0) seconds = 1;
+                
                 String timeString = String.format("%dm %ds", minutes, seconds);
 
                 String analysisLink = frontendUrl + "/results/" + attempt.getId();
