@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -84,19 +85,20 @@ public class AttemptService {
 
         // 3. New Attempt Validation logic
         if ("MAIN".equalsIgnoreCase(test.getTestType())) {
-            // Use Instant for deterministic UTC comparison
+            // Use Instant for deterministic comparison
             Instant now = Instant.now();
+            ZoneId istZone = ZoneId.of("Asia/Kolkata");
             
-            // Start Window Logic
+            // Start Window Logic: Treat rawStart as IST local time
             LocalDateTime rawStart = test.getStartTime() != null ? test.getStartTime() : test.getCreatedAt();
-            Instant startInstant = rawStart.atZone(ZoneOffset.UTC).toInstant();
+            Instant startInstant = rawStart.atZone(istZone).toInstant();
             
-            // End Window Logic
+            // End Window Logic: Treat rawEnd as IST local time
             LocalDateTime rawEnd = test.getEndTime();
             if (rawEnd == null && rawStart != null) {
                 rawEnd = rawStart.plusMinutes(test.getDurationMinutes());
             }
-            Instant endInstant = rawEnd != null ? rawEnd.atZone(ZoneOffset.UTC).toInstant() : null;
+            Instant endInstant = rawEnd != null ? rawEnd.atZone(istZone).toInstant() : null;
 
             // Logic: DENY if early OR late
             if (now.isBefore(startInstant)) {
