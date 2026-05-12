@@ -36,6 +36,10 @@ const AuthLayout = ({ children, panelColor = '#7c3aed', accentColor = '#a78bfa',
           padding: '3rem 4rem 3rem 3rem',
         }}
       >
+        {/* Transparent watermark logo */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] opacity-[0.03] pointer-events-none rotate-[-15deg]">
+          <img src={BRANDING.logos.transparent} alt="" className="w-full h-auto grayscale" />
+        </div>
         {/* Concentric circles background */}
         {[200, 400, 600, 800, 1000, 1200].map((size, i) => (
           <div

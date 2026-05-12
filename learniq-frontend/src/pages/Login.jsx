@@ -68,37 +68,52 @@ function Login() {
     >
 
       {/* Student badge */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
         <div
           style={{
-            width: 36,
-            height: 36,
-            borderRadius: 8,
-            background: `${STUDENT_ACCENT}18`,
-            border: `1px solid ${STUDENT_ACCENT}33`,
+            width: 48,
+            height: 48,
+            borderRadius: 14,
+            background: 'rgba(255,255,255,0.03)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            backdropFilter: 'blur(10px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: STUDENT_ACCENT,
+            boxShadow: '0 8px 32px 0 rgba(0,0,0,0.3)',
           }}
         >
           <img 
             src={BRANDING.logos.icon} 
-            alt="LearnIQ" 
-            className="w-full h-full object-contain p-1.5" 
+            alt="" 
+            className="w-8 h-8 object-contain drop-shadow-[0_0_12px_rgba(124,58,237,0.5)]" 
           />
         </div>
-        <span
-          style={{
-            color: STUDENT_ACCENT,
-            fontSize: 11,
-            fontWeight: 700,
-            letterSpacing: '0.15em',
-            textTransform: 'uppercase',
-          }}
-        >
-          Student Portal
-        </span>
+        <div className="flex flex-col">
+          <span
+            style={{
+              color: STUDENT_ACCENT,
+              fontSize: 10,
+              fontWeight: 800,
+              letterSpacing: '0.2em',
+              textTransform: 'uppercase',
+            }}
+          >
+            Unified Identity
+          </span>
+          <span
+            style={{
+              color: '#fff',
+              fontSize: 13,
+              fontWeight: 900,
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+              opacity: 0.9
+            }}
+          >
+            Student Portal
+          </span>
+        </div>
       </div>
 
       {/* Heading */}
