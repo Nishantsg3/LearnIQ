@@ -267,15 +267,29 @@ const StudentTest = () => {
   };
 
   const submitTest = async (isAuto = false) => {
+    if (isSubmittingRef.current && !isAuto) return;
+    isSubmittingRef.current = true;
     setSubmitting(true);
     setShowConfirm(false);
+
+    // Hard UI Lock: ensure no background tasks keep running
+    if (timerRef.current) clearInterval(timerRef.current);
+    
     try {
       const res = await api.post(`/questions/test/${id}/submit`, { answers: answersRef.current });
       setResult(res.data);
       toast.success('Assessment submitted!');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Submission failed. Try again.');
-      setSubmitting(false);
+      const msg = err.response?.data?.message || 'Submission failed. Try again.';
+      toast.error(msg);
+      
+      // If already submitted, just fetch result and exit
+      if (msg.toLowerCase().includes('already submitted')) {
+         window.location.reload(); 
+      } else {
+         isSubmittingRef.current = false;
+         setSubmitting(false);
+      }
     }
   };
 
