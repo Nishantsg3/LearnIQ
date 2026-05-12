@@ -521,7 +521,7 @@ const StudentTest = () => {
       {/* ── BODY ────────────────────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden relative">
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-          <div className="flex-1 overflow-y-auto px-4 md:px-8 pt-4 md:pt-6 pb-2">
+          <div className="flex-1 overflow-y-auto px-4 md:px-8 pt-4 md:pt-6 pb-32 md:pb-12">
             <p className={`text-[10px] font-black ${themeText}/70 uppercase tracking-[0.3em] mb-3`}>
               Question {currentIndex + 1} of {questions.length}
             </p>
@@ -559,7 +559,7 @@ const StudentTest = () => {
           </div>
 
           {/* ── BOTTOM ACTION BAR ─────────────────────────────────────── */}
-          <div className="flex-shrink-0 border-t border-[#2a2a4a] bg-[#12122a] px-3 md:px-8 pt-3 pb-[calc(env(safe-area-inset-bottom)+12px)] shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
+          <div className="flex-shrink-0 border-t border-[#2a2a4a] bg-[#12122a] px-3 md:px-8 pt-3 pb-[calc(env(safe-area-inset-bottom)+24px)] md:pb-6 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
             <div className="flex flex-wrap items-center justify-between gap-2 md:gap-4 max-w-full overflow-hidden">
               
               {/* Left Group: Action Toggles */}
