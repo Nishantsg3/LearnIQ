@@ -106,12 +106,12 @@ const Sidebar = ({ onProfileClick, isOpen, onClose }) => {
         </div>
 
         {/* Brand Header */}
-        <div className="p-8 pb-4 relative z-10 flex-shrink-0" style={{ paddingRight: '30px' }}>
-          <div className="inline-flex items-center gap-3">
+        <div className="p-10 pb-6 relative z-10 flex-shrink-0" style={{ paddingRight: '40px' }}>
+          <div className="flex items-center">
             <img 
-              src={BRANDING.logos.navbar} 
+              src={BRANDING.logos.vector} 
               alt="LearnIQ" 
-              className="h-9 w-auto object-contain drop-shadow-[0_0_15px_rgba(124,58,237,0.3)]" 
+              className="h-10 w-auto object-contain drop-shadow-[0_0_20px_rgba(124,58,237,0.4)]" 
             />
           </div>
         </div>
