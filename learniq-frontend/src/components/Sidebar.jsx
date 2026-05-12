@@ -16,6 +16,7 @@ import {
   X
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import Logo from './Logo';
 
 const Sidebar = ({ onProfileClick, isOpen, onClose }) => {
   const { user, logout } = useAuth();
@@ -88,7 +89,7 @@ const Sidebar = ({ onProfileClick, isOpen, onClose }) => {
         </button>
 
         {/* Concentric circles background (very subtle) */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-[0.04]">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-[0.02]">
           {[180, 350, 520, 700].map((size, i) => (
             <div
               key={i}
@@ -106,30 +107,7 @@ const Sidebar = ({ onProfileClick, isOpen, onClose }) => {
 
         {/* Brand Header */}
         <div className="p-8 pb-4 relative z-10 flex-shrink-0" style={{ paddingRight: '30px' }}>
-          <div className="inline-flex items-center gap-3 bg-black/30 backdrop-blur-md border border-white/5 pl-2 pr-6 py-2 rounded-2xl shadow-2xl">
-            <div 
-              style={{
-                width: 38,
-                height: 38,
-                background: 'linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%)',
-                borderRadius: 12,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#fff',
-                fontWeight: 900,
-                fontSize: 16,
-                boxShadow: '0 4px 15px rgba(124, 58, 237, 0.4)',
-                border: '1px solid rgba(255, 255, 255, 0.2)'
-              }}
-            >
-              L
-            </div>
-            <span className="text-lg font-black tracking-[0.05em] uppercase flex items-center">
-              <span className="text-white">Learn</span>
-              <span className="text-[#a78bfa] ml-0.5">IQ</span>
-            </span>
-          </div>
+          <Logo variant="horizontal" className="pl-2" />
         </div>
 
         {/* Navigation */}

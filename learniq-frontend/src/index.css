@@ -1,27 +1,20 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --primary: 99, 102, 241;    /* Indigo-500 */
-    --primary-dark: 79, 70, 229;
-    --background: 0, 0, 0;      /* Pure Black */
-    --sidebar: 2, 6, 23;        /* Sidebar/020617 */
-    --card: 17, 24, 39;         /* Card/111827 */
-    --card: 11, 11, 14;         /* Card/0b0b0e */
-    --border: 31, 41, 55;       /* Border/1f2937 */
-    --foreground: 248, 250, 252; /* Slate-50 */
-    --muted: 148, 163, 184;     /* Slate-400 */
-    --accent: 124, 58, 237;     /* Violet-600 (Base) */
-  }
-
-  .admin-theme {
-    --accent: 30, 27, 75;       /* Navy-Violet (Matches AdminLogin.jsx #1e1b4b) */
-  }
-
-  .student-theme {
-    --accent: 167, 139, 250;     /* Violet-400 (Lighter for Student) */
+    --primary: 124, 58, 237;    /* Violet-600 */
+    --primary-glow: 124, 58, 237, 0.3;
+    --accent: 167, 139, 250;     /* Violet-400 */
+    --background: 0, 0, 0;      /* Pure Matte Black */
+    --sidebar: 5, 5, 8;         /* Deepest Black-Violet */
+    --card: 10, 10, 15;         /* Rich Dark Card */
+    --border: 255, 255, 255, 0.06;
+    --foreground: 248, 250, 252;
+    --muted: 148, 163, 184;
   }
 
   html, body, #root {
@@ -29,7 +22,16 @@
     padding: 0;
     background-color: #000000;
     height: 100vh;
-    @apply bg-[#000000] text-slate-50 font-sans antialiased;
+    @apply bg-[#000000] text-slate-50 font-sans antialiased selection:bg-violet-500/30 selection:text-white;
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Outfit', sans-serif;
+    letter-spacing: -0.02em;
   }
 }
 
