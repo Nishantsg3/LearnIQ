@@ -105,14 +105,19 @@ const Sidebar = ({ onProfileClick, isOpen, onClose }) => {
           ))}
         </div>
 
-        {/* Brand Header */}
-        <div className="p-10 pb-6 relative z-10 flex-shrink-0" style={{ paddingRight: '40px' }}>
-          <div className="flex items-center">
-            <img 
-              src={BRANDING.logos.vector} 
-              alt="LearnIQ" 
-              className="h-10 w-auto object-contain drop-shadow-[0_0_20px_rgba(124,58,237,0.4)]" 
-            />
+        {/* Brand Header - Enterprise Identity */}
+        <div className="p-8 pb-6 relative z-10 flex-shrink-0" style={{ paddingRight: '30px' }}>
+          <div className="flex items-center gap-3 bg-white/5 border border-white/5 p-2 pr-5 rounded-2xl backdrop-blur-md shadow-2xl">
+            <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/10 shadow-inner overflow-hidden flex-shrink-0">
+               <img src={BRANDING.logos.icon} alt="" className="w-7 h-7 object-contain drop-shadow-[0_0_10px_rgba(124,58,237,0.5)]" />
+            </div>
+            <div className="flex flex-col min-w-0">
+              <h1 className="text-base font-black tracking-widest leading-none flex items-center">
+                <span className="text-white">LEARN</span>
+                <span className="bg-gradient-to-r from-violet-400 to-violet-600 bg-clip-text text-transparent ml-0.5">IQ</span>
+              </h1>
+              <span className="text-[7px] font-bold text-white/20 tracking-[0.4em] uppercase mt-1 truncate">Intelligence</span>
+            </div>
           </div>
         </div>
 
