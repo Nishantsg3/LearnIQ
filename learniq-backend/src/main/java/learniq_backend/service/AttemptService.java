@@ -82,22 +82,26 @@ public class AttemptService {
 
         // 3. New Attempt Validation logic
         if ("MAIN".equalsIgnoreCase(test.getTestType())) {
-            LocalDateTime now = LocalDateTime.now();
+            // Use Instant for deterministic UTC comparison across server/client timezones
+            Instant now = Instant.now();
             
-            // Start Window Logic: Use startTime or createdAt
-            LocalDateTime startAt = test.getStartTime() != null ? test.getStartTime() : test.getCreatedAt();
+            // Start Window Logic: Use startTime or createdAt, normalized to UTC
+            LocalDateTime rawStart = test.getStartTime() != null ? test.getStartTime() : test.getCreatedAt();
+            Instant startInstant = rawStart.atZone(ZoneOffset.UTC).toInstant();
             
-            // End Window Logic: Use explicit endTime or calculate from duration
-            LocalDateTime endAt = test.getEndTime();
-            if (endAt == null && startAt != null) {
-                endAt = startAt.plusMinutes(test.getDurationMinutes());
+            // End Window Logic: Use explicit endTime or calculate from duration, normalized to UTC
+            LocalDateTime rawEnd = test.getEndTime();
+            if (rawEnd == null && rawStart != null) {
+                rawEnd = rawStart.plusMinutes(test.getDurationMinutes());
             }
+            Instant endInstant = rawEnd != null ? rawEnd.atZone(ZoneOffset.UTC).toInstant() : null;
 
-            // Validation checks
-            if (startAt != null && now.isBefore(startAt)) {
-                throw new RuntimeException("Access Denied: This assessment is scheduled to start at " + startAt);
+            // Validation checks using absolute time
+            if (now.isBefore(startInstant)) {
+                // Formatting helpful message with current server time for diagnostics
+                throw new RuntimeException("Access Denied: This assessment is scheduled to start at " + rawStart + " (Server Time: " + now + ")");
             }
-            if (endAt != null && now.isAfter(endAt)) {
+            if (endInstant != null && now.isAfter(endInstant)) {
                 throw new RuntimeException("Access Denied: The window to participate in this assessment has closed.");
             }
             
