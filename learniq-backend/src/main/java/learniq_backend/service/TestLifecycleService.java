@@ -74,9 +74,10 @@ public class TestLifecycleService {
     }
 
     /**
-     * Syncs ALL tests every minute via background scheduler
+     * Syncs ALL tests every 5 minutes via background scheduler
+     * Added initialDelay to prevent startup bottlenecks on Render
      */
-    @org.springframework.scheduling.annotation.Scheduled(fixedRate = 60000)
+    @org.springframework.scheduling.annotation.Scheduled(fixedRate = 300000, initialDelay = 120000)
     @Transactional
     public void syncAllTests() {
         // Only scan assessments that aren't already archived

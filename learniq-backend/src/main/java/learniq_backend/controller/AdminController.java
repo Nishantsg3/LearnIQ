@@ -34,9 +34,6 @@ public class AdminController {
 
     @GetMapping("/stats")
     public ResponseEntity<Map<String, Long>> getDashboardStats() {
-        // 🔥 FORCE SYNC before stats
-        testLifecycleService.syncAllTests();
-        
         LocalDateTime now = LocalDateTime.now();
         List<Test> allTests = testRepository.findAll();
         
@@ -82,7 +79,6 @@ public class AdminController {
 
     @GetMapping("/tests")
     public ResponseEntity<List<Test>> getAllTests() {
-        testLifecycleService.syncAllTests();
         return ResponseEntity.ok(testRepository.findAll());
     }
 
@@ -197,8 +193,6 @@ public class AdminController {
 
     @GetMapping("/tests/archived")
     public ResponseEntity<?> getArchivedTests() {
-        testLifecycleService.syncAllTests();
-        
         LocalDateTime now = LocalDateTime.now();
         List<Test> all = testRepository.findAll();
         
