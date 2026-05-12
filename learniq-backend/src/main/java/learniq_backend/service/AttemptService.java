@@ -180,7 +180,7 @@ public class AttemptService {
                 .orElseThrow(() -> new RuntimeException("Attempt not found"));
 
         // 🔥 STRONGER IDEMPOTENCY: Check both boolean flag and status
-        if (Boolean.TRUE.equals(attempt.getSubmitted()) || attempt.getStatus() == TestAttempt.Status.SUBMITTED) {
+        if (attempt.isSubmitted() || attempt.getStatus() == TestAttempt.Status.SUBMITTED) {
             System.out.println("[IDEMPOTENCY] submitAttempt blocked for " + attemptId + " (already submitted)");
             return attempt;
         }
@@ -191,7 +191,7 @@ public class AttemptService {
     @Transactional
     public TestAttempt finalizeAndSubmit(TestAttempt attempt, Map<String, String> answers) {
         // 🔥 IDEMPOTENCY GATE: If already submitted, do not process again
-        if (Boolean.TRUE.equals(attempt.getSubmitted()) || attempt.getStatus() == TestAttempt.Status.SUBMITTED) {
+        if (attempt.isSubmitted() || attempt.getStatus() == TestAttempt.Status.SUBMITTED) {
             System.out.println("[IDEMPOTENCY] Attempt " + attempt.getId() + " already finalized. Skipping duplicate logic.");
             return attempt;
         }
