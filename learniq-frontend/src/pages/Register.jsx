@@ -109,61 +109,34 @@ function Register() {
       title={<>JOIN THE<br /><span style={{ color: 'rgba(255,255,255,0.45)' }}>REVOLUTION.</span></>}
       description={<>BECOME PART OF A GROWING ECOSYSTEM<br />OF PROFESSIONALS DRIVEN BY<br />PRECISION AND EXCELLENCE.</>}
     >
-      {/* Student badge */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
+      {/* Responsive Glass Badge */}
+      <div className="flex items-center gap-3 sm:gap-4 mb-5 sm:mb-8">
         <div
-          style={{
-            width: 48,
-            height: 48,
-            borderRadius: 14,
-            background: 'rgba(255,255,255,0.03)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            backdropFilter: 'blur(10px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 8px 32px 0 rgba(0,0,0,0.3)',
-          }}
+          className="w-9 h-9 sm:w-12 sm:h-12 rounded-lg sm:rounded-2xl bg-white/[0.03] border border-white/[0.08] backdrop-blur-md flex items-center justify-center shadow-2xl flex-shrink-0"
         >
           <img 
             src={BRANDING.logos.icon} 
             alt="" 
-            className="w-8 h-8 object-contain drop-shadow-[0_0_12px_rgba(124,58,237,0.5)]" 
+            className="w-5 h-5 sm:w-8 sm:h-8 object-contain drop-shadow-[0_0_12px_rgba(124,58,237,0.4)]" 
           />
         </div>
-        <div className="flex flex-col">
-          <span
-            style={{
-              color: STUDENT_ACCENT,
-              fontSize: 10,
-              fontWeight: 800,
-              letterSpacing: '0.2em',
-              textTransform: 'uppercase',
-            }}
-          >
+        <div className="flex flex-col min-w-0">
+          <span className="text-[8px] sm:text-[10px] font-bold text-violet-400 tracking-[0.2em] uppercase truncate">
             Unified Identity
           </span>
-          <span
-            style={{
-              color: '#fff',
-              fontSize: 13,
-              fontWeight: 900,
-              letterSpacing: '0.05em',
-              textTransform: 'uppercase',
-              opacity: 0.9
-            }}
-          >
+          <span className="text-xs sm:text-[13px] font-black text-white tracking-[0.05em] uppercase opacity-90 truncate">
             Student Portal
           </span>
         </div>
       </div>
 
       {/* Heading */}
+      {/* Responsive Heading */}
       <h2
         style={{
           color: '#fff',
           fontWeight: 900,
-          fontSize: 'clamp(2rem, 4vw, 2.8rem)',
+          fontSize: 'clamp(1.6rem, 5vw, 2.8rem)',
           textTransform: 'uppercase',
           letterSpacing: '-0.02em',
           lineHeight: 1,
