@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { Eye, EyeOff } from 'lucide-react';
-import Logo from '../components/Logo';
+import { ShieldCheck, Eye, EyeOff } from 'lucide-react';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import AuthLayout from '../components/AuthLayout';
@@ -67,7 +66,21 @@ function AdminLogin() {
 
       {/* Admin badge */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-          <Logo variant="icon" className="w-5 h-5" />
+        <div
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 8,
+            background: `${ADMIN_ACCENT}18`,
+            border: `1px solid ${ADMIN_ACCENT}33`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: ADMIN_ACCENT,
+          }}
+        >
+          <ShieldCheck size={18} />
+        </div>
         <span
           style={{
             color: ADMIN_ACCENT,
