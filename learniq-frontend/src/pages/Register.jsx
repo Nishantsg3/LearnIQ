@@ -5,7 +5,7 @@ import { User, Mail, Lock, ArrowRight, Eye, EyeOff, GraduationCap } from 'lucide
 import AuthLayout from '../components/AuthLayout';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
-
+import { BRANDING } from '../config/branding';
 
 const STUDENT_COLOR = '#7c3aed';
 const STUDENT_ACCENT = '#a78bfa';
@@ -124,7 +124,11 @@ function Register() {
             color: STUDENT_ACCENT,
           }}
         >
-          <GraduationCap size={18} />
+          <img 
+            src={BRANDING.logos.icon} 
+            alt="LearnIQ" 
+            className="w-full h-full object-contain p-1.5" 
+          />
         </div>
         <span
           style={{

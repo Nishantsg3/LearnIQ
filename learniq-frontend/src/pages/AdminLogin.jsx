@@ -5,6 +5,7 @@ import { ShieldCheck, Eye, EyeOff } from 'lucide-react';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import AuthLayout from '../components/AuthLayout';
+import { BRANDING } from '../config/branding';
 
 // Admin portal uses deep midnight violet — darker sibling of student violet (#7c3aed)
 const ADMIN_COLOR = '#1e1b4b';
@@ -79,7 +80,11 @@ function AdminLogin() {
             color: ADMIN_ACCENT,
           }}
         >
-          <ShieldCheck size={18} />
+          <img 
+            src={BRANDING.logos.icon} 
+            alt="LearnIQ" 
+            className="w-full h-full object-contain p-1.5" 
+          />
         </div>
         <span
           style={{

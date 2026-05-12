@@ -5,6 +5,7 @@ import { Eye, EyeOff, GraduationCap } from 'lucide-react';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import AuthLayout from '../components/AuthLayout';
+import { BRANDING } from '../config/branding';
 
 // Student portal uses vibrant, lighter violet to contrast with admin's deep navy
 const STUDENT_COLOR = '#7c3aed';
@@ -81,7 +82,11 @@ function Login() {
             color: STUDENT_ACCENT,
           }}
         >
-          <GraduationCap size={18} />
+          <img 
+            src={BRANDING.logos.icon} 
+            alt="LearnIQ" 
+            className="w-full h-full object-contain p-1.5" 
+          />
         </div>
         <span
           style={{
