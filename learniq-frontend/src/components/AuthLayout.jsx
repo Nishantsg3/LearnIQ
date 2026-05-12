@@ -36,8 +36,8 @@ const AuthLayout = ({ children, panelColor = '#7c3aed', accentColor = '#a78bfa',
           padding: '3rem 4rem 3rem 3rem',
         }}
       >
-        {/* Transparent watermark logo - Reduced for mobile */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] opacity-[0.02] lg:opacity-[0.03] pointer-events-none rotate-[-15deg]">
+        {/* Transparent watermark logo - Desktop only, extremely subtle */}
+        <div className="hidden lg:block absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] opacity-[0.015] pointer-events-none rotate-[-15deg]">
           <img src={BRANDING.logos.transparent} alt="" className="w-full h-auto grayscale" />
         </div>
         {/* Concentric circles background */}
@@ -119,14 +119,6 @@ const AuthLayout = ({ children, panelColor = '#7c3aed', accentColor = '#a78bfa',
           padding: 'clamp(1.5rem, 4vw, 5rem) clamp(1rem, 5vw, 6rem)',
         }}
       >
-        {/* Mobile logo - Intentional responsive design */}
-        <div className="lg:hidden mb-4 sm:mb-8 opacity-40">
-          <img 
-            src={BRANDING.logos.icon} 
-            alt="LearnIQ" 
-            className="h-7 w-auto object-contain" 
-          />
-        </div>
 
         <div style={{ maxWidth: 500, width: '100%', position: 'relative', zIndex: 10 }}>
           {children}

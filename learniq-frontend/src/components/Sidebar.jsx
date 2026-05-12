@@ -80,14 +80,6 @@ const Sidebar = ({ onProfileClick, isOpen, onClose }) => {
           clipPath: window.innerWidth >= 1024 ? 'polygon(0 0, 100% 0, 97% 100%, 0 100%)' : 'none',
         }}
       >
-        {/* MOBILE CLOSE BUTTON */}
-        <button 
-          onClick={onClose}
-          className="lg:hidden absolute top-6 right-8 w-10 h-10 flex items-center justify-center bg-white/5 border border-white/10 rounded-full text-white/50 hover:text-white transition-all active:scale-95 z-[80]"
-        >
-          <X size={20} />
-        </button>
-
         {/* Concentric circles background (very subtle) */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-[0.04]">
           {[180, 350, 520, 700].map((size, i) => (
@@ -105,8 +97,8 @@ const Sidebar = ({ onProfileClick, isOpen, onClose }) => {
           ))}
         </div>
 
-        {/* Brand Header - Enterprise Identity */}
-        <div className="p-8 pb-6 relative z-10 flex-shrink-0" style={{ paddingRight: '30px' }}>
+        {/* Brand Header - Enterprise Identity with Mobile Close */}
+        <div className="p-8 pb-6 relative z-10 flex-shrink-0 flex items-center justify-between" style={{ paddingRight: '20px' }}>
           <div className="flex items-center gap-3 bg-white/5 border border-white/5 p-2 pr-5 rounded-2xl backdrop-blur-md shadow-2xl">
             <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/10 shadow-inner overflow-hidden flex-shrink-0">
                <img src={BRANDING.logos.icon} alt="" className="w-7 h-7 object-contain drop-shadow-[0_0_10px_rgba(124,58,237,0.5)]" />
@@ -119,6 +111,14 @@ const Sidebar = ({ onProfileClick, isOpen, onClose }) => {
               <span className="text-[7px] font-bold text-white/20 tracking-[0.4em] uppercase mt-1 truncate">Intelligence</span>
             </div>
           </div>
+
+          {/* MOBILE CLOSE BUTTON */}
+          <button 
+            onClick={onClose}
+            className="lg:hidden w-10 h-10 flex items-center justify-center bg-white/5 border border-white/10 rounded-full text-white/50 hover:text-white transition-all active:scale-95 flex-shrink-0 ml-4"
+          >
+            <X size={20} />
+          </button>
         </div>
 
         {/* Navigation */}

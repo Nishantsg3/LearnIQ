@@ -65,22 +65,18 @@ function AdminLogin() {
       description={<>EMPOWERING EDUCATORS WITH PRECISION<br />INSIGHTS TO DRIVE ACADEMIC EXCELLENCE<br />AND SYSTEMIC GROWTH.</>}
     >
 
-      {/* Responsive Glass Badge */}
-      <div className="flex items-center gap-3 sm:gap-4 mb-5 sm:mb-8">
-        <div
-          className="w-9 h-9 sm:w-12 sm:h-12 rounded-lg sm:rounded-2xl bg-white/[0.03] border border-white/[0.08] backdrop-blur-md flex items-center justify-center shadow-2xl flex-shrink-0"
-        >
-          <img 
-            src={BRANDING.logos.icon} 
-            alt="" 
-            className="w-5 h-5 sm:w-8 sm:h-8 object-contain drop-shadow-[0_0_12px_rgba(124,58,237,0.4)]" 
-          />
-        </div>
-        <div className="flex flex-col min-w-0">
-          <span className="text-[8px] sm:text-[10px] font-bold text-violet-400 tracking-[0.2em] uppercase truncate">
+      {/* Minimal Brand Identity */}
+      <div className="flex items-center gap-3 mb-6 sm:mb-8">
+        <img 
+          src={BRANDING.logos.icon} 
+          alt="LearnIQ Symbol" 
+          className="w-6 h-6 sm:w-8 sm:h-8 object-contain" 
+        />
+        <div className="flex flex-col min-w-0 justify-center">
+          <span className="text-[9px] sm:text-[10px] font-bold text-violet-400 tracking-[0.2em] uppercase leading-none mb-1">
             System Authority
           </span>
-          <span className="text-xs sm:text-[13px] font-black text-white tracking-[0.05em] uppercase opacity-90 truncate">
+          <span className="text-sm sm:text-base font-black text-white tracking-widest uppercase opacity-90 leading-none">
             Admin Portal
           </span>
         </div>

@@ -98,34 +98,21 @@ function ResetPassword() {
       title={<>SECURE YOUR<br /><span style={{ color: 'rgba(255,255,255,0.45)' }}>CREDENTIALS.</span></>}
       description={<>ALMOST THERE. CHOOSE A STRONG NEW<br />PASSWORD TO PROTECT YOUR<br />ASSESSMENT DATA AND HISTORY.</>}
     >
-      {/* Reset Badge */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-        <div
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: 8,
-            background: `${ACCENT_COLOR}18`,
-            border: `1px solid ${ACCENT_COLOR}33`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: ACCENT_COLOR,
-          }}
-        >
-          <Shield size={18} />
+      {/* Minimal Brand Identity */}
+      <div className="flex items-center gap-3 mb-6 sm:mb-8">
+        <img 
+          src={BRANDING.logos.icon} 
+          alt="LearnIQ Symbol" 
+          className="w-6 h-6 sm:w-8 sm:h-8 object-contain" 
+        />
+        <div className="flex flex-col min-w-0 justify-center">
+          <span className="text-[9px] sm:text-[10px] font-bold text-violet-400 tracking-[0.2em] uppercase leading-none mb-1">
+            System Security
+          </span>
+          <span className="text-sm sm:text-base font-black text-white tracking-widest uppercase opacity-90 leading-none">
+            Identity Security
+          </span>
         </div>
-        <span
-          style={{
-            color: ACCENT_COLOR,
-            fontSize: 11,
-            fontWeight: 700,
-            letterSpacing: '0.15em',
-            textTransform: 'uppercase',
-          }}
-        >
-          Identity Security
-        </span>
       </div>
 
       {/* Heading */}
