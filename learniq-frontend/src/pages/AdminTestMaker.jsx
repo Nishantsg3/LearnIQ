@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   FileText, 
   Database, 
@@ -75,7 +76,7 @@ const AdminTestMaker = () => {
   };
 
   return (
-    <div className="animate-in fade-in duration-500 overflow-y-auto lg:overflow-hidden lg:h-[calc(100vh-100px)] p-4 sm:p-6 lg:px-16 flex flex-col custom-scrollbar">
+    <div className="animate-in fade-in duration-500 overflow-y-auto lg:overflow-visible lg:h-[calc(100vh-100px)] p-4 sm:p-6 lg:px-16 flex flex-col custom-scrollbar">
         {/* HEADER: TITLE + NAVIGATION */}
         <div className="flex items-center justify-between mb-3 flex-shrink-0">
           <div>
@@ -138,7 +139,7 @@ const AdminTestMaker = () => {
                       {showCategoryDropdown && (
                         <>
                           <div className="fixed inset-0 z-40" onClick={() => setShowCategoryDropdown(false)} />
-                          <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-[#0f0f14] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden animate-in zoom-in-95 duration-200">
+                          <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-[#0f0f14] border border-white/10 rounded-xl shadow-2xl z-50 overflow-visible animate-in zoom-in-95 duration-200">
                             <div className="max-h-48 overflow-y-auto custom-scrollbar">
                               {categories.map(cat => (
                                 <button
@@ -148,7 +149,7 @@ const AdminTestMaker = () => {
                                     setFormData({...formData, category: cat});
                                     setShowCategoryDropdown(false);
                                   }}
-                                  className={`w-full px-4 py-3 text-[10px] font-black uppercase tracking-widest text-left transition-colors hover:bg-violet-500/10 ${formData.category === cat ? 'text-violet-400 bg-violet-500/5' : 'text-white/60 hover:text-white'}`}
+                                  className={`w-full px-4 py-3 text-[10px] font-black uppercase tracking-widest text-left transition-colors hover:bg-violet-500/10 first:rounded-t-xl last:rounded-b-xl ${formData.category === cat ? 'text-violet-400 bg-violet-500/5' : 'text-white/60 hover:text-white'}`}
                                 >
                                   {cat}
                                 </button>
@@ -174,7 +175,7 @@ const AdminTestMaker = () => {
                       {showTypeDropdown && (
                         <>
                           <div className="fixed inset-0 z-40" onClick={() => setShowTypeDropdown(false)} />
-                          <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-[#0f0f14] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden animate-in zoom-in-95 duration-200">
+                          <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-[#0f0f14] border border-white/10 rounded-xl shadow-2xl z-50 overflow-visible animate-in zoom-in-95 duration-200">
                             {[
                               { id: 'PRACTICE', label: 'Practice Test' },
                               { id: 'MAIN', label: 'Main Test' }
@@ -186,7 +187,7 @@ const AdminTestMaker = () => {
                                   setFormData({...formData, testType: type.id});
                                   setShowTypeDropdown(false);
                                 }}
-                                className={`w-full px-4 py-3 text-[10px] font-black uppercase tracking-widest text-left transition-colors hover:bg-violet-500/10 ${formData.testType === type.id ? 'text-violet-400 bg-violet-500/5' : 'text-white/60 hover:text-white'}`}
+                                className={`w-full px-4 py-3 text-[10px] font-black uppercase tracking-widest text-left transition-colors hover:bg-violet-500/10 first:rounded-t-xl last:rounded-b-xl ${formData.testType === type.id ? 'text-violet-400 bg-violet-500/5' : 'text-white/60 hover:text-white'}`}
                               >
                                 {type.label}
                               </button>
@@ -237,16 +238,15 @@ const AdminTestMaker = () => {
                           <Calendar size={12} className="text-violet-400" />
                         </button>
                         
-                        {showCalendar && (
+                        {showCalendar && createPortal(
                           <>
-                            <div className="fixed inset-0 z-40" onClick={() => setShowCalendar(false)} />
-                            <div className="absolute top-[calc(100%+4px)] left-0 right-0 p-3 bg-[#0f0f14] border border-white/5 rounded-2xl shadow-2xl z-50 animate-in zoom-in-95 duration-200 max-h-56 overflow-y-auto box-border">
+                            <div className="fixed inset-0 z-[100] md:hidden bg-black/60 backdrop-blur-sm" onClick={() => setShowCalendar(false)} />
+                            <div className="fixed md:absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 md:top-[calc(100%+4px)] md:left-0 md:right-0 md:translate-x-0 md:translate-y-0 w-[90%] max-w-[320px] md:w-full p-3 bg-[#0f0f14] border border-white/5 rounded-2xl shadow-2xl z-[101] md:z-50 animate-in zoom-in-95 duration-200 max-h-56 overflow-y-auto box-border custom-scrollbar">
                               <div className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mb-3 text-center">May 2026</div>
                               <div className="grid grid-cols-7 gap-1 mb-1">
                                 {['S','M','T','W','T','F','S'].map(d => <div key={d} className="text-[8px] font-black text-violet-500/40 text-center">{d}</div>)}
                               </div>
                               <div className="grid grid-cols-7 gap-1">
-                                {/* May 1, 2026 is a Friday (Index 5 if S=0) */}
                                 {Array.from({length: 5}).map((_, i) => <div key={`empty-${i}`} className="aspect-square" />)}
                                 {Array.from({length: 31}).map((_, i) => {
                                   const day = i + 1;
@@ -268,7 +268,8 @@ const AdminTestMaker = () => {
                                 })}
                               </div>
                             </div>
-                          </>
+                          </>,
+                          document.body
                         )}
                       </div>
 
@@ -290,10 +291,10 @@ const AdminTestMaker = () => {
                             <Clock size={12} className="text-violet-400" />
                           </button>
                         
-                        {showClock && (
+                        {showClock && createPortal(
                           <>
-                            <div className="fixed inset-0 z-40" onClick={() => setShowClock(false)} />
-                            <div className="absolute top-[calc(100%+4px)] left-0 right-0 p-5 bg-[#0a0a0f] border border-white/10 rounded-[2rem] shadow-[0_30px_100px_rgba(0,0,0,0.9)] z-50 animate-in zoom-in-95 duration-300 max-h-56 overflow-y-auto box-border">
+                            <div className="fixed inset-0 z-[100] md:hidden bg-black/60 backdrop-blur-sm" onClick={() => setShowClock(false)} />
+                            <div className="fixed md:absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 md:top-[calc(100%+4px)] md:left-0 md:right-0 md:translate-x-0 md:translate-y-0 w-[95%] max-w-[340px] md:w-full p-5 bg-[#0a0a0f] border border-white/10 rounded-[2rem] shadow-[0_30px_100px_rgba(0,0,0,0.9)] z-[101] md:z-50 animate-in zoom-in-95 duration-300 max-h-[80vh] md:max-h-56 overflow-y-auto box-border custom-scrollbar">
                                {/* COMPACT DIGITAL DISPLAY */}
                                <div className="flex items-center justify-between gap-2 mb-4">
                                     <div className="flex items-baseline gap-1 bg-white/5 px-3 py-1.5 rounded-xl border border-white/5">
@@ -418,8 +419,9 @@ const AdminTestMaker = () => {
                                      </button>
                                  </div>
                               </div>
-                            </>
-                          )}
+                          </>,
+                          document.body
+                        )}
                         </div>
                       </div>
                     </div>
@@ -429,7 +431,7 @@ const AdminTestMaker = () => {
           </div>
 
           <div className="flex-1 flex flex-col gap-4">
-            <div className="p-5 rounded-3xl border border-white/5 bg-[#0f0f14]/40 backdrop-blur-xl flex-1 flex flex-col overflow-hidden">
+            <div className="p-5 rounded-3xl border border-white/5 bg-[#0f0f14]/40 backdrop-blur-xl flex-1 flex flex-col overflow-visible">
               <div className="space-y-4 overflow-y-auto pr-1 custom-scrollbar flex-1 flex flex-col">
                 <div className="flex items-center gap-2 mb-1">
                   <Zap size={14} className="text-violet-500" />
@@ -458,7 +460,7 @@ const AdminTestMaker = () => {
                     {showQuestionsDropdown && formData.testType !== 'MAIN' && (
                       <>
                         <div className="fixed inset-0 z-40" onClick={() => setShowQuestionsDropdown(false)} />
-                        <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-[#0f0f14] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-[#0f0f14] border border-white/10 rounded-xl shadow-2xl z-50 overflow-visible animate-in zoom-in-95 duration-200">
                           <div className="max-h-48 overflow-y-auto custom-scrollbar">
                             {[5, 10, 15, 20, 25, 30, 35, 40, 45, 50].map(n => (
                               <button
@@ -468,7 +470,7 @@ const AdminTestMaker = () => {
                                   setFormData({...formData, totalQuestions: n});
                                   setShowQuestionsDropdown(false);
                                 }}
-                                className={`w-full px-4 py-3 text-[10px] font-black uppercase tracking-widest text-left transition-colors hover:bg-violet-500/10 ${formData.totalQuestions === n ? 'text-violet-400 bg-violet-500/5' : 'text-white/60 hover:text-white'}`}
+                                className={`w-full px-4 py-3 text-[10px] font-black uppercase tracking-widest text-left transition-colors hover:bg-violet-500/10 first:rounded-t-xl last:rounded-b-xl ${formData.totalQuestions === n ? 'text-violet-400 bg-violet-500/5' : 'text-white/60 hover:text-white'}`}
                               >
                                 {n} Questions
                               </button>
