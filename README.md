@@ -97,7 +97,8 @@ LearnIQ is an advanced assessment and learning platform designed for structured 
 
 ## 📊 System Models & Workflows
 
-### 1. Entity-Relationship (UML Class Diagram)
+### 1. Entity-Relationship (Database Schema)
+*This diagram illustrates the core database tables and how they connect to store your platform's data.*
 ```mermaid
 classDiagram
     direction TB
@@ -137,42 +138,73 @@ classDiagram
 ```
 
 ### 2. Platform Use Cases
+*Mapping the distinct capabilities available to the Student and Administrator roles.*
 ```mermaid
 flowchart LR
     %% Actors
-    Student(((👤 Student)))
-    Admin(((🛡️ Administrator)))
+    Admin(["🧍‍♂️ Admin"])
+    Student(["🧍‍♂️ Student"])
 
     %% System Boundary
-    subgraph LearnIQ Platform
-        %% Student Use Cases
-        UC1([Take Practice Test])
-        UC2([Take Main Assessment])
-        UC3([View Results & Leaderboard])
+    subgraph SystemBoundary [LearnIQ System Boundary]
+        direction TB
         
         %% Admin Use Cases
-        UC4([Manage Question Bank])
-        UC5([Create & Schedule Tests])
-        UC6([View System Analytics])
-        UC7([Manage Students & Security])
+        Admin1([Manage Tests<br/>Add / Edit / Delete])
+        Admin2([Manage Question Bank<br/>MCQ, Category, Level])
+        Admin3([Schedule Tests<br/>Date / Time / Duration])
+        Admin4([View Results & Analytics<br/>Rankings, Reports])
+        
+        Shared1([Login / Logout<br/>Admin & Student])
+        Shared2([Import/Export Excel<br/>Questions via Excel])
+        
+        %% Student Use Cases
+        Student1([Register & Login<br/>Update Profile])
+        Student2([Practice Aptitude Test<br/>Section 1])
+        Student3([Attempt Main Test<br/>Section 2 - Scheduled])
+        
+        Student4([View Scorecard<br/>Correct/Wrong Analysis])
+        Student5([View Test History<br/>Retake Tests])
+        Student6([Receive Result Email<br/>Auto Notification])
     end
 
-    %% Relationships
-    Student --- UC1
-    Student --- UC2
-    Student --- UC3
-
-    Admin --- UC4
-    Admin --- UC5
-    Admin --- UC6
-    Admin --- UC7
+    %% Admin Connections
+    Admin --- Admin1
+    Admin --- Admin2
+    Admin --- Admin3
+    Admin --- Admin4
     
-    classDef default fill:#0d0d12,stroke:#7c3aed,stroke-width:1px,color:#fff;
-    classDef actor fill:#7c3aed,stroke:#fff,stroke-width:2px,color:#fff;
-    class Student,Admin actor;
+    Admin1 -.->|«include»| Shared1
+    Admin2 -.->|«include»| Shared2
+    
+    %% Student Connections
+    Student --- Student1
+    Student --- Student2
+    Student --- Student3
+    
+    Student1 -.->|«include»| Student4
+    Student2 -.->|«include»| Student5
+    Student3 -.->|«include»| Student6
+    
+    %% Dark Mode Styling
+    classDef default fill:#0d0d12,stroke:#555,stroke-width:1px,color:#fff;
+    classDef boundary fill:transparent,stroke:#3b82f6,stroke-width:2px,stroke-dasharray: 5 5,color:#fff;
+    classDef adminNode fill:#450a0a,stroke:#ef4444,stroke-width:2px,color:#fca5a5;
+    classDef studentNode fill:#042f2e,stroke:#14b8a6,stroke-width:2px,color:#5eead4;
+    classDef blueNode fill:#172554,stroke:#3b82f6,stroke-width:2px,color:#93c5fd;
+    classDef orangeNode fill:#431407,stroke:#f97316,stroke-width:2px,color:#fdba74;
+    classDef greenNode fill:#052e16,stroke:#22c55e,stroke-width:2px,color:#86efac;
+    
+    class SystemBoundary boundary;
+    class Admin,Admin1,Admin2,Admin3,Admin4 adminNode;
+    class Student,Student1,Student2,Student3 studentNode;
+    class Shared1 blueNode;
+    class Shared2,Student6 orangeNode;
+    class Student4,Student5 greenNode;
 ```
 
 ### 3. Assessment Lifecycle Flowchart
+*Visualizing the state transitions from test creation to auto-submission.*
 ```mermaid
 flowchart TD
     %% Admin Phase
@@ -195,16 +227,16 @@ flowchart TD
     I -->|Malpractice Detected| J
     
     %% Resolution Phase
-    J --> K[Generate Analytics]
-    K --> L[Send Email Report]
-    L --> M([Update Leaderboards])
+    J --> K{Is Main Test?}
+    K -->|Yes| L[Send Email Report & Update Leaderboard]
+    K -->|No| M[Display Scorecard]
     
     %% Expiry
     F -->|Time >= End Time| N[Status: ARCHIVED]
     
     classDef default fill:#0d0d12,stroke:#7c3aed,stroke-width:1px,color:#fff;
     classDef highlight fill:#7c3aed,stroke:#fff,stroke-width:1px,color:#fff;
-    class A,G,M highlight;
+    class A,G,L highlight;
 ```
 
 ## 💻 Local Environment Setup
