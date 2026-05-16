@@ -95,6 +95,118 @@ LearnIQ is an advanced assessment and learning platform designed for structured 
 *   **Email:** JavaMail with SMTP delivery integration
 *   **Authorization:** Role-based access control (ADMIN/STUDENT session isolation)
 
+## 📊 System Models & Workflows
+
+### 1. Entity-Relationship (UML Class Diagram)
+```mermaid
+classDiagram
+    direction TB
+    class User {
+        +Long id
+        +String name
+        +String email
+        +Role role
+        +boolean isVerified
+    }
+    class Test {
+        +Long id
+        +String title
+        +String category
+        +String testType
+        +int durationMinutes
+        +String status
+    }
+    class Question {
+        +Long id
+        +String text
+        +List~String~ options
+        +String correctAnswer
+        +String category
+    }
+    class TestAttempt {
+        +Long id
+        +int scorePercent
+        +LocalDateTime startedAt
+        +LocalDateTime submittedAt
+        +Status status
+    }
+    
+    User "1" -- "*" TestAttempt : makes >
+    Test "1" -- "*" TestAttempt : has >
+    Test "*" -- "*" Question : contains >
+```
+
+### 2. Platform Use Cases
+```mermaid
+flowchart LR
+    %% Actors
+    Student(((👤 Student)))
+    Admin(((🛡️ Administrator)))
+
+    %% System Boundary
+    subgraph LearnIQ Platform
+        %% Student Use Cases
+        UC1([Take Practice Test])
+        UC2([Take Main Assessment])
+        UC3([View Results & Leaderboard])
+        
+        %% Admin Use Cases
+        UC4([Manage Question Bank])
+        UC5([Create & Schedule Tests])
+        UC6([View System Analytics])
+        UC7([Manage Students & Security])
+    end
+
+    %% Relationships
+    Student --- UC1
+    Student --- UC2
+    Student --- UC3
+
+    Admin --- UC4
+    Admin --- UC5
+    Admin --- UC6
+    Admin --- UC7
+    
+    classDef default fill:#0d0d12,stroke:#7c3aed,stroke-width:1px,color:#fff;
+    classDef actor fill:#7c3aed,stroke:#fff,stroke-width:2px,color:#fff;
+    class Student,Admin actor;
+```
+
+### 3. Assessment Lifecycle Flowchart
+```mermaid
+flowchart TD
+    %% Admin Phase
+    A([Admin Creates Test]) --> B{Test Type?}
+    B -->|Practice| C[Status: ACTIVE]
+    B -->|Main| D[Set Start & End Window]
+    D --> E[Status: SCHEDULED]
+    
+    E -->|Time >= Start Time| F[Status: ACTIVE]
+    
+    %% Student Phase
+    C --> G([Student Enters Test])
+    F --> G
+    
+    G --> H[Timer & Security Start]
+    H --> I{Submission Trigger?}
+    
+    I -->|Student Clicks Submit| J[Calculate Score]
+    I -->|Timer Expires| J
+    I -->|Malpractice Detected| J
+    
+    %% Resolution Phase
+    J --> K[Generate Analytics]
+    K --> L[Send Email Report]
+    L --> M([Update Leaderboards])
+    
+    %% Expiry
+    F -->|Time >= End Time| N[Status: ARCHIVED]
+    
+    classDef default fill:#0d0d12,stroke:#7c3aed,stroke-width:1px,color:#fff;
+    classDef highlight fill:#7c3aed,stroke:#fff,stroke-width:1px,color:#fff;
+    class A,G,M highlight;
+```
+
 ## 💻 Local Environment Setup
 
 ### 1. Repository
