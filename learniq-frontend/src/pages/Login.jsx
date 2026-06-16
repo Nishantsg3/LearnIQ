@@ -29,7 +29,13 @@ function Login() {
         navigate('/student/dashboard');
       }
     } catch (err) {
-      toast.error('Identity Verification Failed.');
+      if (!err.response) {
+        // No response at all — server unreachable, cold start, or network timeout
+        toast.error('Server is starting up. Please wait a moment and try again.', { duration: 5000 });
+      } else {
+        // HTTP response received — show the backend's specific message
+        toast.error(err.response?.data?.message || 'Invalid email or password.');
+      }
     } finally {
       setIsLoggingIn(false);
     }
