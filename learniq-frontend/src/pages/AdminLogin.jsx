@@ -27,7 +27,11 @@ function AdminLogin() {
       toast.success('Admin access granted.');
       navigate('/admin/dashboard');
     } catch (err) {
-      toast.error('Access denied. Invalid credentials.');
+      if (!err.response) {
+        toast.error('Server is starting up. Please wait a moment and try again.', { duration: 5000 });
+      } else {
+        toast.error(err.response?.data?.message || 'Invalid admin credentials.');
+      }
     } finally {
       setIsLoggingIn(false);
     }

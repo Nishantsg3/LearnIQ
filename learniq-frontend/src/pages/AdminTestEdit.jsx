@@ -23,6 +23,10 @@ const AdminTestEdit = () => {
   const [showClock, setShowClock] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
 
+  // Dynamic calendar state
+  const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth());
+  const [calendarYear, setCalendarYear] = useState(new Date().getFullYear());
+
   const [formData, setFormData] = useState({
     title: '',
     category: 'Java',
@@ -206,26 +210,52 @@ const AdminTestEdit = () => {
                           {showCalendar && (
                             <>
                               <div className="fixed inset-0 z-40" onClick={() => setShowCalendar(false)} />
-                              <div className="absolute bottom-full left-0 mb-2 p-3 bg-[#0f0f14] border border-white/5 rounded-2xl shadow-2xl z-50 animate-in zoom-in-95 duration-200 w-56">
-                                <div className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mb-3 text-center">May 2026</div>
+                              <div className="absolute bottom-full left-0 mb-2 p-3 bg-[#0f0f14] border border-white/5 rounded-2xl shadow-2xl z-50 animate-in zoom-in-95 duration-200 w-[280px]">
+                                {/* Month/Year Navigation */}
+                                <div className="flex items-center justify-between mb-3 px-1">
+                                  <button type="button" onClick={() => {
+                                    if (calendarMonth === 0) { setCalendarMonth(11); setCalendarYear(calendarYear - 1); }
+                                    else { setCalendarMonth(calendarMonth - 1); }
+                                  }} className="p-1.5 rounded-lg hover:bg-white/10 text-white/40 hover:text-white transition-all">
+                                    ←
+                                  </button>
+                                  <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">
+                                    {new Date(calendarYear, calendarMonth).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                                  </span>
+                                  <button type="button" onClick={() => {
+                                    if (calendarMonth === 11) { setCalendarMonth(0); setCalendarYear(calendarYear + 1); }
+                                    else { setCalendarMonth(calendarMonth + 1); }
+                                  }} className="p-1.5 rounded-lg hover:bg-white/10 text-white/40 hover:text-white transition-all">
+                                    →
+                                  </button>
+                                </div>
                                 <div className="grid grid-cols-7 gap-1 mb-1">
-                                  {['S','M','T','W','T','F','S'].map(d => <div key={d} className="text-[8px] font-black text-violet-500/40 text-center">{d}</div>)}
+                                  {['S','M','T','W','T','F','S'].map((d, i) => <div key={i} className="text-[8px] font-black text-violet-500/40 text-center">{d}</div>)}
                                 </div>
                                 <div className="grid grid-cols-7 gap-1">
-                                  {Array.from({length: 5}).map((_, i) => <div key={`empty-${i}`} className="aspect-square" />)}
-                                  {Array.from({length: 31}).map((_, i) => {
+                                  {Array.from({length: new Date(calendarYear, calendarMonth, 1).getDay()}).map((_, i) => <div key={`empty-${i}`} className="aspect-square" />)}
+                                  {Array.from({length: new Date(calendarYear, calendarMonth + 1, 0).getDate()}).map((_, i) => {
                                     const day = i + 1;
-                                    const isSelected = formData.startTime?.split('T')[0]?.endsWith(`-${day.toString().padStart(2, '0')}`);
+                                    const dateStr = `${calendarYear}-${String(calendarMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                                    const cellDate = new Date(calendarYear, calendarMonth, day);
+                                    const todayDate = new Date(); todayDate.setHours(0,0,0,0);
+                                    const isPast = cellDate < todayDate;
+                                    const isSelected = formData.startTime?.startsWith(dateStr);
                                     return (
                                       <button
                                         key={day}
                                         type="button"
+                                        disabled={isPast}
                                         onClick={() => {
                                           const time = formData.startTime?.split('T')[1] || '12:00';
-                                          setFormData({...formData, startTime: `2026-05-${day.toString().padStart(2, '0')}T${time}`});
+                                          setFormData({...formData, startTime: `${dateStr}T${time}`});
                                           setShowCalendar(false);
                                         }}
-                                        className={`aspect-square flex items-center justify-center rounded-lg text-[9px] font-bold transition-all ${isSelected ? 'bg-violet-500 text-white shadow-[0_0_10px_rgba(124,58,237,0.4)]' : 'text-white/30 hover:bg-white/5 hover:text-white'}`}
+                                        className={`aspect-square flex items-center justify-center rounded-lg text-[9px] font-bold transition-all ${
+                                          isPast ? 'opacity-20 cursor-not-allowed text-white/20'
+                                          : isSelected ? 'bg-violet-500 text-white shadow-[0_0_10px_rgba(124,58,237,0.4)]'
+                                          : 'text-white/30 hover:bg-white/5 hover:text-white'
+                                        }`}
                                       >
                                         {day}
                                       </button>
