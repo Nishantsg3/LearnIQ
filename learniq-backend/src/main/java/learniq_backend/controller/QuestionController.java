@@ -299,27 +299,30 @@ public class QuestionController {
             // For submission, we only care if the user HAS an in-progress attempt for this test.
             User user = userRepository.findByEmail(userEmail)
                     .orElseThrow(() -> new RuntimeException("User not found"));
+
+            // 🔥 IDEMPOTENCY GATE: If user already has a SUBMITTED attempt for this test,
+            // return the existing result. Prevents duplicate submissions/emails/leaderboard entries.
+            Optional<TestAttempt> alreadySubmitted = testAttemptRepository.findFirstByUserIdAndTestIdAndStatus(
+                    user.getId(), testId, TestAttempt.Status.SUBMITTED);
+            if (alreadySubmitted.isPresent()) {
+                System.out.println("[IDEMPOTENCY] User " + userEmail + " already submitted test " + testId + ". Returning existing result.");
+                TestAttempt existing = alreadySubmitted.get();
+                List<AnalysisItem> analysis = existing.getAnswers().stream()
+                        .map(ans -> {
+                            Question q = questionRepository.findById(ans.getQuestionId()).orElse(null);
+                            return new AnalysisItem(ans.getQuestionId(), q != null ? q.getQuestionText() : "Unknown",
+                                    ans.getSelectedOption(), q != null ? q.getCorrectAnswer() : "Unknown", ans.isCorrect());
+                        }).toList();
+                return ResponseEntity.ok(new SubmissionResult(
+                        existing.getId(),
+                        testId, existing.getTest().getTitle(), existing.getTotalQuestions(),
+                        existing.getCorrectCount(), existing.getWrongCount(), existing.getScorePercent(),
+                        existing.getSubmittedAt(), analysis));
+            }
                     
             TestAttempt attempt = testAttemptRepository.findFirstByUserIdAndTestIdAndStatus(
                     user.getId(), testId, TestAttempt.Status.IN_PROGRESS)
-                    .orElseGet(() -> {
-                        System.out.println("[RESCUE] Session missing for user " + userEmail + ". Creating recovery attempt manually...");
-                        Test test = testRepository.findById(testId)
-                                .orElseThrow(() -> new RuntimeException("Test not found"));
-                        
-                        TestAttempt recover = new TestAttempt();
-                        recover.setUser(user);
-                        recover.setUserEmail(userEmail);
-                        recover.setUserName(user.getName());
-                        recover.setTest(test);
-                        recover.setStartedAt(LocalDateTime.now());
-                        recover.setEndTime(LocalDateTime.now().plusMinutes(test.getDurationMinutes()));
-                        recover.setStatus(TestAttempt.Status.IN_PROGRESS);
-                        recover.setScorePercent(-1);
-                        recover.setAnswers(new ArrayList<>());
-                        recover.setTotalQuestions(test.getQuestionCount());
-                        return testAttemptRepository.save(recover);
-                    });
+                    .orElseThrow(() -> new RuntimeException("Assessment already submitted."));
 
             TestAttempt submitted = attemptService.submitAttempt(attempt.getId(), request.answers());
 
