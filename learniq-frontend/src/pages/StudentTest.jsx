@@ -73,6 +73,7 @@ const StudentTest = () => {
   const timerRef   = useRef(null);
   const beforeUnloadRef = useRef(null);
   const isSubmittingRef = useRef(false);
+  const malpracticeCooldownRef = useRef(false); // Prevents double-counting from mouseleave+blur
 
   /* ── helpers ── */
   const updateAnswer = (qid, opt) => {
@@ -193,6 +194,11 @@ const StudentTest = () => {
     if (result || loading || submitting) return;
 
     const triggerMalpractice = () => {
+      // Cooldown: prevent mouseleave + blur from double-counting the same tab switch
+      if (malpracticeCooldownRef.current) return;
+      malpracticeCooldownRef.current = true;
+      setTimeout(() => { malpracticeCooldownRef.current = false; }, 1000);
+
       setMalpracticeCount(prev => {
         const next = prev + 1;
         if (next >= 5) {
@@ -267,6 +273,8 @@ const StudentTest = () => {
   };
 
   const submitTest = async (isAuto = false) => {
+    // Block manual submit if auto-submit already fired or result exists
+    if (result || autoSubmitted) return;
     if (isSubmittingRef.current && !isAuto) return;
     isSubmittingRef.current = true;
     setSubmitting(true);
@@ -279,16 +287,24 @@ const StudentTest = () => {
       const res = await api.post(`/questions/test/${id}/submit`, { answers: answersRef.current });
       setResult(res.data);
       toast.success('Assessment submitted!');
+
+      // Auto-submit: redirect to results page after brief delay
+      if (isAuto) {
+        setTimeout(() => {
+          navigate(`/results/${res.data.id}`);
+        }, 2500);
+      }
     } catch (err) {
       const msg = err.response?.data?.message || 'Submission failed. Try again.';
-      toast.error(msg);
-      
-      // If already submitted, just fetch result and exit
+      // If already submitted, treat as success — redirect to dashboard
       if (msg.toLowerCase().includes('already submitted')) {
-         window.location.reload(); 
+         toast.success('Assessment was already submitted.');
+         setTimeout(() => navigate('/student/dashboard'), 1500);
       } else {
+         toast.error(msg);
          isSubmittingRef.current = false;
          setSubmitting(false);
+         setAutoSubmitted(false);
       }
     }
   };
