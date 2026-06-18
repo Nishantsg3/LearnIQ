@@ -18,7 +18,32 @@ const AdminReportList = ({ mode = 'ANALYTICS' }) => {
         const res = await api.get('/admin/tests');
         const data = Array.isArray(res.data) ? res.data : [];
         const mainTests = data.filter(t => t.testType?.toUpperCase() === 'MAIN');
-        setTests(mainTests);
+        
+        // Sort tests by creation date descending
+        mainTests.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+        
+        // Fetch stats (totalAttempts & maxScore) for each test in parallel
+        const testsWithStats = await Promise.all(
+          mainTests.map(async (test) => {
+            try {
+              const statsRes = await api.get(`/admin/tests/${test.id}/analytics`);
+              return {
+                ...test,
+                attemptsCount: statsRes.data.totalAttempts ?? 0,
+                highestScore: statsRes.data.maxScore ?? 0,
+              };
+            } catch (err) {
+              console.error(`Failed to load stats for test ${test.id}`, err);
+              return {
+                ...test,
+                attemptsCount: 0,
+                highestScore: 0,
+              };
+            }
+          })
+        );
+        
+        setTests(testsWithStats);
       } catch (err) {
         toast.error('Failed to load assessment data');
       } finally {
@@ -77,74 +102,120 @@ const AdminReportList = ({ mode = 'ANALYTICS' }) => {
           </div>
         </div>
 
-        {/* GRID */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 pb-20">
-          {filteredTests.map(test => (
-            <div 
-              key={test.id} 
-              className="bg-[#0d0d12] border border-white/[0.03] rounded-[3rem] p-10 flex flex-col hover:border-white/10 hover:bg-[#12121a] group transition-all duration-500 relative overflow-hidden shadow-2xl"
-            >
-              <div className="absolute -right-20 -top-20 w-40 h-40 bg-indigo-500/[0.03] blur-[80px] group-hover:bg-indigo-500/[0.06] transition-all duration-700"></div>
-
-              <div className="flex justify-between items-start mb-10 relative z-10">
-                 <div className="px-4 py-2 bg-white/[0.03] border border-white/5 rounded-xl text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] group-hover:text-slate-300 transition-colors">
-                    {test?.category || "General"}
-                 </div>
-                 {test?.archived && (
-                   <span className="px-3 py-1.5 bg-rose-500/10 border border-rose-500/20 text-rose-500 text-[8px] font-black uppercase tracking-widest rounded-lg">
-                     ARCHIVED
-                   </span>
-                 )}
+        {/* LIST / TABLE VIEW */}
+        {filteredTests.length === 0 ? (
+          <div className="py-40 bg-[#0d0d12] border border-dashed border-white/5 rounded-[4rem] flex flex-col items-center justify-center text-center space-y-8 animate-pulse">
+              <div className="w-20 h-20 rounded-[2rem] bg-white/[0.02] flex items-center justify-center border border-white/5 shadow-2xl">
+                <AlertCircle size={32} className="text-slate-800" />
               </div>
-
-              <div className="flex-1 relative z-10 mb-10">
-                <h3 className="text-xl font-black text-white uppercase tracking-tight leading-tight group-hover:text-indigo-400 transition-all duration-300 italic">{test?.title || "Untitled Assessment"}</h3>
-                <div className="flex items-center gap-6 mt-6">
-                  <div className="flex items-center gap-2 px-3 py-1.5 bg-white/[0.02] border border-white/[0.02] rounded-lg">
-                    <Clock size={12} className="text-indigo-500/40" />
-                    <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">{test?.durationMinutes ?? 0}M</span>
-                  </div>
-                  <div className="flex items-center gap-2 px-3 py-1.5 bg-white/[0.02] border border-white/[0.02] rounded-lg">
-                    <FileText size={12} className="text-indigo-500/40" />
-                    <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">{test?.questionCount ?? 0}Q</span>
-                  </div>
-                </div>
+              <div className="space-y-4">
+                <p className="text-[12px] font-black text-slate-500 uppercase tracking-[0.5em]">Zero matches detected</p>
+                <p className="text-[9px] font-black text-slate-700 uppercase tracking-[0.3em]">Refine search parameters or classification sectors</p>
               </div>
-
-              <div className="pt-8 border-t border-white/5 relative z-10">
-                 {mode === 'ANALYTICS' ? (
-                   <button 
-                     onClick={() => navigate(`/admin/tests/${test.id}/analytics`)}
-                     className="btn-primary w-full py-5"
-                   >
-                     <BarChart2 size={16} />
-                     Audit Reports
-                   </button>
-                 ) : (
-                   <button 
-                     onClick={() => navigate(`/admin/tests/${test.id}/leaderboard`)}
-                     className="btn-accent w-full py-5"
-                   >
-                     <Award size={16} />
-                     Merit Rankings
-                   </button>
-                 )}
-              </div>
+          </div>
+        ) : (
+          <div className="bg-[#0d0d12] border border-white/[0.03] rounded-[2rem] overflow-hidden shadow-2xl pb-10">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-white/5 bg-white/[0.01]">
+                    <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Assessment Name</th>
+                    <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Category</th>
+                    <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Attempts</th>
+                    <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Highest Score</th>
+                    <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Created Date</th>
+                    <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/[0.02]">
+                  {filteredTests.map(test => (
+                    <tr 
+                      key={test.id} 
+                      className="hover:bg-white/[0.02] group transition-all duration-300"
+                    >
+                      {/* Assessment Name */}
+                      <td className="px-8 py-6">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold text-white group-hover:text-indigo-400 transition-colors duration-300 italic">
+                            {test?.title || "Untitled Assessment"}
+                          </span>
+                          <div className="flex items-center gap-4 mt-2">
+                            <span className="flex items-center gap-1 text-[10px] text-slate-500 font-medium">
+                              <Clock size={10} className="text-slate-600" />
+                              {test?.durationMinutes ?? 0} M
+                            </span>
+                            <span className="text-slate-700">•</span>
+                            <span className="flex items-center gap-1 text-[10px] text-slate-500 font-medium">
+                              <FileText size={10} className="text-slate-600" />
+                              {test?.questionCount ?? 0} Q
+                            </span>
+                            {test?.archived && (
+                              <>
+                                <span className="text-slate-700">•</span>
+                                <span className="px-2 py-0.5 bg-rose-500/10 border border-rose-500/20 text-rose-500 text-[8px] font-black uppercase tracking-widest rounded">
+                                  ARCHIVED
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      
+                      {/* Category */}
+                      <td className="px-8 py-6">
+                        <span className="px-3 py-1.5 bg-white/[0.03] border border-white/5 rounded-xl text-[9px] font-black text-slate-400 uppercase tracking-[0.1em] group-hover:border-white/10 transition-colors">
+                          {test?.category || "General"}
+                        </span>
+                      </td>
+                      
+                      {/* Attempts */}
+                      <td className="px-8 py-6 text-center">
+                        <span className="px-3 py-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-xs font-bold text-indigo-400">
+                          {test?.attemptsCount ?? 0}
+                        </span>
+                      </td>
+                      
+                      {/* Highest Score */}
+                      <td className="px-8 py-6 text-center">
+                        <span className="px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-xs font-bold text-emerald-400">
+                          {test?.highestScore != null ? `${test.highestScore}%` : '0%'}
+                        </span>
+                      </td>
+                      
+                      {/* Created Date */}
+                      <td className="px-8 py-6">
+                        <span className="text-xs font-semibold text-slate-400">
+                          {test?.createdAt ? new Date(test.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A'}
+                        </span>
+                      </td>
+                      
+                      {/* Action */}
+                      <td className="px-8 py-6 text-right">
+                        {mode === 'ANALYTICS' ? (
+                          <button 
+                            onClick={() => navigate(`/admin/tests/${test.id}/analytics`)}
+                            className="px-4 py-2 text-[10px] font-black uppercase tracking-wider bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors inline-flex items-center gap-2"
+                          >
+                            <BarChart2 size={12} />
+                            Audit Reports
+                          </button>
+                        ) : (
+                          <button 
+                            onClick={() => navigate(`/admin/tests/${test.id}/leaderboard`)}
+                            className="px-4 py-2 text-[10px] font-black uppercase tracking-wider bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors inline-flex items-center gap-2"
+                          >
+                            <Award size={12} />
+                            Merit Rankings
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          ))}
-
-          {filteredTests.length === 0 && (
-            <div className="col-span-full py-40 bg-[#0d0d12] border border-dashed border-white/5 rounded-[4rem] flex flex-col items-center justify-center text-center space-y-8 animate-pulse">
-                <div className="w-20 h-20 rounded-[2rem] bg-white/[0.02] flex items-center justify-center border border-white/5 shadow-2xl">
-                  <AlertCircle size={32} className="text-slate-800" />
-                </div>
-                <div className="space-y-4">
-                  <p className="text-[12px] font-black text-slate-500 uppercase tracking-[0.5em]">Zero matches detected</p>
-                  <p className="text-[9px] font-black text-slate-700 uppercase tracking-[0.3em]">Refine search parameters or classification sectors</p>
-                </div>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

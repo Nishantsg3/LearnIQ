@@ -201,9 +201,9 @@ const StudentTest = () => {
 
       setMalpracticeCount(prev => {
         const next = prev + 1;
-        if (next >= 5) {
+        if (next === 5) {
           handleAutoSubmit('malpractice');
-        } else {
+        } else if (next < 5) {
           setShowMalpractice(true);
         }
         return next;
@@ -251,7 +251,6 @@ const StudentTest = () => {
   /* ── submit ── */
   const handleAutoSubmit = async (reason = 'time') => {
     if (isSubmittingRef.current || autoSubmitted || result) return;
-    isSubmittingRef.current = true;
     setSubmitting(true);
     setAutoSubmitted(true);
     
@@ -275,7 +274,7 @@ const StudentTest = () => {
   const submitTest = async (isAuto = false) => {
     // Block manual submit if auto-submit already fired or result exists
     if (result || autoSubmitted) return;
-    if (isSubmittingRef.current && !isAuto) return;
+    if (isSubmittingRef.current) return;
     isSubmittingRef.current = true;
     setSubmitting(true);
     setShowConfirm(false);
@@ -302,9 +301,14 @@ const StudentTest = () => {
          setTimeout(() => navigate('/student/dashboard'), 1500);
       } else {
          toast.error(msg);
-         isSubmittingRef.current = false;
-         setSubmitting(false);
-         setAutoSubmitted(false);
+         if (isAuto) {
+            // Once auto-submit fires, never reset guards. On failure, redirect to dashboard.
+            setTimeout(() => navigate('/student/dashboard'), 2500);
+         } else {
+            isSubmittingRef.current = false;
+            setSubmitting(false);
+            setAutoSubmitted(false);
+         }
       }
     }
   };
