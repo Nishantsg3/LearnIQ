@@ -121,7 +121,6 @@ const AdminReportList = ({ mode = 'ANALYTICS' }) => {
                   <tr className="border-b border-white/5 bg-white/[0.01]">
                     <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Assessment Name</th>
                     <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Category</th>
-                    <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Attempts</th>
                     <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Highest Score</th>
                     <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Created Date</th>
                     <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-right">Actions</th>
@@ -168,12 +167,7 @@ const AdminReportList = ({ mode = 'ANALYTICS' }) => {
                         </span>
                       </td>
                       
-                      {/* Attempts */}
-                      <td className="px-8 py-6 text-center">
-                        <span className="px-3 py-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-xs font-bold text-indigo-400">
-                          {test?.attemptsCount ?? 0}
-                        </span>
-                      </td>
+
                       
                       {/* Highest Score */}
                       <td className="px-8 py-6 text-center">

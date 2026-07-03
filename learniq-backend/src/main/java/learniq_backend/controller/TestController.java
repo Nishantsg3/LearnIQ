@@ -175,7 +175,7 @@ public class TestController {
                 return ResponseEntity.badRequest().body(Map.of("message", "Leaderboard is only available for MAIN tests."));
             }
 
-            List<TestAttempt> attempts = testAttemptRepository.findByTestIdAndSubmitted(id, true);
+            List<TestAttempt> attempts = testAttemptRepository.findByTestIdAndStatus(id, TestAttempt.Status.SUBMITTED);
             
             // Sort by score descending
             attempts.sort((a, b) -> Double.compare(b.getScorePercent(), a.getScorePercent()));

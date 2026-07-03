@@ -135,8 +135,13 @@ public class AttemptService {
 
     @Transactional
     public void abandonAttempt(Long attemptId) {
-        TestAttempt attempt = testAttemptRepository.findById(attemptId)
+        TestAttempt attempt = testAttemptRepository.findByIdWithLock(attemptId)
                 .orElseThrow(() -> new RuntimeException("Attempt not found"));
+        
+        if (attempt.getStatus() != TestAttempt.Status.IN_PROGRESS) {
+            System.out.println("[WARNING] Blocked abandonAttempt for non-IN_PROGRESS attempt: " + attemptId);
+            return;
+        }
         
         Test test = attempt.getTest();
         
@@ -176,7 +181,7 @@ public class AttemptService {
     // =========================================================
     @Transactional
     public TestAttempt submitAttempt(Long attemptId, Map<String, String> answers) {
-        TestAttempt attempt = testAttemptRepository.findById(attemptId)
+        TestAttempt attempt = testAttemptRepository.findByIdWithLock(attemptId)
                 .orElseThrow(() -> new RuntimeException("Attempt not found"));
 
         // 🔥 STRONGER IDEMPOTENCY: Check both boolean flag and status
@@ -347,27 +352,31 @@ public class AttemptService {
         boolean changed = false;
 
         for (TestAttempt a : activeAttempts) {
-            boolean isExpired = a.getEndTime() != null && now.isAfter(a.getEndTime());
+            Optional<TestAttempt> lockedOpt = testAttemptRepository.findByIdWithLock(a.getId());
+            if (lockedOpt.isEmpty()) continue;
+            TestAttempt locked = lockedOpt.get();
 
-            // 🔥 USER RULE: If Practice test and not resumed/no-progress for 5 minutes, cleanup so they can START fresh.
-            // 🔥 USER RULE: If Practice test has NO progress, delete it immediately when they hit dashboard
-            // so they see "START" instead of "RESUME".
-            boolean isPractice = a.getTest() != null && "PRACTICE".equalsIgnoreCase(a.getTest().getTestType());
-            boolean isAbandoned = isPractice && (a.getAnswers() == null || a.getAnswers().isEmpty());
+            if (locked.getStatus() != TestAttempt.Status.IN_PROGRESS) {
+                continue;
+            }
+
+            boolean isExpired = locked.getEndTime() != null && now.isAfter(locked.getEndTime());
+            boolean isPractice = locked.getTest() != null && "PRACTICE".equalsIgnoreCase(locked.getTest().getTestType());
+            boolean isAbandoned = isPractice && (locked.getAnswers() == null || locked.getAnswers().isEmpty());
 
             if (isExpired || isAbandoned) {
-                boolean hasAnswers = a.getAnswers() != null && !a.getAnswers().isEmpty();
+                boolean hasAnswers = locked.getAnswers() != null && !locked.getAnswers().isEmpty();
 
-                if (!hasAnswers || isAbandoned) {
+                if (isPractice && (!hasAnswers || isAbandoned)) {
                     // Delete empty or stale abandoned practice attempts to allow fresh START
-                    System.out.println("[CLEANUP] Removing stale/empty attempt: " + a.getId());
+                    System.out.println("[CLEANUP] Removing stale/empty practice attempt: " + locked.getId());
                     // Clear the relationship first to avoid constraint issues
-                    a.getAnswers().clear();
-                    testAttemptRepository.delete(a);
+                    locked.getAnswers().clear();
+                    testAttemptRepository.delete(locked);
                 } else {
-                    // Auto-submit expired attempts that have actual progress
-                    System.out.println("[CLEANUP] Auto-submitting expired attempt: " + a.getId());
-                    finalizeAndSubmit(a, null);
+                    // Auto-submit expired attempts (all Main tests, and Practice tests with answers)
+                    System.out.println("[CLEANUP] Auto-submitting expired attempt: " + locked.getId());
+                    finalizeAndSubmit(locked, null);
                 }
                 changed = true;
             }
@@ -436,8 +445,13 @@ public class AttemptService {
     @Transactional
     public TestAttempt saveProgress(Long attemptId, Map<String, String> answers) {
 
-        TestAttempt attempt = testAttemptRepository.findById(attemptId)
+        TestAttempt attempt = testAttemptRepository.findByIdWithLock(attemptId)
                 .orElseThrow(() -> new RuntimeException("Attempt not found"));
+
+        if (attempt.isSubmitted() || attempt.getStatus() == TestAttempt.Status.SUBMITTED) {
+            System.out.println("[WARNING] Attempt " + attemptId + " is already submitted. Blocking progress save.");
+            return attempt;
+        }
 
         if (answers != null) {
             for (Map.Entry<String, String> entry : answers.entrySet()) {

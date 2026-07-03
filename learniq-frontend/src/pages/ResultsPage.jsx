@@ -217,13 +217,15 @@ const ResultsPage = () => {
                                   )}
                               </div>
                               <div className="col-span-3 flex justify-end items-center gap-3">
-                                   <button
-                                      onClick={(e) => handleDeleteTrigger(e, attempt.id)}
-                                      className="p-2.5 bg-rose-500/5 hover:bg-rose-500/10 border border-rose-500/10 hover:border-rose-500/20 text-rose-500 rounded-full transition-all"
-                                      title="Delete Attempt"
-                                  >
-                                      <Trash2 size={14} />
-                                  </button>
+                                   {activeType !== 'MAIN' && (
+                                       <button
+                                          onClick={(e) => handleDeleteTrigger(e, attempt.id)}
+                                          className="p-2.5 bg-rose-500/5 hover:bg-rose-500/10 border border-rose-500/10 hover:border-rose-500/20 text-rose-500 rounded-full transition-all"
+                                          title="Delete Attempt"
+                                      >
+                                          <Trash2 size={14} />
+                                      </button>
+                                   )}
                                   <button
                                       onClick={() => navigate(`/results/${attempt.id}`)}
                                       className="flex items-center gap-2 px-4 py-2.5 bg-white/[0.03] border border-white/5 rounded-full text-[9px] font-black text-slate-400 uppercase tracking-widest hover:bg-violet-500 hover:text-white hover:border-violet-400 transition-all group/btn"
@@ -262,9 +264,11 @@ const ResultsPage = () => {
                               <div className="flex items-center justify-between">
                                   <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">{formatDateTime(attempt.submittedAt || attempt.startedAt)}</span>
                                   <div className="flex items-center gap-2">
-                                      <button onClick={(e) => handleDeleteTrigger(e, attempt.id)} className="p-1.5 bg-rose-500/5 border border-rose-500/10 text-rose-500 rounded-lg transition-all" title="Delete">
-                                          <Trash2 size={12} />
-                                      </button>
+                                      {activeType !== 'MAIN' && (
+                                          <button onClick={(e) => handleDeleteTrigger(e, attempt.id)} className="p-1.5 bg-rose-500/5 border border-rose-500/10 text-rose-500 rounded-lg transition-all" title="Delete">
+                                              <Trash2 size={12} />
+                                          </button>
+                                      )}
                                       <button onClick={() => navigate(`/results/${attempt.id}`)} className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-600 text-white rounded-lg text-[9px] font-black uppercase tracking-widest transition-all">
                                           Report <ChevronRight size={10} />
                                       </button>

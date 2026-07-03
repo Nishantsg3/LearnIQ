@@ -148,7 +148,27 @@ public class TestAttemptController {
     public ResponseEntity<?> deleteAttempt(@PathVariable Long id, Authentication auth) {
         if (auth == null) return ResponseEntity.status(401).body(Map.of("message", "Unauthorized"));
         try {
-            testAttemptRepository.deleteById(id);
+            TestAttempt attempt = testAttemptRepository.findById(id).orElse(null);
+            if (attempt == null) {
+                return ResponseEntity.notFound().build();
+            }
+
+            // 1. Block deleting MAIN test attempts
+            if ("MAIN".equalsIgnoreCase(attempt.getTest().getTestType())) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Main test results cannot be deleted."));
+            }
+
+            // 2. Ownership check: Only owner or admin can delete
+            boolean isAdmin = auth.getAuthorities().stream()
+                    .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ADMIN"));
+            String userEmail = auth.getName();
+            String ownerEmail = attempt.getUser() != null ? attempt.getUser().getEmail() : attempt.getUserEmail();
+
+            if (!isAdmin && (ownerEmail == null || !ownerEmail.equalsIgnoreCase(userEmail))) {
+                return ResponseEntity.status(403).body(Map.of("message", "Access Denied: You do not own this attempt."));
+            }
+
+            testAttemptRepository.delete(attempt);
             return ResponseEntity.ok(Map.of("message", "Attempt deleted"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
