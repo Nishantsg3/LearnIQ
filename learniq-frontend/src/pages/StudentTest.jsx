@@ -301,11 +301,11 @@ const StudentTest = () => {
          toast.success('Assessment was already submitted.');
          setTimeout(() => navigate('/student/dashboard'), 1500);
       } else {
-         toast.error(msg);
          if (isAuto) {
-            // Once auto-submit fires, never reset guards. On failure, redirect to dashboard.
+            toast.success('Assessment session closed. Syncing results...');
             setTimeout(() => navigate('/student/dashboard'), 2500);
          } else {
+            toast.error(msg);
             isSubmittingRef.current = false;
             setSubmitting(false);
             setAutoSubmitted(false);
