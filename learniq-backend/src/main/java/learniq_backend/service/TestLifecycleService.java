@@ -107,9 +107,16 @@ public class TestLifecycleService {
         for (TestAttempt attempt : activeAttempts) {
             // If attempt has reached its individual end time (e.g. 60 mins after start)
             if (attempt.getEndTime() != null && now.isAfter(attempt.getEndTime())) {
-                System.out.println("[AUTO-SUBMIT] Time expired for Attempt " + attempt.getId() + " (User: " + attempt.getUserEmail() + "). Finalizing...");
-                attemptService.finalizeAndSubmit(attempt, null);
-                count++;
+                // Load with lock to avoid stale state and concurrency conflicts
+                Optional<TestAttempt> lockedOpt = testAttemptRepository.findByIdWithLock(attempt.getId());
+                if (lockedOpt.isPresent()) {
+                    TestAttempt locked = lockedOpt.get();
+                    if (locked.getStatus() == TestAttempt.Status.IN_PROGRESS) {
+                        System.out.println("[AUTO-SUBMIT] Time expired for Attempt " + locked.getId() + " (User: " + locked.getUserEmail() + "). Finalizing...");
+                        attemptService.finalizeAndSubmit(locked, null);
+                        count++;
+                    }
+                }
             }
         }
 

@@ -2,6 +2,10 @@ package learniq_backend.repository;
 
 import learniq_backend.model.TestAttempt;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import jakarta.persistence.LockModeType;
 
 import java.util.List;
 import java.util.Optional;
@@ -23,4 +27,9 @@ public interface TestAttemptRepository extends JpaRepository<TestAttempt, Long> 
     List<TestAttempt> findAllByStatus(TestAttempt.Status status);
     long countByTestIdAndScorePercentGreaterThanAndStatus(Long testId, int scorePercent, TestAttempt.Status status);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select a from TestAttempt a where a.id = :id")
+    Optional<TestAttempt> findByIdWithLock(@Param("id") Long id);
+
+    List<TestAttempt> findByTestIdAndStatus(Long testId, TestAttempt.Status status);
 }

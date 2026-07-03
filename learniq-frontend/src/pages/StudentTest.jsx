@@ -137,8 +137,9 @@ const StudentTest = () => {
 
   /* ── auto-save ── */
   useEffect(() => {
-    if (!attemptId || loading || !test || submitting) return;
+    if (!attemptId || loading || !test || submitting || isSubmittingRef.current) return;
     const save = async () => {
+        if (submitting || isSubmittingRef.current) return;
         try { await api.post(`/attempts/${attemptId}/save-progress`, answers); }
         catch (err) { console.error("Sync failed"); }
     };
@@ -796,7 +797,9 @@ const StudentTest = () => {
                       if (beforeUnloadRef.current) {
                         window.removeEventListener('beforeunload', beforeUnloadRef.current);
                       }
-                      await api.post(`/attempts/${attemptId}/save-progress`, answers);
+                      if (!isSubmittingRef.current && !submitting) {
+                        await api.post(`/attempts/${attemptId}/save-progress`, answers);
+                      }
                       window.location.reload();
                     } catch (err) {
                       window.location.reload();

@@ -2,6 +2,7 @@ package learniq_backend.controller;
 
 import learniq_backend.model.Test;
 import learniq_backend.model.User;
+import learniq_backend.model.TestAttempt;
 import learniq_backend.repository.QuestionRepository;
 import learniq_backend.repository.TestRepository;
 import learniq_backend.repository.UserRepository;
@@ -146,7 +147,7 @@ public class AdminController {
             return ResponseEntity.badRequest().body(Map.of("message", "Analytics only available for MAIN tests"));
         }
 
-        List<learniq_backend.model.TestAttempt> attempts = testAttemptRepository.findByTestIdAndSubmitted(testId, true);
+        List<learniq_backend.model.TestAttempt> attempts = testAttemptRepository.findByTestIdAndStatus(testId, TestAttempt.Status.SUBMITTED);
         long totalStudents = userRepository.countByRole(User.Role.STUDENT);
         
         long totalAttempts = attempts.size();
