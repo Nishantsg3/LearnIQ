@@ -109,7 +109,11 @@ public class AttemptService {
             }
             
             // One-attempt rule for MAIN
-            if (testAttemptRepository.existsByUserEmailAndTestIdAndSubmitted(userEmail, testId, true)) {
+            boolean alreadySubmitted = testAttemptRepository.existsByUserEmailAndTestIdAndSubmitted(userEmail, testId, true);
+            if (!alreadySubmitted) {
+                alreadySubmitted = testAttemptRepository.findFirstByUserIdAndTestIdAndStatus(user.getId(), testId, TestAttempt.Status.SUBMITTED).isPresent();
+            }
+            if (alreadySubmitted) {
                 throw new RuntimeException("Assessment Policy: You have already submitted an attempt for this main evaluation.");
             }
         }
