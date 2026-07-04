@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Toaster } from 'react-hot-toast'
 import Login from './pages/Login'
 import Register from './pages/Register'
@@ -160,11 +160,92 @@ function AppContent() {
 }
 
 function App() {
+  const [healthStatus, setHealthStatus] = useState('CHECKING'); // 'CHECKING' | 'AWAKE' | 'TIMEOUT'
+  const [retryCount, setRetryCount] = useState(0);
+
+  useEffect(() => {
+    let timer;
+    let secondsElapsed = 0;
+
+    const checkHealth = async () => {
+      try {
+        const IS_DEV = import.meta.env.MODE === 'development';
+        const PROD_URL = import.meta.env.VITE_API_URL || 'https://learniq-backend-vglf.onrender.com/api/v1';
+        const LOCAL_URL = 'http://localhost:8080/api/v1';
+        const baseUrl = IS_DEV ? LOCAL_URL : PROD_URL;
+
+        const response = await fetch(`${baseUrl}/health`);
+        if (response.ok) {
+          setHealthStatus('AWAKE');
+          clearInterval(timer);
+        }
+      } catch (err) {
+        console.log("Backend server is starting up...");
+      }
+    };
+
+    setHealthStatus('CHECKING');
+    checkHealth();
+
+    timer = setInterval(() => {
+      secondsElapsed += 5;
+      if (secondsElapsed >= 90) {
+        setHealthStatus('TIMEOUT');
+        clearInterval(timer);
+      } else {
+        checkHealth();
+      }
+    }, 5000);
+
+    return () => clearInterval(timer);
+  }, [retryCount]);
+
+  if (healthStatus !== 'AWAKE') {
+    return (
+      <div className="fixed inset-0 w-screen h-screen bg-[#0a0a12] flex items-center justify-center p-4 z-[9999]">
+        {/* Background Radial Glow */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,#1a1a3a_0%,#0a0a12_70%)] opacity-50" />
+        
+        <div className="relative w-full max-w-md animate-in zoom-in duration-500 text-center">
+          <div className="relative bg-[#1a1a2e]/90 border border-white/10 backdrop-blur-3xl rounded-[32px] p-8 shadow-[0_50px_100px_rgba(0,0,0,0.8)] overflow-hidden">
+            {/* Top accent bar */}
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-violet-600 via-pink-500 to-violet-600 animate-pulse" />
+            
+            {healthStatus === 'CHECKING' ? (
+              <>
+                <div className="w-16 h-16 border-4 border-violet-600/30 border-t-violet-500 rounded-full animate-spin mx-auto mb-6" />
+                <h3 className="text-xl font-black text-white uppercase tracking-tight mb-2">Starting LearnIQ services...</h3>
+                <p className="text-gray-400 text-xs font-semibold leading-relaxed mb-1">The server is waking up.</p>
+                <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest leading-relaxed">This usually takes less than a minute. Please wait...</p>
+              </>
+            ) : (
+              <>
+                <div className="w-16 h-16 bg-rose-500/10 border border-rose-500/20 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce">
+                  <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-black text-white uppercase tracking-tight mb-2">Server Timeout</h3>
+                <p className="text-gray-400 text-xs font-semibold leading-relaxed mb-6">The server is taking longer than expected.<br />Please try again shortly.</p>
+                <button
+                  onClick={() => setRetryCount(prev => prev + 1)}
+                  className="w-full py-3.5 bg-violet-600 hover:bg-violet-500 text-white rounded-xl font-black uppercase text-[11px] tracking-[0.2em] transition-all shadow-lg shadow-violet-600/20"
+                >
+                  Retry Connection
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <AuthProvider>
       <AppContent />
     </AuthProvider>
-  )
+  );
 }
 
-export default App
+export default App;

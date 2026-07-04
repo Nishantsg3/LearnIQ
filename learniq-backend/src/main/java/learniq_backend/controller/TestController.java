@@ -182,16 +182,25 @@ public class TestController {
 
             List<learniq_backend.dto.LeaderboardEntry> leaderboard = new ArrayList<>();
             int rank = 1;
+            int displayRank = 1;
+            double lastScore = -1.0;
             String userEmail = authentication != null ? authentication.getName() : null;
             boolean isAdmin = isAdmin(authentication);
             boolean isExpired = test.getEndTime() != null && LocalDateTime.now().isAfter(test.getEndTime());
 
             for (TestAttempt attempt : attempts) {
+                double score = attempt.getScorePercent();
+                if (score != lastScore) {
+                    displayRank = rank;
+                    lastScore = score;
+                }
+                rank++;
+
                 // Resolve email from User entity to ensure learniq.com address is shown
                 String email = (attempt.getUser() != null) ? attempt.getUser().getEmail() : attempt.getUserEmail();
                 
                 learniq_backend.dto.LeaderboardEntry entry = new learniq_backend.dto.LeaderboardEntry(
-                    rank++,
+                    displayRank,
                     attempt.getUserName(),
                     email,
                     attempt.getScorePercent()

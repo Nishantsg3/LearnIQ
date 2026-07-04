@@ -127,38 +127,11 @@ const TestResultView = () => {
   
   // Deterministic Rank Calculation — matches by backend-provided rank
   const globalStandingData = useMemo(() => {
-    const lbArray = Array.isArray(leaderboard) ? leaderboard.filter(Boolean) : [];
-    if (!lbArray.length) return { rank: 1, total: 1 };
-    
-    // Find student entry in the leaderboard list
-    const myEntry = lbArray.find(e => 
-      e && (
-        (e.userEmail && user?.email && e.userEmail.toLowerCase() === user.email.toLowerCase()) || 
-        (e.userName && user?.name && e.userName.toLowerCase() === user.name.toLowerCase())
-      )
-    );
-    
-    if (myEntry) {
-      return {
-        rank: myEntry.rank,
-        total: lbArray.length
-      };
-    }
-    
-    // Fallback: if not found, sort and find by name/email
-    const sorted = [...lbArray].sort((a, b) => (b.score || 0) - (a.score || 0));
-    const myPos = sorted.findIndex(e => 
-      e && (
-        (e.userEmail && user?.email && e.userEmail.toLowerCase() === user.email.toLowerCase()) || 
-        (e.userName && user?.name && e.userName.toLowerCase() === user.name.toLowerCase())
-      )
-    );
-    
     return {
-        rank: myPos === -1 ? 1 : (sorted[myPos].rank || myPos + 1),
-        total: sorted.length
+      rank: attempt?.rank || 1,
+      total: attempt?.totalParticipants || 1
     };
-  }, [leaderboard, user]);
+  }, [attempt]);
 
   if (loading) {
     return (
