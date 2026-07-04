@@ -391,8 +391,8 @@ const StudentTest = () => {
   /* ═══════════════ LOADING ══════════════════════════════════════════ */
   if (loading) return (
     <div className="h-screen bg-[#0e0e1a] flex flex-col items-center justify-center gap-4">
-      <div className={`w-10 h-10 border-4 ${isMain ? 'border-red-600/30 border-t-red-500' : 'border-emerald-600/30 border-t-emerald-500'} rounded-full animate-spin`}/>
-      <p className={`${themeText} text-xs font-bold uppercase tracking-widest animate-pulse`}>Loading Assessment...</p>
+      <div className="w-10 h-10 border-4 border-red-600/30 border-t-red-500 rounded-full animate-spin"/>
+      <p className="text-rose-400 text-xs font-bold uppercase tracking-widest animate-pulse">Loading Assessment...</p>
     </div>
   );
 

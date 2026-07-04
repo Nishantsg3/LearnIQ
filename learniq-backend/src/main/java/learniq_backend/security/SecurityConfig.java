@@ -35,7 +35,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         
                         // PUBLIC ENDPOINTS
-                        .requestMatchers("/", "/api/v1/auth/**").permitAll()
+                        .requestMatchers("/", "/api/v1/health", "/api/v1/auth/**").permitAll()
 
                         // TESTS
                         .requestMatchers(HttpMethod.GET, "/api/v1/tests", "/api/v1/tests/**").hasAnyRole("ADMIN", "STUDENT")

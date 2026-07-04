@@ -30,6 +30,13 @@ public class TestAttemptResponse {
     private Long remainingTime;
     private List<AnswerReview> answerReviews;
     private List<AttemptResponseItem> responses;
+    private Integer rank;
+    private Integer totalParticipants;
+
+    public Integer getRank() { return rank; }
+    public void setRank(Integer rank) { this.rank = rank; }
+    public Integer getTotalParticipants() { return totalParticipants; }
+    public void setTotalParticipants(Integer totalParticipants) { this.totalParticipants = totalParticipants; }
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }

@@ -23,6 +23,7 @@ public interface TestAttemptRepository extends JpaRepository<TestAttempt, Long> 
     long countByTestId(Long testId);
     Optional<TestAttempt> findFirstByUserIdAndTestIdAndStatus(Long userId, Long testId, TestAttempt.Status status);
     List<TestAttempt> findAllByUserIdAndTestIdAndStatus(Long userId, Long testId, TestAttempt.Status status);
+    List<TestAttempt> findAllByUserIdAndStatus(Long userId, TestAttempt.Status status);
     List<TestAttempt> findAllByUserEmailAndStatus(String userEmail, TestAttempt.Status status);
     List<TestAttempt> findAllByStatus(TestAttempt.Status status);
     long countByTestIdAndScorePercentGreaterThanAndStatus(Long testId, int scorePercent, TestAttempt.Status status);
@@ -32,4 +33,5 @@ public interface TestAttemptRepository extends JpaRepository<TestAttempt, Long> 
     Optional<TestAttempt> findByIdWithLock(@Param("id") Long id);
 
     List<TestAttempt> findByTestIdAndStatus(Long testId, TestAttempt.Status status);
+    long countByTestIdAndStatus(Long testId, TestAttempt.Status status);
 }

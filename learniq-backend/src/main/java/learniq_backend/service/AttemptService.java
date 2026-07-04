@@ -353,7 +353,13 @@ public class AttemptService {
         // This ensures the dashboard doesn't show "Resume" for tests that are already over.
         cleanupExpiredAttempts(email);
 
-        List<TestAttempt> attempts = testAttemptRepository.findByUserEmail(email);
+        Optional<User> userOpt = userRepository.findByEmail(email);
+        List<TestAttempt> attempts;
+        if (userOpt.isPresent()) {
+            attempts = testAttemptRepository.findByUserId(userOpt.get().getId());
+        } else {
+            attempts = testAttemptRepository.findByUserEmail(email);
+        }
 
         // Sort by date (latest first)
         attempts.sort((a, b) -> {
@@ -368,7 +374,14 @@ public class AttemptService {
     }
 
     private void cleanupExpiredAttempts(String email) {
-        List<TestAttempt> activeAttempts = testAttemptRepository.findAllByUserEmailAndStatus(email, TestAttempt.Status.IN_PROGRESS);
+        Optional<User> userOpt = userRepository.findByEmail(email);
+        List<TestAttempt> activeAttempts;
+        if (userOpt.isPresent()) {
+            activeAttempts = testAttemptRepository.findAllByUserIdAndStatus(userOpt.get().getId(), TestAttempt.Status.IN_PROGRESS);
+        } else {
+            activeAttempts = testAttemptRepository.findAllByUserEmailAndStatus(email, TestAttempt.Status.IN_PROGRESS);
+        }
+
         LocalDateTime now = LocalDateTime.now();
         boolean changed = false;
 
@@ -383,7 +396,8 @@ public class AttemptService {
 
             boolean isExpired = locked.getEndTime() != null && now.isAfter(locked.getEndTime());
             boolean isPractice = locked.getTest() != null && "PRACTICE".equalsIgnoreCase(locked.getTest().getTestType());
-            boolean isAbandoned = isPractice && (locked.getAnswers() == null || locked.getAnswers().isEmpty());
+            // An attempt is only considered abandoned if it is expired AND has no answers
+            boolean isAbandoned = isPractice && isExpired && (locked.getAnswers() == null || locked.getAnswers().isEmpty());
 
             if (isExpired || isAbandoned) {
                 boolean hasAnswers = locked.getAnswers() != null && !locked.getAnswers().isEmpty();
@@ -429,6 +443,20 @@ public class AttemptService {
         res.setSubmittedAt(attempt.getSubmittedAt());
         res.setStatus(attempt.getStatus() != null ? attempt.getStatus().name() : "IN_PROGRESS");
         res.setSubmitted(attempt.isSubmitted());
+
+        if (attempt.getTest() != null && "MAIN".equalsIgnoreCase(attempt.getTest().getTestType()) && attempt.getStatus() == TestAttempt.Status.SUBMITTED) {
+            long betterAttempts = testAttemptRepository.countByTestIdAndScorePercentGreaterThanAndStatus(
+                    attempt.getTest().getId(), 
+                    attempt.getScorePercent(), 
+                    TestAttempt.Status.SUBMITTED
+            );
+            res.setRank((int) betterAttempts + 1);
+            long totalPart = testAttemptRepository.countByTestIdAndStatus(attempt.getTest().getId(), TestAttempt.Status.SUBMITTED);
+            res.setTotalParticipants((int) totalPart);
+        } else {
+            res.setRank(1);
+            res.setTotalParticipants(1);
+        }
 
         // 🔥 POPULATE ANSWER KEY / REVIEWS
         List<TestAttemptResponse.AnswerReview> reviews = new ArrayList<>();
