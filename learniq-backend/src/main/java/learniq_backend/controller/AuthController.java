@@ -299,7 +299,9 @@ public class AuthController {
         return ResponseEntity.ok(Map.of(
                 "token", token,
                 "role", user.getRole().name(),
-                "name", user.getName()
+                "name", user.getName(),
+                "email", user.getEmail(),
+                "id", user.getId()
         ));
     }
     

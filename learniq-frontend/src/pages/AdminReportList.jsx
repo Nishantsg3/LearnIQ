@@ -30,7 +30,7 @@ const AdminReportList = ({ mode = 'ANALYTICS' }) => {
               return {
                 ...test,
                 attemptsCount: statsRes.data.totalAttempts ?? 0,
-                highestScore: statsRes.data.maxScore ?? 0,
+                highestScore: statsRes.data.highestScore ?? 0,
               };
             } catch (err) {
               console.error(`Failed to load stats for test ${test.id}`, err);

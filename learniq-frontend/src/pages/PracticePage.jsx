@@ -23,10 +23,10 @@ const PracticePage = () => {
 
     try {
       const res = await api.post('/attempts/start', { testId });
-      navigate(`/student/test/${testId}?attemptId=${res.data.attemptId}`);
+      navigate(`/student/test/${testId}?attemptId=${res.data.attemptId}&mode=PRACTICE`);
     } catch (err) {
       if (err.response?.status === 409 && err.response?.data?.attemptId) {
-        navigate(`/student/test/${testId}?attemptId=${err.response.data.attemptId}`);
+        navigate(`/student/test/${testId}?attemptId=${err.response.data.attemptId}&mode=PRACTICE`);
         return;
       }
       toast.error('Failed to start test');
@@ -143,7 +143,7 @@ const PracticePage = () => {
                   startingTestId={startingTestId}
                   onAction={() => {
                     if (latestAttempt) {
-                        navigate(`/student/test/${test.id}?attemptId=${latestAttempt.id}`);
+                        navigate(`/student/test/${test.id}?attemptId=${latestAttempt.id}&mode=PRACTICE`);
                     } else {
                         startTest(test.id);
                     }

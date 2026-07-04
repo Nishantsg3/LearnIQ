@@ -307,19 +307,36 @@ public class AttemptService {
 
                 String analysisLink = frontendUrl + "/results/" + attempt.getId();
 
-                emailService.sendTestResultEmail(
-                        attempt.getUserEmail(),
-                        attempt.getUserName(),
-                        attempt.getTest().getTitle(),
-                        attempt.getScorePercent(),
-                        attempt.getCorrectCount(),
-                        attempt.getWrongCount(),
-                        rank,
-                        timeString,
-                        analysisLink
-                );
+                // Extract fields to local variables to safely pass to background thread
+                String emailRecipient = attempt.getUserEmail();
+                String studentName = attempt.getUserName();
+                String testTitle = attempt.getTest().getTitle();
+                int scoreVal = attempt.getScorePercent();
+                int correctVal = attempt.getCorrectCount();
+                int wrongVal = attempt.getWrongCount();
+                int finalRank = rank;
+                String finalTimeString = timeString;
+                String finalAnalysisLink = analysisLink;
+
+                new Thread(() -> {
+                    try {
+                        emailService.sendTestResultEmail(
+                                emailRecipient,
+                                studentName,
+                                testTitle,
+                                scoreVal,
+                                correctVal,
+                                wrongVal,
+                                finalRank,
+                                finalTimeString,
+                                finalAnalysisLink
+                        );
+                    } catch (Exception e) {
+                        System.err.println("[Email Thread] Failed to send auto-result email: " + e.getMessage());
+                    }
+                }).start();
             } catch (Exception e) {
-                System.err.println("[EmailService] Failed to send auto-result email: " + e.getMessage());
+                System.err.println("[EmailService] Failed to initialize email thread: " + e.getMessage());
             }
         }
 
