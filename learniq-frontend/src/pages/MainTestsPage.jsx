@@ -23,10 +23,10 @@ const MainTestsPage = () => {
 
     try {
       const res = await api.post('/attempts/start', { testId });
-      navigate(`/student/test/${testId}?attemptId=${res.data.attemptId}`);
+      navigate(`/student/test/${testId}?attemptId=${res.data.attemptId}&mode=MAIN`);
     } catch (err) {
       if (err.response?.status === 409 && err.response?.data?.attemptId) {
-        navigate(`/student/test/${testId}?attemptId=${err.response.data.attemptId}`);
+        navigate(`/student/test/${testId}?attemptId=${err.response.data.attemptId}&mode=MAIN`);
         return;
       }
       const errorMsg = err.response?.data?.message || 'Failed to initialize assessment';
@@ -176,7 +176,7 @@ const MainTestsPage = () => {
                     } else if (isCompleted) {
                         navigate(`/results/${pastAttempts[0].id}`);
                     } else if (latestAttempt) {
-                        navigate(`/student/test/${test.id}?attemptId=${latestAttempt.id}`);
+                        navigate(`/student/test/${test.id}?attemptId=${latestAttempt.id}&mode=MAIN`);
                     } else {
                         startTest(test.id);
                     }

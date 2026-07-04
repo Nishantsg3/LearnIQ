@@ -98,6 +98,8 @@ export const AuthProvider = ({ children }) => {
     authUtils.setSession(userData.token, {
       name: userData.name,
       role: userData.role,
+      email: userData.email,
+      id: userData.id,
       avatar: userData.avatar || null
     });
 

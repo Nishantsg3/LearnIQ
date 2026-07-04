@@ -287,22 +287,36 @@ const StudentTest = () => {
       const res = await api.post(`/questions/test/${id}/submit`, { answers: answersRef.current });
       setResult(res.data);
       toast.success('Assessment submitted!');
-
-      // Auto-submit: redirect to results page after brief delay
-      if (isAuto) {
-        setTimeout(() => {
-          navigate(`/results/${res.data.id}`);
-        }, 2500);
-      }
     } catch (err) {
       const msg = err.response?.data?.message || 'Submission failed. Try again.';
-      // If already submitted, treat as success — redirect to dashboard
+      // If already submitted, treat as success — try to show summary screen
       if (msg.toLowerCase().includes('already submitted')) {
          toast.success('Assessment was already submitted.');
+         try {
+           const attemptRes = await api.get(`/attempts/me`);
+           const myAttempt = attemptRes.data.find(a => a.testId === parseInt(id));
+           if (myAttempt && myAttempt.status === 'SUBMITTED') {
+             setResult(myAttempt);
+             return;
+           }
+         } catch (e) {
+           console.error("Failed to fetch details", e);
+         }
          setTimeout(() => navigate('/student/dashboard'), 1500);
       } else {
          if (isAuto) {
             toast.success('Assessment session closed. Syncing results...');
+            try {
+              await new Promise(r => setTimeout(r, 1500));
+              const attemptRes = await api.get(`/attempts/me`);
+              const myAttempt = attemptRes.data.find(a => a.testId === parseInt(id));
+              if (myAttempt && myAttempt.status === 'SUBMITTED') {
+                setResult(myAttempt);
+                return;
+              }
+            } catch (e) {
+              console.error("Failed to fetch details", e);
+            }
             setTimeout(() => navigate('/student/dashboard'), 2500);
          } else {
             toast.error(msg);
