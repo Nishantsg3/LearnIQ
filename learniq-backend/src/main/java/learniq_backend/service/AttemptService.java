@@ -490,7 +490,6 @@ public class AttemptService {
         return res;
     }
 
-    // =========================================================
     @Transactional
     public TestAttempt saveProgress(Long attemptId, Map<String, String> answers) {
 
@@ -502,29 +501,31 @@ public class AttemptService {
             return attempt;
         }
 
-        if (answers != null) {
+        if (answers != null && !answers.isEmpty()) {
+            List<AttemptAnswer> existingAnswers = attemptAnswerRepository.findByAttemptId(attemptId);
             for (Map.Entry<String, String> entry : answers.entrySet()) {
 
                 Long qId = Long.valueOf(entry.getKey());
                 String selected = entry.getValue();
 
-                AttemptAnswer existing = attempt.getAnswers().stream()
+                AttemptAnswer existing = existingAnswers.stream()
                         .filter(a -> a.getQuestionId().equals(qId))
                         .findFirst()
                         .orElse(null);
 
                 if (existing != null) {
                     existing.setSelectedOption(selected);
+                    attemptAnswerRepository.save(existing);
                 } else {
                     AttemptAnswer ans = new AttemptAnswer();
                     ans.setQuestionId(qId);
                     ans.setSelectedOption(selected);
                     ans.setAttempt(attempt);
-                    attempt.getAnswers().add(ans);
+                    attemptAnswerRepository.save(ans);
                 }
             }
         }
 
-        return testAttemptRepository.save(attempt);
+        return attempt;
     }
 }

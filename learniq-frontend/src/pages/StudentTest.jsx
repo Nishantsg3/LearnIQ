@@ -228,11 +228,11 @@ const StudentTest = () => {
 
   /* ── 🔄 TIMER SYNC (Poll server every 30s to prevent drift) ── */
   useEffect(() => {
-    if (result || timeLeft === null || timeLeft <= 5) return;
+    if (result || timeLeft === null || timeLeft <= 5 || submitting || isSubmittingRef.current) return;
 
     const syncInterval = setInterval(async () => {
       try {
-        const res = await api.get(`/questions/test/${id}/time?attemptId=${new URLSearchParams(window.location.search).get('attemptId')}`);
+        const res = await api.get(`/questions/test/${id}/time?attemptId=${searchParams.get('attemptId')}`);
         const serverTime = parseInt(res.data.remainingTime);
         if (!isNaN(serverTime)) {
           setTimeLeft(serverTime);
@@ -240,18 +240,21 @@ const StudentTest = () => {
         }
       } catch (e) {
         if (e.response?.status === 400 || e.response?.status === 404) {
-          console.warn("[SYNC] Session inactive or already submitted. Redirecting...");
-          navigate('/student-dashboard');
+          if (!result && !submitting && !isSubmittingRef.current) {
+            console.warn("[SYNC] Session inactive or already submitted. Redirecting...");
+            navigate('/student-dashboard');
+          }
         }
       }
     }, 30000);
 
     return () => clearInterval(syncInterval);
-  }, [id, result, timeLeft === null, autoSubmitted]);
+  }, [id, result, timeLeft === null, autoSubmitted, submitting]);
 
   /* ── submit ── */
   const handleAutoSubmit = async (reason = 'time') => {
     if (isSubmittingRef.current || autoSubmitted || result) return;
+    isSubmittingRef.current = true;
     setSubmitting(true);
     setAutoSubmitted(true);
     
@@ -274,14 +277,15 @@ const StudentTest = () => {
 
   const submitTest = async (isAuto = false) => {
     // Block manual submit if auto-submit already fired or result exists
-    if (result || autoSubmitted) return;
-    if (isSubmittingRef.current) return;
+    if (result) return;
+    if (!isAuto && autoSubmitted) return;
     isSubmittingRef.current = true;
     setSubmitting(true);
     setShowConfirm(false);
 
     // Hard UI Lock: ensure no background tasks keep running
     if (timerRef.current) clearInterval(timerRef.current);
+
     
     try {
       const res = await api.post(`/questions/test/${id}/submit`, { answers: answersRef.current });
@@ -302,7 +306,6 @@ const StudentTest = () => {
          } catch (e) {
            console.error("Failed to fetch details", e);
          }
-         setTimeout(() => navigate('/student/dashboard'), 1500);
       } else {
          if (isAuto) {
             toast.success('Assessment session closed. Syncing results...');
@@ -317,7 +320,6 @@ const StudentTest = () => {
             } catch (e) {
               console.error("Failed to fetch details", e);
             }
-            setTimeout(() => navigate('/student/dashboard'), 2500);
          } else {
             toast.error(msg);
             isSubmittingRef.current = false;
@@ -389,12 +391,24 @@ const StudentTest = () => {
   };
 
   /* ═══════════════ LOADING ══════════════════════════════════════════ */
-  if (loading) return (
-    <div className="h-screen bg-[#0e0e1a] flex flex-col items-center justify-center gap-4">
-      <div className="w-10 h-10 border-4 border-red-600/30 border-t-red-500 rounded-full animate-spin"/>
-      <p className="text-rose-400 text-xs font-bold uppercase tracking-widest animate-pulse">Loading Assessment...</p>
-    </div>
-  );
+  if (loading) {
+    const modeParam = searchParams.get('mode') || 'PRACTICE';
+    const isMainMode = modeParam.toUpperCase() === 'MAIN';
+    const spinnerClass = isMainMode 
+      ? "w-10 h-10 border-4 border-red-600/30 border-t-red-500 rounded-full animate-spin"
+      : "w-10 h-10 border-4 border-emerald-600/30 border-t-emerald-500 rounded-full animate-spin";
+    const textClass = isMainMode
+      ? "text-rose-400 text-xs font-bold uppercase tracking-widest animate-pulse"
+      : "text-emerald-400 text-xs font-bold uppercase tracking-widest animate-pulse";
+
+    return (
+      <div className="h-screen bg-[#0e0e1a] flex flex-col items-center justify-center gap-4">
+        <div className={spinnerClass}/>
+        <p className={textClass}>Loading Assessment...</p>
+      </div>
+    );
+  }
+
 
   /* ═══════════════ RESULT ═══════════════════════════════════════════ */
   if (result) return (

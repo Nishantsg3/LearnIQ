@@ -12,6 +12,7 @@ import {
   Activity
 } from 'lucide-react';
 import api from '../utils/api';
+import { storage } from '../utils/storage';
 import ConfirmModal from '../components/ConfirmModal';
 
 const attemptRequestCache = new Map();
@@ -50,7 +51,7 @@ const TestAttempt = () => {
     setAnswers(newAnswers);
     // Persist answers
     if (testId) {
-      localStorage.setItem(`test_answers_${testId}`, JSON.stringify(newAnswers));
+      storage.setItem(`test_answers_${testId}`, JSON.stringify(newAnswers));
     }
   };
 
@@ -64,7 +65,7 @@ const TestAttempt = () => {
       // If already submitted, redirect to results
       if (data.status === 'SUBMITTED') {
         toast('This assessment is already completed.', { icon: 'ℹ️' });
-        localStorage.removeItem(`test_answers_${data.testId}`);
+        storage.removeItem(`test_answers_${data.testId}`);
         navigate(`/results/${attemptId}`);
         return;
       }
@@ -80,7 +81,7 @@ const TestAttempt = () => {
       setTestId(data.testId);
 
       // Restore answers
-      const saved = localStorage.getItem(`test_answers_${data.testId}`);
+      const saved = storage.getItem(`test_answers_${data.testId}`);
       if (saved) {
         const parsed = JSON.parse(saved);
         answersRef.current = parsed;
@@ -118,7 +119,7 @@ const TestAttempt = () => {
             api.post(`/attempts/${attemptId}/submit`, answersRef.current)
               .then(res => {
                 toast.success('Time up — assessment auto-submitted');
-                localStorage.removeItem(`test_answers_${testId}`);
+                storage.removeItem(`test_answers_${testId}`);
                 navigate(`/results/${res.data.id}`);
               })
               .catch(() => {
@@ -149,7 +150,7 @@ const TestAttempt = () => {
     try {
       // SUBMIT
       const res = await api.post(`/attempts/${attemptId}/submit`, answersRef.current);
-      localStorage.removeItem(`test_answers_${testId}`);
+      storage.removeItem(`test_answers_${testId}`);
       toast.success('Assessment completed');
       navigate(`/results/${res.data.id}`); 
     } catch (err) {

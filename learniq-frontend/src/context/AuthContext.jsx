@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import api from '../utils/api';
 import * as authUtils from '../utils/auth';
+import { storage } from '../utils/storage';
 
 const AuthContext = createContext(null);
 
@@ -29,7 +30,7 @@ export const AuthProvider = ({ children }) => {
     setUser(prev => {
       const updatedUser = { ...prev, ...newData };
       const roleKey = activeRole === 'ADMIN' ? 'adminUser' : 'studentUser';
-      localStorage.setItem(roleKey, JSON.stringify(updatedUser));
+      storage.setItem(roleKey, JSON.stringify(updatedUser));
       return updatedUser;
     });
   }, []);
