@@ -1,29 +1,30 @@
 import api from './api';
+import { storage } from './storage';
 
 export const setSession = (token, user) => {
   const role = user.role;
   if (role === 'ADMIN') {
-    localStorage.setItem('adminToken', token);
-    localStorage.setItem('adminUser', JSON.stringify(user));
+    storage.setItem('adminToken', token);
+    storage.setItem('adminUser', JSON.stringify(user));
   } else {
-    localStorage.setItem('studentToken', token);
-    localStorage.setItem('studentUser', JSON.stringify(user));
+    storage.setItem('studentToken', token);
+    storage.setItem('studentUser', JSON.stringify(user));
   }
 };
 
 export const getToken = (role) => {
-  if (role === 'ADMIN') return localStorage.getItem('adminToken');
-  if (role === 'STUDENT') return localStorage.getItem('studentToken');
+  if (role === 'ADMIN') return storage.getItem('adminToken');
+  if (role === 'STUDENT') return storage.getItem('studentToken');
   
   // Fallback / Auto-detect for existing code
-  const adminToken = localStorage.getItem('adminToken');
-  const studentToken = localStorage.getItem('studentToken');
+  const adminToken = storage.getItem('adminToken');
+  const studentToken = storage.getItem('studentToken');
   
   // If we are on an admin route, prioritize adminToken
   if (window.location.pathname.startsWith('/admin')) {
-    return adminToken || localStorage.getItem('token');
+    return adminToken || storage.getItem('token');
   }
-  return studentToken || localStorage.getItem('token');
+  return studentToken || storage.getItem('token');
 };
 
 export const getUser = (role) => {
@@ -31,17 +32,17 @@ export const getUser = (role) => {
   if (!token) return null;
   
   let storedUser;
-  if (role === 'ADMIN') storedUser = localStorage.getItem('adminUser');
-  else if (role === 'STUDENT') storedUser = localStorage.getItem('studentUser');
+  if (role === 'ADMIN') storedUser = storage.getItem('adminUser');
+  else if (role === 'STUDENT') storedUser = storage.getItem('studentUser');
   else {
     // Auto-detect
     if (window.location.pathname.startsWith('/admin')) {
-      storedUser = localStorage.getItem('adminUser');
+      storedUser = storage.getItem('adminUser');
     } else {
-      storedUser = localStorage.getItem('studentUser');
+      storedUser = storage.getItem('studentUser');
     }
     // Final fallback to legacy key
-    if (!storedUser) storedUser = localStorage.getItem('user');
+    if (!storedUser) storedUser = storage.getItem('user');
   }
 
   if (!storedUser) return null;
@@ -57,14 +58,14 @@ export const getUserName = (role) => getUser(role)?.name || null;
 
 export const logout = (role) => {
   if (role === 'ADMIN') {
-    localStorage.removeItem('adminToken');
-    localStorage.removeItem('adminUser');
+    storage.removeItem('adminToken');
+    storage.removeItem('adminUser');
     window.location.href = '/admin-access';
   } else {
-    localStorage.removeItem('studentToken');
-    localStorage.removeItem('studentUser');
-    localStorage.removeItem('token'); // Cleanup legacy
-    localStorage.removeItem('user'); // Cleanup legacy
+    storage.removeItem('studentToken');
+    storage.removeItem('studentUser');
+    storage.removeItem('token'); // Cleanup legacy
+    storage.removeItem('user'); // Cleanup legacy
     window.location.href = '/login';
   }
 };

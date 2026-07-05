@@ -80,6 +80,16 @@ const AdminTestHistory = () => {
     });
   }, [archivedTests, filterType, searchQuery]);
 
+  const sortedTests = useMemo(() => {
+    return [...filteredTests].sort((a, b) => {
+      const timeA = new Date(a.createdAt || a.startTime || 0).getTime();
+      const timeB = new Date(b.createdAt || b.startTime || 0).getTime();
+      if (timeB !== timeA) return timeB - timeA;
+      return b.id - a.id;
+    });
+  }, [filteredTests]);
+
+
   const handleRestoreClick = (id) => {
     setConfirmConfig({
       isOpen: true,
@@ -171,7 +181,7 @@ const AdminTestHistory = () => {
         </div>
       </div>
 
-      {filteredTests.length > 0 ? (
+      {sortedTests.length > 0 ? (
         <div className="bg-[#0a0a0f] border border-white/5 rounded-2xl overflow-hidden shadow-2xl">
             <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
@@ -184,7 +194,7 @@ const AdminTestHistory = () => {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
-                        {filteredTests.map(test => (
+                        {sortedTests.map(test => (
                             <tr key={test.id} className="hover:bg-white/[0.01] transition-colors group">
                                 <td className="px-6 py-5">
                                     <div className="flex items-center gap-3">

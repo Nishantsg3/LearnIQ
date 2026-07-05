@@ -300,25 +300,27 @@ public class QuestionController {
             User user = userRepository.findByEmail(userEmail)
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
-            // 🔥 IDEMPOTENCY GATE: If user already has a SUBMITTED attempt for this test,
-            // return the existing result. Prevents duplicate submissions/emails/leaderboard entries.
-            Optional<TestAttempt> alreadySubmitted = testAttemptRepository.findFirstByUserIdAndTestIdAndStatus(
-                    user.getId(), testId, TestAttempt.Status.SUBMITTED);
-            if (alreadySubmitted.isPresent()) {
-                System.out.println("[IDEMPOTENCY] User " + userEmail + " already submitted test " + testId + ". Returning existing result.");
-                TestAttempt existing = alreadySubmitted.get();
-                List<AnalysisItem> analysis = existing.getAnswers().stream()
-                        .map(ans -> {
-                            Question q = questionRepository.findById(ans.getQuestionId()).orElse(null);
-                            return new AnalysisItem(ans.getQuestionId(), q != null ? q.getQuestionText() : "Unknown",
-                                    ans.getSelectedOption(), q != null ? q.getCorrectAnswer() : "Unknown", ans.isCorrect());
-                        }).toList();
-                return ResponseEntity.ok(new SubmissionResult(
-                        existing.getId(),
-                        testId, existing.getTest().getTitle(), existing.getTotalQuestions(),
-                        existing.getCorrectCount(), existing.getWrongCount(), existing.getScorePercent(),
-                        existing.getSubmittedAt(), analysis));
+            learniq_backend.model.Test test = testRepository.findById(testId).orElse(null);
+            if (test != null && "MAIN".equalsIgnoreCase(test.getTestType())) {
+                Optional<TestAttempt> alreadySubmitted = testAttemptRepository.findFirstByUserIdAndTestIdAndStatus(
+                        user.getId(), testId, TestAttempt.Status.SUBMITTED);
+                if (alreadySubmitted.isPresent()) {
+                    System.out.println("[IDEMPOTENCY] User " + userEmail + " already submitted MAIN test " + testId + ". Returning existing result.");
+                    TestAttempt existing = alreadySubmitted.get();
+                    List<AnalysisItem> analysis = existing.getAnswers().stream()
+                            .map(ans -> {
+                                Question q = questionRepository.findById(ans.getQuestionId()).orElse(null);
+                                return new AnalysisItem(ans.getQuestionId(), q != null ? q.getQuestionText() : "Unknown",
+                                        ans.getSelectedOption(), q != null ? q.getCorrectAnswer() : "Unknown", ans.isCorrect());
+                            }).toList();
+                    return ResponseEntity.ok(new SubmissionResult(
+                            existing.getId(),
+                            testId, existing.getTest().getTitle(), existing.getTotalQuestions(),
+                            existing.getCorrectCount(), existing.getWrongCount(), existing.getScorePercent(),
+                            existing.getSubmittedAt(), analysis));
+                }
             }
+
                     
             TestAttempt attempt = testAttemptRepository.findFirstByUserIdAndTestIdAndStatus(
                     user.getId(), testId, TestAttempt.Status.IN_PROGRESS)

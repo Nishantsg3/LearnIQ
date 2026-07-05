@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { storage } from './storage';
 
 // Centralized Environment-Aware API Configuration
 const IS_DEV = import.meta.env.MODE === 'development';
@@ -15,9 +16,9 @@ const api = axios.create({
 
 // Attach JWT token automatically
 api.interceptors.request.use((config) => {
-  const adminToken = localStorage.getItem('adminToken');
-  const studentToken = localStorage.getItem('studentToken');
-  const legacyToken = localStorage.getItem('token');
+  const adminToken = storage.getItem('adminToken');
+  const studentToken = storage.getItem('studentToken');
+  const legacyToken = storage.getItem('token');
   
   const isViewingAdminPortal = window.location.pathname.startsWith('/admin');
   let token;

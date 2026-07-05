@@ -162,6 +162,7 @@ function AppContent() {
 function App() {
   const [healthStatus, setHealthStatus] = useState('CHECKING'); // 'CHECKING' | 'AWAKE' | 'TIMEOUT'
   const [retryCount, setRetryCount] = useState(0);
+  const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
     let timer;
@@ -185,11 +186,13 @@ function App() {
     };
 
     setHealthStatus('CHECKING');
+    setElapsed(0);
     checkHealth();
 
     timer = setInterval(() => {
       secondsElapsed += 5;
-      if (secondsElapsed >= 90) {
+      setElapsed(secondsElapsed);
+      if (secondsElapsed >= 150) {
         setHealthStatus('TIMEOUT');
         clearInterval(timer);
       } else {
@@ -201,6 +204,22 @@ function App() {
   }, [retryCount]);
 
   if (healthStatus !== 'AWAKE') {
+    let wakeTitle = "Starting LearnIQ...";
+    let wakeDesc = "The server is waking up.";
+    if (elapsed >= 90) {
+      wakeTitle = "Almost ready...";
+      wakeDesc = "Finalizing startup checks. Thank you for your patience.";
+    } else if (elapsed >= 60) {
+      wakeTitle = "Still waking...";
+      wakeDesc = "Almost there. Initializing core engines...";
+    } else if (elapsed >= 30) {
+      wakeTitle = "Backend is waking up...";
+      wakeDesc = "Establishing database handshake...";
+    } else if (elapsed >= 10) {
+      wakeTitle = "Checking server...";
+      wakeDesc = "Connecting to cloud instance...";
+    }
+
     return (
       <div className="fixed inset-0 w-screen h-screen bg-[#0a0a12] flex items-center justify-center p-4 z-[9999]">
         {/* Background Radial Glow */}
@@ -214,9 +233,11 @@ function App() {
             {healthStatus === 'CHECKING' ? (
               <>
                 <div className="w-16 h-16 border-4 border-violet-600/30 border-t-violet-500 rounded-full animate-spin mx-auto mb-6" />
-                <h3 className="text-xl font-black text-white uppercase tracking-tight mb-2">Starting LearnIQ services...</h3>
-                <p className="text-gray-400 text-xs font-semibold leading-relaxed mb-1">The server is waking up.</p>
-                <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest leading-relaxed">This usually takes less than a minute. Please wait...</p>
+                <h3 className="text-xl font-black text-white uppercase tracking-tight mb-2">{wakeTitle}</h3>
+                <p className="text-gray-400 text-xs font-semibold leading-relaxed mb-1">{wakeDesc}</p>
+                <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest leading-relaxed">
+                  This usually takes less than a minute. Please wait... ({elapsed}s)
+                </p>
               </>
             ) : (
               <>
@@ -238,6 +259,7 @@ function App() {
           </div>
         </div>
       </div>
+
     );
   }
 
