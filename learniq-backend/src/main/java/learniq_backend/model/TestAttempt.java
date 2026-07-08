@@ -61,6 +61,24 @@ public class TestAttempt {
     @Column
     private Integer remainingSeconds;
 
+    /**
+     * Comma-separated list of Question IDs in the order they were presented to the student.
+     * Populated once when the attempt is first started and never changed.
+     * Used to restore a deterministic question order on every resume/refresh.
+     * Example: "42,17,88,3,61,..."
+     */
+    @Column(columnDefinition = "TEXT")
+    private String questionOrder;
+
+    /**
+     * Denormalized copy of Test.testType ("MAIN" or "PRACTICE").
+     * Populated on attempt creation so the DTO always has a type even if the
+     * Test entity is unavailable (orphaned FK, lazy-load failure, etc.).
+     * This prevents the frontend from silently filtering-out completed attempts.
+     */
+    @Column
+    private String testType;
+
     @Column
     private LocalDateTime submittedAt;
 
@@ -112,6 +130,12 @@ public class TestAttempt {
     public void setSubmittedAt(LocalDateTime submittedAt) { this.submittedAt = submittedAt; }
     public List<AttemptAnswer> getAnswers() { return answers; }
     public void setAnswers(List<AttemptAnswer> answers) { this.answers = answers; }
+    public String getQuestionOrder() { return questionOrder; }
+    public void setQuestionOrder(String questionOrder) { this.questionOrder = questionOrder; }
+    public Integer getRemainingSeconds() { return remainingSeconds; }
+    public void setRemainingSeconds(Integer remainingSeconds) { this.remainingSeconds = remainingSeconds; }
+    public String getTestType() { return testType; }
+    public void setTestType(String testType) { this.testType = testType; }
 
     public enum Status {
         IN_PROGRESS, SUBMITTED, MISSED, ABANDONED

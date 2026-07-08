@@ -133,6 +133,8 @@ public class AttemptService {
         attempt.setScorePercent(-1);
         attempt.setTotalQuestions(questions.size());
         attempt.setAnswers(new ArrayList<>());
+        // Denormalise testType so history is always visible even if the Test FK is stale
+        attempt.setTestType(test.getTestType());
 
         return testAttemptRepository.save(attempt);
     }
@@ -431,7 +433,11 @@ public class AttemptService {
             res.setTestId(attempt.getTest().getId());
             res.setTestTitle(attempt.getTest().getTitle());
             res.setCategory(attempt.getTest().getCategory());
+            // Use live value from Test entity
             res.setTestType(attempt.getTest().getTestType());
+        } else {
+            // Fallback to denormalized copy stored on the attempt itself
+            res.setTestType(attempt.getTestType());
         }
         res.setUserId(attempt.getUser() != null ? attempt.getUser().getId() : null);
         res.setScorePercent(attempt.getScorePercent());
