@@ -161,49 +161,84 @@ function AppContent() {
 
 function App() {
   const [healthStatus, setHealthStatus] = useState('CHECKING'); // 'CHECKING' | 'AWAKE' | 'TIMEOUT'
+  const [timeLeft, setTimeLeft] = useState(150);
   const [retryCount, setRetryCount] = useState(0);
-  const [elapsed, setElapsed] = useState(0);
 
+  // Handle global backend sleep/awake/timeout events from Axios interceptors
   useEffect(() => {
-    let timer;
-    let secondsElapsed = 0;
+    const handleSleep = () => {
+      setHealthStatus('CHECKING');
+      setTimeLeft(150);
+    };
+    const handleAwake = () => {
+      setHealthStatus('AWAKE');
+    };
+    window.addEventListener('backend-sleep', handleSleep);
+    window.addEventListener('backend-awake', handleAwake);
+    return () => {
+      window.removeEventListener('backend-sleep', handleSleep);
+      window.removeEventListener('backend-awake', handleAwake);
+    };
+  }, []);
+
+  // Health check & countdown timer loop
+  useEffect(() => {
+    if (healthStatus !== 'CHECKING') return;
+
+    let countdownInterval;
+    let healthCheckInterval;
+
+    const IS_DEV = import.meta.env.MODE === 'development';
+    const PROD_URL = import.meta.env.VITE_API_URL || 'https://learniq-backend-vglf.onrender.com/api/v1';
+    const LOCAL_URL = 'http://localhost:8080/api/v1';
+    const baseUrl = IS_DEV ? LOCAL_URL : PROD_URL;
 
     const checkHealth = async () => {
       try {
-        const IS_DEV = import.meta.env.MODE === 'development';
-        const PROD_URL = import.meta.env.VITE_API_URL || 'https://learniq-backend-vglf.onrender.com/api/v1';
-        const LOCAL_URL = 'http://localhost:8080/api/v1';
-        const baseUrl = IS_DEV ? LOCAL_URL : PROD_URL;
-
         const response = await fetch(`${baseUrl}/health`);
         if (response.ok) {
           setHealthStatus('AWAKE');
-          clearInterval(timer);
+          window.dispatchEvent(new CustomEvent('backend-awake'));
         }
       } catch (err) {
         console.log("Backend server is starting up...");
       }
     };
 
-    setHealthStatus('CHECKING');
-    setElapsed(0);
+    // Run initial health check immediately
     checkHealth();
 
-    timer = setInterval(() => {
-      secondsElapsed += 5;
-      setElapsed(secondsElapsed);
-      if (secondsElapsed >= 150) {
-        setHealthStatus('TIMEOUT');
-        clearInterval(timer);
-      } else {
-        checkHealth();
-      }
-    }, 5000);
+    // Start 1-second countdown timer
+    countdownInterval = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(countdownInterval);
+          clearInterval(healthCheckInterval);
+          setHealthStatus('TIMEOUT');
+          window.dispatchEvent(new CustomEvent('backend-timeout'));
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
 
-    return () => clearInterval(timer);
-  }, [retryCount]);
+    // Start 5-second health check ping
+    healthCheckInterval = setInterval(checkHealth, 5000);
+
+    return () => {
+      clearInterval(countdownInterval);
+      clearInterval(healthCheckInterval);
+    };
+  }, [healthStatus, retryCount]);
+
+  const handleRetry = () => {
+    setTimeLeft(150);
+    setHealthStatus('CHECKING');
+    setRetryCount((prev) => prev + 1);
+  };
 
   if (healthStatus !== 'AWAKE') {
+    const elapsed = 150 - timeLeft;
     let wakeTitle = "Starting LearnIQ...";
     let wakeDesc = "The server is waking up.";
     if (elapsed >= 90) {
@@ -219,6 +254,10 @@ function App() {
       wakeTitle = "Checking server...";
       wakeDesc = "Connecting to cloud instance...";
     }
+
+    const minutes = Math.floor(timeLeft / 60);
+    const seconds = timeLeft % 60;
+    const formattedTime = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
 
     return (
       <div className="fixed inset-0 w-screen h-screen bg-[#0a0a12] flex items-center justify-center p-4 z-[9999]">
@@ -236,7 +275,7 @@ function App() {
                 <h3 className="text-xl font-black text-white uppercase tracking-tight mb-2">{wakeTitle}</h3>
                 <p className="text-gray-400 text-xs font-semibold leading-relaxed mb-1">{wakeDesc}</p>
                 <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest leading-relaxed">
-                  This usually takes less than a minute. Please wait... ({elapsed}s)
+                  Time remaining: {formattedTime}
                 </p>
               </>
             ) : (
@@ -249,7 +288,7 @@ function App() {
                 <h3 className="text-xl font-black text-white uppercase tracking-tight mb-2">Server Timeout</h3>
                 <p className="text-gray-400 text-xs font-semibold leading-relaxed mb-6">The server is taking longer than expected.<br />Please try again shortly.</p>
                 <button
-                  onClick={() => setRetryCount(prev => prev + 1)}
+                  onClick={handleRetry}
                   className="w-full py-3.5 bg-violet-600 hover:bg-violet-500 text-white rounded-xl font-black uppercase text-[11px] tracking-[0.2em] transition-all shadow-lg shadow-violet-600/20"
                 >
                   Retry Connection
@@ -259,7 +298,6 @@ function App() {
           </div>
         </div>
       </div>
-
     );
   }
 

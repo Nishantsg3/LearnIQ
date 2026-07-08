@@ -40,12 +40,90 @@ api.interceptors.request.use((config) => {
   return Promise.reject(error);
 });
 
-// Response Interceptor for Error Handling
+let isWakingUp = false;
+let failedQueue = [];
+
+const processQueue = (error) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve();
+    }
+  });
+  failedQueue = [];
+};
+
+// Response Interceptor for Error Handling and Backend Wake-up Recovery
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    // Silently handle common errors to prevent UI flickering
-    // Logging only critical failures in production
+  async (error) => {
+    const originalRequest = error.config;
+    
+    // Check if error is due to backend sleep/timeout/network connection failure
+    const isNetworkError = !error.response;
+    const isTimeout = error.code === 'ECONNABORTED';
+    const isSleepStatus = error.response && [502, 503, 504].includes(error.response.status);
+    
+    // Do not intercept health check requests to avoid infinite recursion
+    const isHealthCheck = originalRequest.url && originalRequest.url.includes('/health');
+    
+    if ((isNetworkError || isTimeout || isSleepStatus) && !isHealthCheck && !originalRequest._retry) {
+      originalRequest._retry = true;
+      
+      if (!isWakingUp) {
+        isWakingUp = true;
+        
+        // Dispatch global custom event to show wake-up overlay
+        window.dispatchEvent(new CustomEvent('backend-sleep'));
+        
+        // Start checking health in background
+        const checkInterval = setInterval(async () => {
+          try {
+            // Use standard axios to avoid interceptor recursion
+            const response = await axios.get(`${api.defaults.baseURL}/health`, { timeout: 3000 });
+            if (response.status === 200) {
+              clearInterval(checkInterval);
+              isWakingUp = false;
+              window.dispatchEvent(new CustomEvent('backend-awake'));
+              processQueue(null);
+            }
+          } catch (e) {
+            // Still sleeping/waking up
+          }
+        }, 5000);
+        
+        // Listen for timeout/failure to wake up
+        const handleTimeout = () => {
+          clearInterval(checkInterval);
+          isWakingUp = false;
+          window.removeEventListener('backend-timeout', handleTimeout);
+          window.removeEventListener('backend-awake', handleAwake);
+          processQueue(new Error('Backend connection timed out.'));
+        };
+        const handleAwake = () => {
+          clearInterval(checkInterval);
+          isWakingUp = false;
+          window.removeEventListener('backend-timeout', handleTimeout);
+          window.removeEventListener('backend-awake', handleAwake);
+        };
+        window.addEventListener('backend-timeout', handleTimeout);
+        window.addEventListener('backend-awake', handleAwake);
+      }
+      
+      // Queue this request and return a new promise that resolves when wake-up is complete
+      return new Promise((resolve, reject) => {
+        failedQueue.push({
+          resolve: () => {
+            resolve(api(originalRequest));
+          },
+          reject: (err) => {
+            reject(err);
+          }
+        });
+      });
+    }
+
     if (import.meta.env.MODE === 'development') {
       console.error('[API] Error:', error.response?.data?.message || error.message);
     }
