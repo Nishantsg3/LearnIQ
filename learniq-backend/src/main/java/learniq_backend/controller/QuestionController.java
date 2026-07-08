@@ -246,7 +246,50 @@ public class QuestionController {
             }
         });
 
-        List<QuestionAttemptView> items = finalQuestions.stream()
+        TestAttempt attempt = attemptOpt.get();
+
+        // ─── DETERMINISTIC QUESTION ORDER ─────────────────────────────────────────
+        // Each attempt stores a fixed question order (CSV of IDs) on first access.
+        // All subsequent loads (resume, refresh, backend wake-up) restore that same order.
+        // This completely eliminates question reshuffling.
+        // ──────────────────────────────────────────────────────────────────────────
+        List<Question> orderedQuestions;
+        if (attempt.getQuestionOrder() != null && !attempt.getQuestionOrder().isBlank()) {
+            // Restore the stored order: map from CSV IDs back to Question objects
+            Map<Long, Question> byId = new HashMap<>();
+            for (Question q : finalQuestions) {
+                byId.put(q.getId(), q);
+            }
+            orderedQuestions = new ArrayList<>();
+            for (String idStr : attempt.getQuestionOrder().split(",")) {
+                try {
+                    Long qid = Long.parseLong(idStr.trim());
+                    Question q = byId.get(qid);
+                    if (q != null) orderedQuestions.add(q);
+                } catch (NumberFormatException ignored) {}
+            }
+            // Safety: if any questions were added after the order was stored, append them
+            Set<Long> orderedIds = new HashSet<>();
+            for (Question q : orderedQuestions) orderedIds.add(q.getId());
+            for (Question q : finalQuestions) {
+                if (!orderedIds.contains(q.getId())) orderedQuestions.add(q);
+            }
+            System.out.println("[ORDER] Restored stored question order for attempt " + attempt.getId());
+        } else {
+            // First access: shuffle and persist the order
+            orderedQuestions = new ArrayList<>(finalQuestions);
+            Collections.shuffle(orderedQuestions);
+            StringBuilder orderCsv = new StringBuilder();
+            for (int i = 0; i < orderedQuestions.size(); i++) {
+                if (i > 0) orderCsv.append(",");
+                orderCsv.append(orderedQuestions.get(i).getId());
+            }
+            attempt.setQuestionOrder(orderCsv.toString());
+            testAttemptRepository.save(attempt);
+            System.out.println("[ORDER] Stored new question order for attempt " + attempt.getId() + ": " + orderCsv);
+        }
+
+        List<QuestionAttemptView> items = orderedQuestions.stream()
                 .map(q -> new QuestionAttemptView(q.getId(), q.getQuestionText(),
                         q.getOptionA(), q.getOptionB(), q.getOptionC(), q.getOptionD()))
                 .toList();

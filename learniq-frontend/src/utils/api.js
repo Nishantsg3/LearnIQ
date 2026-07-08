@@ -63,12 +63,27 @@ api.interceptors.response.use(
     // Check if error is due to backend sleep/timeout/network connection failure
     const isNetworkError = !error.response;
     const isTimeout = error.code === 'ECONNABORTED';
-    const isSleepStatus = error.response && [502, 503, 504].includes(error.response.status);
+    // 500 is included: Render cold-start DB pool failures return 500 before 502/503
+    const isSleepStatus = error.response && [500, 502, 503, 504].includes(error.response.status);
     
     // Do not intercept health check requests to avoid infinite recursion
     const isHealthCheck = originalRequest.url && originalRequest.url.includes('/health');
     
-    if ((isNetworkError || isTimeout || isSleepStatus) && !isHealthCheck && !originalRequest._retry) {
+    const isSleepError = (isNetworkError || isTimeout || isSleepStatus) && !isHealthCheck;
+
+    // If wake-up is already in progress, queue ALL failing requests (regardless of status)
+    // so error toasts don't fire while the overlay is active.
+    if (isWakingUp && !isHealthCheck && !originalRequest._queued) {
+      originalRequest._queued = true;
+      return new Promise((resolve, reject) => {
+        failedQueue.push({
+          resolve: () => { resolve(api(originalRequest)); },
+          reject: (err) => { reject(err); }
+        });
+      });
+    }
+
+    if (isSleepError && !originalRequest._retry) {
       originalRequest._retry = true;
       
       if (!isWakingUp) {

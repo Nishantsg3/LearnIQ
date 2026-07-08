@@ -237,74 +237,81 @@ function App() {
     setRetryCount((prev) => prev + 1);
   };
 
-  if (healthStatus !== 'AWAKE') {
-    const elapsed = 150 - timeLeft;
-    let wakeTitle = "Starting LearnIQ...";
-    let wakeDesc = "The server is waking up.";
-    if (elapsed >= 90) {
-      wakeTitle = "Almost ready...";
-      wakeDesc = "Finalizing startup checks. Thank you for your patience.";
-    } else if (elapsed >= 60) {
-      wakeTitle = "Still waking...";
-      wakeDesc = "Almost there. Initializing core engines...";
-    } else if (elapsed >= 30) {
-      wakeTitle = "Backend is waking up...";
-      wakeDesc = "Establishing database handshake...";
-    } else if (elapsed >= 10) {
-      wakeTitle = "Checking server...";
-      wakeDesc = "Connecting to cloud instance...";
-    }
-
-    const minutes = Math.floor(timeLeft / 60);
-    const seconds = timeLeft % 60;
-    const formattedTime = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-
-    return (
-      <div className="fixed inset-0 w-screen h-screen bg-[#0a0a12] flex items-center justify-center p-4 z-[9999]">
-        {/* Background Radial Glow */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,#1a1a3a_0%,#0a0a12_70%)] opacity-50" />
-        
-        <div className="relative w-full max-w-md animate-in zoom-in duration-500 text-center">
-          <div className="relative bg-[#1a1a2e]/90 border border-white/10 backdrop-blur-3xl rounded-[32px] p-8 shadow-[0_50px_100px_rgba(0,0,0,0.8)] overflow-hidden">
-            {/* Top accent bar */}
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-violet-600 via-pink-500 to-violet-600 animate-pulse" />
-            
-            {healthStatus === 'CHECKING' ? (
-              <>
-                <div className="w-16 h-16 border-4 border-violet-600/30 border-t-violet-500 rounded-full animate-spin mx-auto mb-6" />
-                <h3 className="text-xl font-black text-white uppercase tracking-tight mb-2">{wakeTitle}</h3>
-                <p className="text-gray-400 text-xs font-semibold leading-relaxed mb-1">{wakeDesc}</p>
-                <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest leading-relaxed">
-                  Time remaining: {formattedTime}
-                </p>
-              </>
-            ) : (
-              <>
-                <div className="w-16 h-16 bg-rose-500/10 border border-rose-500/20 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce">
-                  <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-black text-white uppercase tracking-tight mb-2">Server Timeout</h3>
-                <p className="text-gray-400 text-xs font-semibold leading-relaxed mb-6">The server is taking longer than expected.<br />Please try again shortly.</p>
-                <button
-                  onClick={handleRetry}
-                  className="w-full py-3.5 bg-violet-600 hover:bg-violet-500 text-white rounded-xl font-black uppercase text-[11px] tracking-[0.2em] transition-all shadow-lg shadow-violet-600/20"
-                >
-                  Retry Connection
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-    );
+  const elapsed = 150 - timeLeft;
+  let wakeTitle = "Starting LearnIQ...";
+  let wakeDesc = "The server is waking up.";
+  if (elapsed >= 90) {
+    wakeTitle = "Almost ready...";
+    wakeDesc = "Finalizing startup checks. Thank you for your patience.";
+  } else if (elapsed >= 60) {
+    wakeTitle = "Still waking...";
+    wakeDesc = "Almost there. Initializing core engines...";
+  } else if (elapsed >= 30) {
+    wakeTitle = "Backend is waking up...";
+    wakeDesc = "Establishing database handshake...";
+  } else if (elapsed >= 10) {
+    wakeTitle = "Checking server...";
+    wakeDesc = "Connecting to cloud instance...";
   }
 
+  const minutes = Math.floor(timeLeft / 60);
+  const seconds = timeLeft % 60;
+  const formattedTime = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+
+  // ─── CRITICAL FIX ────────────────────────────────────────────────────────────
+  // The overlay is rendered ABOVE the AuthProvider/AppContent using CSS fixed
+  // positioning and z-index. The router and all page components remain mounted
+  // throughout the entire sleep/wake cycle. No remount, no state loss.
+  // ─────────────────────────────────────────────────────────────────────────────
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <>
+      {/* Application tree — always mounted, never replaced */}
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+
+      {/* Wake-up overlay — rendered on top via fixed positioning, not instead of app */}
+      {healthStatus !== 'AWAKE' && (
+        <div className="fixed inset-0 w-screen h-screen bg-[#0a0a12] flex items-center justify-center p-4 z-[9999]">
+          {/* Background Radial Glow */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,#1a1a3a_0%,#0a0a12_70%)] opacity-50" />
+          
+          <div className="relative w-full max-w-md animate-in zoom-in duration-500 text-center">
+            <div className="relative bg-[#1a1a2e]/90 border border-white/10 backdrop-blur-3xl rounded-[32px] p-8 shadow-[0_50px_100px_rgba(0,0,0,0.8)] overflow-hidden">
+              {/* Top accent bar */}
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-violet-600 via-pink-500 to-violet-600 animate-pulse" />
+              
+              {healthStatus === 'CHECKING' ? (
+                <>
+                  <div className="w-16 h-16 border-4 border-violet-600/30 border-t-violet-500 rounded-full animate-spin mx-auto mb-6" />
+                  <h3 className="text-xl font-black text-white uppercase tracking-tight mb-2">{wakeTitle}</h3>
+                  <p className="text-gray-400 text-xs font-semibold leading-relaxed mb-1">{wakeDesc}</p>
+                  <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest leading-relaxed">
+                    Time remaining: {formattedTime}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className="w-16 h-16 bg-rose-500/10 border border-rose-500/20 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce">
+                    <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-black text-white uppercase tracking-tight mb-2">Server Timeout</h3>
+                  <p className="text-gray-400 text-xs font-semibold leading-relaxed mb-6">The server is taking longer than expected.<br />Please try again shortly.</p>
+                  <button
+                    onClick={handleRetry}
+                    className="w-full py-3.5 bg-violet-600 hover:bg-violet-500 text-white rounded-xl font-black uppercase text-[11px] tracking-[0.2em] transition-all shadow-lg shadow-violet-600/20"
+                  >
+                    Retry Connection
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
