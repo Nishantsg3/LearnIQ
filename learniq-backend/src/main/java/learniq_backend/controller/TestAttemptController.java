@@ -84,6 +84,7 @@ public class TestAttemptController {
         }
 
         try {
+            System.out.println("[DIAGNOSTIC] Results fetch: attemptId=" + id + ", userEmail=" + authentication.getName() + ", timestamp=" + java.time.LocalDateTime.now());
             TestAttemptResponse response = attemptService.mapToResponse(
                     attemptService.getAttemptById(id)
             );

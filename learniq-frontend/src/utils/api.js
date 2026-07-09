@@ -99,9 +99,7 @@ api.interceptors.response.use(
             const response = await axios.get(`${api.defaults.baseURL}/health`, { timeout: 3000 });
             if (response.status === 200) {
               clearInterval(checkInterval);
-              isWakingUp = false;
               window.dispatchEvent(new CustomEvent('backend-awake'));
-              processQueue(null);
             }
           } catch (e) {
             // Still sleeping/waking up
@@ -121,11 +119,14 @@ api.interceptors.response.use(
           isWakingUp = false;
           window.removeEventListener('backend-timeout', handleTimeout);
           window.removeEventListener('backend-awake', handleAwake);
+          console.log(`[DIAGNOSTIC] Backend wake-up: timestamp=${new Date().toISOString()}`);
+          processQueue(null);
         };
         window.addEventListener('backend-timeout', handleTimeout);
         window.addEventListener('backend-awake', handleAwake);
       }
       
+      console.log(`[DIAGNOSTIC] Wake-up retry: url=${originalRequest.url}, timestamp=${new Date().toISOString()}`);
       // Queue this request and return a new promise that resolves when wake-up is complete
       return new Promise((resolve, reject) => {
         failedQueue.push({
