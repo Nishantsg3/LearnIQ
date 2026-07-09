@@ -77,9 +77,12 @@ public class AttemptService {
                 if (active.getRemainingSeconds() != null) {
                     active.setEndTime(LocalDateTime.now().plusSeconds(active.getRemainingSeconds()));
                     active.setRemainingSeconds(null); 
-                    return testAttemptRepository.save(active);
+                    TestAttempt savedAttempt = testAttemptRepository.save(active);
+                    System.out.println("[DIAGNOSTIC] Resume attempt: attemptId=" + savedAttempt.getId() + ", testId=" + testId + ", userEmail=" + userEmail + ", timestamp=" + java.time.LocalDateTime.now());
+                    return savedAttempt;
                 }
             }
+            System.out.println("[DIAGNOSTIC] Resume attempt: attemptId=" + active.getId() + ", testId=" + testId + ", userEmail=" + userEmail + ", timestamp=" + java.time.LocalDateTime.now());
             return active;
         }
 
@@ -136,7 +139,9 @@ public class AttemptService {
         // Denormalise testType so history is always visible even if the Test FK is stale
         attempt.setTestType(test.getTestType());
 
-        return testAttemptRepository.save(attempt);
+        TestAttempt createdAttempt = testAttemptRepository.save(attempt);
+        System.out.println("[DIAGNOSTIC] Attempt creation: attemptId=" + createdAttempt.getId() + ", testId=" + testId + ", userEmail=" + userEmail + ", timestamp=" + java.time.LocalDateTime.now());
+        return createdAttempt;
     }
 
     @Transactional
@@ -282,6 +287,10 @@ public class AttemptService {
 
         TestAttempt saved = testAttemptRepository.save(attempt);
 
+        boolean isAuto = (answers == null);
+        String eventName = isAuto ? "Auto submission" : "Attempt submission";
+        System.out.println("[DIAGNOSTIC] " + eventName + ": attemptId=" + saved.getId() + ", testId=" + (saved.getTest() != null ? saved.getTest().getId() : "null") + ", userEmail=" + saved.getUserEmail() + ", timestamp=" + java.time.LocalDateTime.now());
+
         // 🔥 AUTOMATIC RESULTS EMAIL (Only for MAIN tests)
         if ("MAIN".equalsIgnoreCase(attempt.getTest().getTestType())) {
             try {
@@ -350,6 +359,7 @@ public class AttemptService {
     // =========================================================
     @Transactional
     public List<TestAttemptResponse> getUserAttempts(String email) {
+        System.out.println("[DIAGNOSTIC] History fetch: userEmail=" + email + ", timestamp=" + java.time.LocalDateTime.now());
 
         // 🔥 CRITICAL: Cleanup expired attempts before returning data
         // This ensures the dashboard doesn't show "Resume" for tests that are already over.

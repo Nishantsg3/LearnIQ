@@ -198,6 +198,7 @@ function App() {
         const response = await fetch(`${baseUrl}/health`);
         if (response.ok) {
           setHealthStatus('AWAKE');
+          console.log(`[DIAGNOSTIC] Backend wake-up: source=App.jsx, timestamp=${new Date().toISOString()}`);
           window.dispatchEvent(new CustomEvent('backend-awake'));
         }
       } catch (err) {
@@ -232,6 +233,7 @@ function App() {
   }, [healthStatus, retryCount]);
 
   const handleRetry = () => {
+    console.log(`[DIAGNOSTIC] Wake-up retry: source=App.jsx, retryCount=${retryCount + 1}, timestamp=${new Date().toISOString()}`);
     setTimeLeft(150);
     setHealthStatus('CHECKING');
     setRetryCount((prev) => prev + 1);

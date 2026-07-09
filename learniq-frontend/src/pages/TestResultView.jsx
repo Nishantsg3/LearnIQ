@@ -61,6 +61,7 @@ const TestResultView = () => {
 
   useEffect(() => {
     const fetchAttempt = async () => {
+      console.log(`[DIAGNOSTIC] Results fetch: attemptId=${attemptId}, userEmail=${user?.email || 'anonymous'}, timestamp=${new Date().toISOString()}`);
       try {
         const res = await fetchAttemptOnce(attemptId);
         const attemptData = res.data;
@@ -88,7 +89,7 @@ const TestResultView = () => {
     };
 
     fetchAttempt();
-  }, [attemptId, navigate]);
+  }, [attemptId, navigate, user]);
 
   const handleExportPDF = () => {
     if (!reportRef.current) return;

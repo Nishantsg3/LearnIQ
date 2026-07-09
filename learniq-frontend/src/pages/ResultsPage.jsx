@@ -34,6 +34,7 @@ const ResultsPage = () => {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
+    console.log(`[DIAGNOSTIC] History fetch: userEmail=${user?.email || 'anonymous'}, timestamp=${new Date().toISOString()}`);
     try {
       const [attemptsRes] = await Promise.all([
         api.get('/attempts/me')
@@ -44,7 +45,7 @@ const ResultsPage = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     fetchData();
