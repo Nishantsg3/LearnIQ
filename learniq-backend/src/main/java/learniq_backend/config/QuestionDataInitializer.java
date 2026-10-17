@@ -22,8 +22,8 @@ public class QuestionDataInitializer implements CommandLineRunner {
     public void run(String... args) throws Exception {
         if (questionRepository.count() > 0) {
             // Self-healing: Check if the existing questions are broken (null text)
-            List<Question> sample = questionRepository.findAll();
-            if (!sample.isEmpty() && sample.get(0).getQuestionText() == null) {
+            java.util.Optional<Question> sample = questionRepository.findFirstByOrderByIdAsc();
+            if (sample.isPresent() && sample.get().getQuestionText() == null) {
                 System.out.println("Found broken questions with NULL text. Wiping existing rows before reseeding...");
                 questionRepository.deleteAll();
             } else {

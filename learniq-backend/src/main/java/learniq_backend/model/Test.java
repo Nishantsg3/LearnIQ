@@ -10,6 +10,11 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Entity
+@Table(name = "test", indexes = {
+    @Index(name = "idx_test_status", columnList = "status"),
+    @Index(name = "idx_test_test_type", columnList = "testType"),
+    @Index(name = "idx_test_type_status", columnList = "testType, status")
+})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -112,6 +117,9 @@ public class Test {
     public String getDifficultyLevel() { return difficultyLevel; }
     public void setDifficultyLevel(String difficultyLevel) { this.difficultyLevel = difficultyLevel; }
     public int getQuestionCount() { 
+        if (questionCount > 0) {
+            return questionCount;
+        }
         if (questions != null && !questions.isEmpty()) {
             return questions.size();
         }
@@ -120,6 +128,7 @@ public class Test {
     public void setQuestionCount(int questionCount) { this.questionCount = questionCount; }
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+    @com.fasterxml.jackson.annotation.JsonIgnore
     public List<Question> getQuestions() { return questions; }
     public void setQuestions(List<Question> questions) { this.questions = questions; }
     public List<TestAttempt> getAttempts() { return attempts; }
@@ -129,6 +138,7 @@ public class Test {
         return status != null && (status.equalsIgnoreCase("ACTIVE") || status.equalsIgnoreCase("LIVE"));
     }
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @ManyToMany
     @JoinTable(
         name = "test_questions",

@@ -85,10 +85,7 @@ public class TestAttemptController {
 
         try {
             System.out.println("[DIAGNOSTIC] Results fetch: attemptId=" + id + ", userEmail=" + authentication.getName() + ", timestamp=" + java.time.LocalDateTime.now());
-            TestAttemptResponse response = attemptService.mapToResponse(
-                    attemptService.getAttemptById(id)
-            );
-
+            TestAttemptResponse response = attemptService.getAttemptResponseById(id);
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
@@ -155,7 +152,9 @@ public class TestAttemptController {
             }
 
             // 1. Block deleting MAIN test attempts
-            if ("MAIN".equalsIgnoreCase(attempt.getTest().getTestType())) {
+            String testType = (attempt.getTest() != null && attempt.getTest().getTestType() != null)
+                    ? attempt.getTest().getTestType() : attempt.getTestType();
+            if ("MAIN".equalsIgnoreCase(testType)) {
                 return ResponseEntity.badRequest().body(Map.of("message", "Main test results cannot be deleted."));
             }
 

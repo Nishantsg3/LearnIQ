@@ -34,4 +34,5 @@ public interface TestAttemptRepository extends JpaRepository<TestAttempt, Long> 
 
     List<TestAttempt> findByTestIdAndStatus(Long testId, TestAttempt.Status status);
     long countByTestIdAndStatus(Long testId, TestAttempt.Status status);
+    List<TestAttempt> findByTestTypeIsNull();
 }

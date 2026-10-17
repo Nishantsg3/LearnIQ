@@ -34,8 +34,12 @@ public class DataInitializer implements CommandLineRunner {
 
         Optional<User> existingAdmin = userRepository.findByEmail(adminEmail);
 
-        User admin = existingAdmin.orElse(new User());
+        if (existingAdmin.isPresent()) {
+            System.out.println("[INITIALIZER] Admin account already exists: " + adminEmail);
+            return;
+        }
 
+        User admin = new User();
         admin.setName(adminName);
         admin.setEmail(adminEmail);
         admin.setPassword(passwordEncoder.encode(adminPassword));
@@ -43,7 +47,6 @@ public class DataInitializer implements CommandLineRunner {
         admin.setVerified(true);
 
         userRepository.save(admin);
-
-        System.out.println("[INITIALIZER] Admin account verified/created: " + adminEmail);
+        System.out.println("[INITIALIZER] Admin account created: " + adminEmail);
     }
 }

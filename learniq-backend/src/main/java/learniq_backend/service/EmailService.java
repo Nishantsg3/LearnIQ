@@ -35,6 +35,11 @@ public class EmailService {
     private static final String CARD_BG = "#16161a";
 
     private void sendHtmlEmail(String toEmail, String subject, String htmlBody) throws Exception {
+        if ("none".equalsIgnoreCase(smtpUsername) || smtpUsername == null || smtpUsername.isBlank()) {
+            log.info("[EMAIL-SERVICE] Mock email sent to {} with subject: '{}' (SMTP unconfigured/disabled)", toEmail, subject);
+            return;
+        }
+
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 

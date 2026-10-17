@@ -25,7 +25,7 @@ const ProgressPage = () => {
         const submitted = rawData.filter(a => 
           a && 
           (a.submitted === true || a.status === 'SUBMITTED') && 
-          (a.testType !== 'MAIN' && a.mode !== 'MAIN')
+          ((a.testType || a.mode || '').toUpperCase() !== 'MAIN')
         );
         const sorted = submitted
           .filter(a => a && typeof a.scorePercent === 'number' && !isNaN(a.scorePercent))

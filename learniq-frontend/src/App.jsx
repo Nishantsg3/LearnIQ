@@ -1,38 +1,46 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { Toaster } from 'react-hot-toast'
-import Login from './pages/Login'
-import Register from './pages/Register'
-import AdminLogin from './pages/AdminLogin'
-import ForgotPassword from './pages/ForgotPassword'
-import ResetPassword from './pages/ResetPassword'
-import OtpVerification from './pages/OtpVerification'
-import StudentDashboard from './pages/StudentDashboard'
-import PracticePage from './pages/PracticePage'
-import MainTestsPage from './pages/MainTestsPage'
-import ResultsPage from './pages/ResultsPage'
-import ProgressPage from './pages/ProgressPage'
-import AdminDashboard from './pages/AdminDashboard'
 
+// ── Lazy-loaded Route Components for Code Splitting ──
+const Login = lazy(() => import('./pages/Login'))
+const Register = lazy(() => import('./pages/Register'))
+const AdminLogin = lazy(() => import('./pages/AdminLogin'))
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'))
+const ResetPassword = lazy(() => import('./pages/ResetPassword'))
+const OtpVerification = lazy(() => import('./pages/OtpVerification'))
+const StudentDashboard = lazy(() => import('./pages/StudentDashboard'))
+const PracticePage = lazy(() => import('./pages/PracticePage'))
+const MainTestsPage = lazy(() => import('./pages/MainTestsPage'))
+const ResultsPage = lazy(() => import('./pages/ResultsPage'))
+const ProgressPage = lazy(() => import('./pages/ProgressPage'))
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'))
+const AdminTestList = lazy(() => import('./pages/AdminTestList'))
+const AdminTestMaker = lazy(() => import('./pages/AdminTestMaker'))
+const AdminTestHistory = lazy(() => import('./pages/AdminTestHistory'))
+const AdminTestEdit = lazy(() => import('./pages/AdminTestEdit'))
+const AdminStudents = lazy(() => import('./pages/AdminStudents'))
+const QuestionManager = lazy(() => import('./pages/QuestionManager'))
+const QuestionBank = lazy(() => import('./pages/QuestionBank'))
+const AdminAnalytics = lazy(() => import('./pages/AdminAnalytics'))
+const AdminTestLeaderboard = lazy(() => import('./pages/AdminTestLeaderboard'))
+const TestAttempt = lazy(() => import('./pages/TestAttempt'))
+const StudentTest = lazy(() => import('./pages/StudentTest'))
+const TestResultView = lazy(() => import('./pages/TestResultView'))
+const TestReview = lazy(() => import('./pages/TestReview'))
+const AdminReportList = lazy(() => import('./pages/AdminReportList'))
 
-import AdminTestList from './pages/AdminTestList'
-import AdminTestMaker from './pages/AdminTestMaker'
-import AdminTestHistory from './pages/AdminTestHistory'
-import AdminTestEdit from './pages/AdminTestEdit'
-import AdminStudents from './pages/AdminStudents'
-import QuestionManager from './pages/QuestionManager'
-import QuestionBank from './pages/QuestionBank'
-import AdminAnalytics from './pages/AdminAnalytics'
-import AdminTestLeaderboard from './pages/AdminTestLeaderboard'
-import TestAttempt from './pages/TestAttempt'
-import StudentTest from './pages/StudentTest'
-import TestResultView from './pages/TestResultView'
-import TestReview from './pages/TestReview'
-import AdminReportList from './pages/AdminReportList'
 import ProtectedRoute from './components/ProtectedRoute'
 import MainLayout from './components/MainLayout'
 import AdminProfileModal from './components/AdminProfileModal'
 import { AuthProvider, useAuth } from './context/AuthContext'
+
+const PageFallback = () => (
+  <div className="flex-1 flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+    <div className="w-8 h-8 border-2 border-white/5 border-t-violet-500 rounded-full animate-spin"></div>
+    <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.4em]">Loading Module...</p>
+  </div>
+);
 
 function AppContent() {
   const { user } = useAuth();
@@ -58,7 +66,8 @@ function AppContent() {
       />
 
       <div className={`${user?.role === 'ADMIN' ? 'admin-theme' : 'student-theme'} min-h-screen flex flex-col`}>
-        <Routes>
+        <Suspense fallback={<PageFallback />}>
+          <Routes>
           {/* Public routes */}
           <Route path="/" element={<Navigate to="/login" />} />
           <Route path="/login" element={<Login />} />
@@ -154,6 +163,7 @@ function AppContent() {
 
           <Route path="*" element={<Navigate to="/login" />} />
         </Routes>
+        </Suspense>
       </div>
     </BrowserRouter>
   );

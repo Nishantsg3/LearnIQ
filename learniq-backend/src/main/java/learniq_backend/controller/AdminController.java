@@ -38,17 +38,20 @@ public class AdminController {
         LocalDateTime now = LocalDateTime.now();
         List<Test> allTests = testRepository.findAll();
         
-        long activeCount = allTests.stream()
-                .filter(t -> testLifecycleService.isActuallyActive(t, now))
-                .count();
-        
-        long practiceCount = allTests.stream()
-                .filter(t -> testLifecycleService.isActuallyActive(t, now) && "PRACTICE".equalsIgnoreCase(t.getTestType()))
-                .count();
-                
-        long mainCount = allTests.stream()
-                .filter(t -> testLifecycleService.isActuallyActive(t, now) && "MAIN".equalsIgnoreCase(t.getTestType()))
-                .count();
+        long activeCount = 0;
+        long practiceCount = 0;
+        long mainCount = 0;
+
+        for (Test t : allTests) {
+            if (testLifecycleService.isActuallyActive(t, now)) {
+                activeCount++;
+                if ("PRACTICE".equalsIgnoreCase(t.getTestType())) {
+                    practiceCount++;
+                } else if ("MAIN".equalsIgnoreCase(t.getTestType())) {
+                    mainCount++;
+                }
+            }
+        }
         
         long studentCount = userRepository.countByRole(User.Role.STUDENT);
         long questionCount = questionRepository.count();
@@ -64,17 +67,7 @@ public class AdminController {
 
     @GetMapping("/students")
     public ResponseEntity<List<User>> getStudents() {
-        List<User> students = userRepository.findAll().stream()
-                .filter(u -> u.getRole() == User.Role.STUDENT)
-                .map(u -> {
-                    // Backfill missing dates for legacy accounts to 'Today' (May 5, 2026)
-                    if (u.getCreatedAt() == null) {
-                        u.setCreatedAt(LocalDateTime.of(2026, 5, 5, 10, 0));
-                        userRepository.save(u);
-                    }
-                    return u;
-                })
-                .toList();
+        List<User> students = userRepository.findByRole(User.Role.STUDENT);
         return ResponseEntity.ok(students);
     }
 

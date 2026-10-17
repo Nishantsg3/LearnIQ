@@ -29,8 +29,8 @@ public class AttemptTestTypeBackfill implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
-        List<TestAttempt> nullTypeAttempts = testAttemptRepository.findAll().stream()
-                .filter(a -> a.getTestType() == null && a.getTest() != null)
+        List<TestAttempt> nullTypeAttempts = testAttemptRepository.findByTestTypeIsNull().stream()
+                .filter(a -> a.getTest() != null)
                 .toList();
 
         if (nullTypeAttempts.isEmpty()) {

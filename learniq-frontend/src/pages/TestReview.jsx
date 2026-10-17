@@ -206,7 +206,7 @@ const TestReview = () => {
                 const text = currentQ?.[`option${opt}`];
                 if (!text) return null;
 
-                const isSelected = currentQ?.selectedOption === opt;
+                const isSelected = (currentQ?.selectedOption || '').toUpperCase() === opt.toUpperCase();
                 // An option is "the correct one" if selecting it would yield a correct answer
                 const isTheCorrectOption =
                   opt.toUpperCase() === (currentQ?.correctAnswer || '').toUpperCase() ||

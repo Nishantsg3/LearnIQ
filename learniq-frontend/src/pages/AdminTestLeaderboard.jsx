@@ -44,8 +44,8 @@ export default function AdminTestLeaderboard() {
   }, [testId, navigate]);
 
   const filteredLeaderboard = leaderboard.filter(entry => 
-    entry.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    entry.userEmail.toLowerCase().includes(searchTerm.toLowerCase())
+    (entry?.userName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (entry?.userEmail || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (loading) {

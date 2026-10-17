@@ -11,6 +11,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByResetToken(String token);
     boolean existsByEmail(String email);
     boolean existsByRole(User.Role role);
+    java.util.List<User> findByRole(User.Role role);
     long countByRole(User.Role role);
     void deleteByRole(User.Role role);
 }

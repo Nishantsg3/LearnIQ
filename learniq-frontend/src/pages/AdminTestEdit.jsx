@@ -54,7 +54,7 @@ const AdminTestEdit = () => {
         });
       } catch (err) {
         toast.error('Failed to load assessment data');
-        navigate('/admin/tests');
+        navigate('/admin/tests/active');
       } finally {
         setLoading(false);
       }
@@ -82,7 +82,7 @@ const AdminTestEdit = () => {
 
       await api.put(`/tests/${id}`, payload);
       toast.success('Test updated successfully');
-      navigate('/admin/tests');
+      navigate('/admin/tests/active');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Synchronization failed');
     } finally {
