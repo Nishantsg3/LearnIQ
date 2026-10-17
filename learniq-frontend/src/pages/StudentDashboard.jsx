@@ -22,6 +22,20 @@ const StudentDashboard = () => {
   useEffect(() => {
     const fetchCounts = async () => {
       try {
+        const res = await api.get('/tests/counts');
+        if (res.data && typeof res.data.practice === 'number') {
+          setCounts({
+            practice: res.data.practice,
+            liveMain: res.data.liveMain,
+            scheduled: res.data.scheduled
+          });
+          return;
+        }
+      } catch (err) {
+        // Fallback to legacy calculation if /tests/counts is not yet reached
+      }
+
+      try {
         const res = await api.get('/tests');
         const tests = Array.isArray(res.data) ? res.data : [];
         const now = new Date();

@@ -103,8 +103,8 @@ const StudentTest = () => {
       setLoading(true);
       const [testRes, qRes, timeRes, attemptRes] = await Promise.all([
         api.get(`/tests/${id}`),
-        api.get(`/questions/test/${id}/attempt`),
-        api.get(`/questions/test/${id}/time`),
+        api.get(`/questions/test/${id}/attempt${attemptId ? `?attemptId=${attemptId}` : ''}`),
+        api.get(`/questions/test/${id}/time${attemptId ? `?attemptId=${attemptId}` : ''}`),
         attemptId ? api.get(`/attempts/${attemptId}`) : Promise.resolve(null),
       ]);
 
@@ -129,7 +129,7 @@ const StudentTest = () => {
       }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to load test');
-      navigate('/student-dashboard');
+      navigate('/student/dashboard');
     } finally {
       setLoading(false);
     }
@@ -170,12 +170,21 @@ const StudentTest = () => {
     }
   }, [timeLeft, autoSubmitted, result, loading, submitting]);
 
-  /* ── countdown ── */
+  /* ── countdown (smooth single interval) ── */
   useEffect(() => {
     if (timeLeft === null || timeLeft <= 0 || result) return;
-    timerRef.current = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
-    return () => clearInterval(timerRef.current);
-  }, [timeLeft, result]);
+    const interval = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    timerRef.current = interval;
+    return () => clearInterval(interval);
+  }, [result, timeLeft === null]);
 
   /* ── keyboard reload guard ── */
   useEffect(() => {
@@ -195,33 +204,38 @@ const StudentTest = () => {
     if (result || loading || submitting) return;
 
     const triggerMalpractice = () => {
-      // Cooldown: prevent mouseleave + blur from double-counting the same tab switch
       if (malpracticeCooldownRef.current) return;
       malpracticeCooldownRef.current = true;
-      setTimeout(() => { malpracticeCooldownRef.current = false; }, 1000);
+      setTimeout(() => { malpracticeCooldownRef.current = false; }, 1500);
 
       setMalpracticeCount(prev => {
         const next = prev + 1;
-        if (next === 5) {
+        if (next >= 5) {
           handleAutoSubmit('malpractice');
-        } else if (next < 5) {
+        } else {
           setShowMalpractice(true);
         }
         return next;
       });
     };
 
-    const handleMouseLeave = (e) => {
-      if (e.clientY <= 0) triggerMalpractice();
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        triggerMalpractice();
+      }
     };
 
-    const handleBlur = () => triggerMalpractice();
+    const handleBlur = () => {
+      if (!document.hasFocus() || document.visibilityState === 'hidden') {
+        triggerMalpractice();
+      }
+    };
 
-    document.addEventListener('mouseleave', handleMouseLeave);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('blur', handleBlur);
 
     return () => {
-      document.removeEventListener('mouseleave', handleMouseLeave);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('blur', handleBlur);
     };
   }, [result, loading, submitting]);
@@ -232,7 +246,7 @@ const StudentTest = () => {
 
     const syncInterval = setInterval(async () => {
       try {
-        const res = await api.get(`/questions/test/${id}/time?attemptId=${searchParams.get('attemptId')}`);
+        const res = await api.get(`/questions/test/${id}/time?attemptId=${searchParams.get('attemptId') || attemptId || ''}`);
         const serverTime = parseInt(res.data.remainingTime);
         if (!isNaN(serverTime)) {
           setTimeLeft(serverTime);
@@ -242,7 +256,7 @@ const StudentTest = () => {
         if (e.response?.status === 400 || e.response?.status === 404) {
           if (!result && !submitting && !isSubmittingRef.current) {
             console.warn("[SYNC] Session inactive or already submitted. Redirecting...");
-            navigate('/student-dashboard');
+            navigate('/student/dashboard');
           }
         }
       }
@@ -288,7 +302,7 @@ const StudentTest = () => {
 
     
     try {
-      const res = await api.post(`/questions/test/${id}/submit`, { answers: answersRef.current });
+      const res = await api.post(`/questions/test/${id}/submit${attemptId ? `?attemptId=${attemptId}` : ''}`, { answers: answersRef.current });
       setResult(res.data);
       toast.success('Assessment submitted!');
     } catch (err) {

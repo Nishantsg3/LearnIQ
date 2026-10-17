@@ -19,6 +19,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/questions")
@@ -30,10 +31,10 @@ public class QuestionController {
     public String nuclearWipe() {
         String target = "Java Practice 2";
         try {
-            jdbcTemplate.update("DELETE FROM attempt_answers WHERE attempt_id IN (SELECT id FROM test_attempts WHERE test_id IN (SELECT id FROM tests WHERE LOWER(title) = LOWER(?)))", target);
-            jdbcTemplate.update("DELETE FROM test_attempts WHERE test_id IN (SELECT id FROM tests WHERE LOWER(title) = LOWER(?))", target);
-            jdbcTemplate.update("DELETE FROM test_questions WHERE test_id IN (SELECT id FROM tests WHERE LOWER(title) = LOWER(?))", target);
-            int deleted = jdbcTemplate.update("DELETE FROM tests WHERE LOWER(title) = LOWER(?)", target);
+            jdbcTemplate.update("DELETE FROM attempt_answers WHERE attempt_id IN (SELECT id FROM test_attempts WHERE test_id IN (SELECT id FROM test WHERE LOWER(title) = LOWER(?)))", target);
+            jdbcTemplate.update("DELETE FROM test_attempts WHERE test_id IN (SELECT id FROM test WHERE LOWER(title) = LOWER(?))", target);
+            jdbcTemplate.update("DELETE FROM test_questions WHERE test_id IN (SELECT id FROM test WHERE LOWER(title) = LOWER(?))", target);
+            int deleted = jdbcTemplate.update("DELETE FROM test WHERE LOWER(title) = LOWER(?)", target);
             return "SUCCESS: Wiped " + deleted + " records for " + target;
         } catch (Exception e) {
             return "FAILED: " + e.getMessage();
@@ -105,7 +106,13 @@ public class QuestionController {
             return ResponseEntity.badRequest().body(Map.of("message", "SCHEMA VIOLATION: Category '" + normalizedCategory + "' has reached its 50-question quota."));
         }
 
-        // 4. Uniqueness Check
+        // 4. Question Text & Uniqueness Check
+        if (question.getQuestionText() == null && question.getTitle() != null) {
+            question.setQuestionText(question.getTitle());
+        }
+        if (question.getQuestionText() == null || question.getQuestionText().isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "SCHEMA VIOLATION: Question title/text is required."));
+        }
         if (questionRepository.existsByQuestionText(question.getQuestionText())) {
             return ResponseEntity.badRequest().body(Map.of("message", "INTEGRITY ERROR: A question with this title already exists."));
         }
@@ -117,10 +124,27 @@ public class QuestionController {
         return ResponseEntity.ok(saved);
     }
 
-    @PutMapping("/bank/{id}")
+    @PutMapping({"/{id}", "/bank/{id}"})
     public ResponseEntity<?> updateQuestion(@PathVariable Long id, @RequestBody Question details) {
-        System.err.println("[SAFETY VIOLATION] Attempted to update question ID: " + id + ". Operation BLOCKED.");
-        return ResponseEntity.status(403).body(Map.of("message", "Question Bank is in READ-ONLY mode. Modification is prohibited."));
+        return questionRepository.findById(id).map(q -> {
+            String newText = details.getQuestionText() != null ? details.getQuestionText() : details.getTitle();
+            if (newText != null && !newText.isBlank()) {
+                q.setQuestionText(newText);
+            }
+            if (details.getOptionA() != null) q.setOptionA(details.getOptionA());
+            if (details.getOptionB() != null) q.setOptionB(details.getOptionB());
+            if (details.getOptionC() != null) q.setOptionC(details.getOptionC());
+            if (details.getOptionD() != null) q.setOptionD(details.getOptionD());
+            if (details.getCorrectAnswer() != null) q.setCorrectAnswer(details.getCorrectAnswer());
+            if (details.getCategory() != null && !details.getCategory().isBlank()) {
+                String norm = details.getCategory().trim().replace("_", ".").toUpperCase();
+                q.setCategory(norm);
+            }
+            if (details.getDifficultyLevel() != null) q.setDifficultyLevel(details.getDifficultyLevel());
+            Question updated = questionRepository.save(q);
+            System.out.println("[AUDIT] UPDATE SUCCESS - Question ID: " + id);
+            return ResponseEntity.ok(updated);
+        }).orElse(ResponseEntity.notFound().build());
     }
 
     @DeleteMapping("/{id}")
@@ -192,14 +216,23 @@ public class QuestionController {
     // ─── ATTEMPT: START & WINDOW CHECK ─────────────────────────────────────────
 
     @GetMapping("/test/{testId}/attempt")
-    public ResponseEntity<?> getQuestionsForAttempt(@PathVariable Long testId, Authentication authentication) {
+    public ResponseEntity<?> getQuestionsForAttempt(@PathVariable Long testId,
+                                                    @RequestParam(required = false) Long attemptId,
+                                                    Authentication authentication) {
         String userEmail = authentication.getName();
         User user = userRepository.findByEmail(userEmail).orElse(null);
         if (user == null) return ResponseEntity.status(401).build();
 
-        // ✅ ONLY FETCH IF ATTEMPT ALREADY INITIALIZED (Prevents auto-start on load)
-        Optional<TestAttempt> attemptOpt = testAttemptRepository.findFirstByUserIdAndTestIdAndStatus(
-                user.getId(), testId, TestAttempt.Status.IN_PROGRESS);
+        // ✅ FETCH BY ATTEMPT ID IF PROVIDED, OTHERWISE FALLBACK TO IN_PROGRESS ATTEMPT
+        Optional<TestAttempt> attemptOpt;
+        if (attemptId != null) {
+            attemptOpt = testAttemptRepository.findById(attemptId)
+                    .filter(a -> (a.getUser() != null && a.getUser().getId().equals(user.getId())) ||
+                                 (a.getUserEmail() != null && a.getUserEmail().equalsIgnoreCase(userEmail)));
+        } else {
+            attemptOpt = testAttemptRepository.findFirstByUserIdAndTestIdAndStatus(
+                    user.getId(), testId, TestAttempt.Status.IN_PROGRESS);
+        }
 
         if (attemptOpt.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("message", "Assessment not initialized. Please click 'Start' from dashboard."));
@@ -300,13 +333,22 @@ public class QuestionController {
     // ─── TIMER SYNC ────────────────────────────────────────────────────────────
 
     @GetMapping("/test/{testId}/time")
-    public ResponseEntity<?> getRemainingTime(@PathVariable Long testId, Authentication authentication) {
+    public ResponseEntity<?> getRemainingTime(@PathVariable Long testId,
+                                              @RequestParam(required = false) Long attemptId,
+                                              Authentication authentication) {
         String userEmail = authentication.getName();
         User user = userRepository.findByEmail(userEmail).orElse(null);
         if (user == null) return ResponseEntity.status(401).build();
 
-        Optional<TestAttempt> attemptOpt = testAttemptRepository.findFirstByUserIdAndTestIdAndStatus(
-                user.getId(), testId, TestAttempt.Status.IN_PROGRESS);
+        Optional<TestAttempt> attemptOpt;
+        if (attemptId != null) {
+            attemptOpt = testAttemptRepository.findById(attemptId)
+                    .filter(a -> (a.getUser() != null && a.getUser().getId().equals(user.getId())) ||
+                                 (a.getUserEmail() != null && a.getUserEmail().equalsIgnoreCase(userEmail)));
+        } else {
+            attemptOpt = testAttemptRepository.findFirstByUserIdAndTestIdAndStatus(
+                    user.getId(), testId, TestAttempt.Status.IN_PROGRESS);
+        }
 
         if (attemptOpt.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("message", "Assessment session inactive."));
@@ -333,54 +375,74 @@ public class QuestionController {
     @org.springframework.transaction.annotation.Transactional
     @PostMapping("/test/{testId}/submit")
     public ResponseEntity<?> submitTest(@PathVariable Long testId,
+                                        @RequestParam(required = false) Long attemptId,
                                         @RequestBody SubmissionRequest request,
                                         Authentication authentication) {
-        System.out.println("[DEBUG] Attempting submission for Test ID: " + testId);
+        System.out.println("[DEBUG] Attempting submission for Test ID: " + testId + (attemptId != null ? " Attempt ID: " + attemptId : ""));
         String userEmail = authentication.getName();
         try {
-            // 🔥 CRITICAL: Don't use startOrResumeAttempt here as it enforces global ACTIVE status.
-            // For submission, we only care if the user HAS an in-progress attempt for this test.
             User user = userRepository.findByEmail(userEmail)
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
-            learniq_backend.model.Test test = testRepository.findById(testId).orElse(null);
-            if (test != null && "MAIN".equalsIgnoreCase(test.getTestType())) {
-                Optional<TestAttempt> alreadySubmitted = testAttemptRepository.findFirstByUserIdAndTestIdAndStatus(
-                        user.getId(), testId, TestAttempt.Status.SUBMITTED);
+            Optional<TestAttempt> attemptOpt;
+            if (attemptId != null) {
+                attemptOpt = testAttemptRepository.findById(attemptId)
+                        .filter(a -> (a.getUser() != null && a.getUser().getId().equals(user.getId())) ||
+                                     (a.getUserEmail() != null && a.getUserEmail().equalsIgnoreCase(userEmail)));
+            } else {
+                attemptOpt = testAttemptRepository.findFirstByUserIdAndTestIdAndStatus(
+                        user.getId(), testId, TestAttempt.Status.IN_PROGRESS);
+            }
+
+            if (attemptOpt.isEmpty() || attemptOpt.get().getStatus() == TestAttempt.Status.SUBMITTED) {
+                // Idempotency: Return existing submission result if already submitted
+                Optional<TestAttempt> alreadySubmitted = (attemptId != null && attemptOpt.isPresent())
+                        ? attemptOpt
+                        : testAttemptRepository.findFirstByUserIdAndTestIdAndStatus(user.getId(), testId, TestAttempt.Status.SUBMITTED);
+
                 if (alreadySubmitted.isPresent()) {
-                    System.out.println("[IDEMPOTENCY] User " + userEmail + " already submitted MAIN test " + testId + ". Returning existing result.");
+                    System.out.println("[IDEMPOTENCY] Attempt already submitted for test " + testId + ". Returning existing result.");
                     TestAttempt existing = alreadySubmitted.get();
+                    List<Question> testQuestions = questionRepository.findByTestId(testId);
+                    Map<Long, Question> questionMap = testQuestions.stream()
+                            .collect(Collectors.toMap(Question::getId, q -> q, (a, b) -> a));
                     List<AnalysisItem> analysis = existing.getAnswers().stream()
                             .map(ans -> {
-                                Question q = questionRepository.findById(ans.getQuestionId()).orElse(null);
+                                Question q = questionMap.get(ans.getQuestionId());
                                 return new AnalysisItem(ans.getQuestionId(), q != null ? q.getQuestionText() : "Unknown",
                                         ans.getSelectedOption(), q != null ? q.getCorrectAnswer() : "Unknown", ans.isCorrect());
                             }).toList();
+                    String title = (existing.getTest() != null && existing.getTest().getTitle() != null)
+                            ? existing.getTest().getTitle() : "Assessment";
                     return ResponseEntity.ok(new SubmissionResult(
                             existing.getId(),
-                            testId, existing.getTest().getTitle(), existing.getTotalQuestions(),
+                            testId, title, existing.getTotalQuestions(),
                             existing.getCorrectCount(), existing.getWrongCount(), existing.getScorePercent(),
                             existing.getSubmittedAt(), analysis));
                 }
+                throw new RuntimeException("Assessment already submitted.");
             }
 
-                    
-            TestAttempt attempt = testAttemptRepository.findFirstByUserIdAndTestIdAndStatus(
-                    user.getId(), testId, TestAttempt.Status.IN_PROGRESS)
-                    .orElseThrow(() -> new RuntimeException("Assessment already submitted."));
-
+            TestAttempt attempt = attemptOpt.get();
             TestAttempt submitted = attemptService.submitAttempt(attempt.getId(), request.answers());
+
+            List<Question> testQuestions = questionRepository.findByTestId(testId);
+            Map<Long, Question> questionMap = testQuestions.stream()
+                    .collect(Collectors.toMap(Question::getId, q -> q, (a, b) -> a));
 
             List<AnalysisItem> analysis = submitted.getAnswers().stream()
                     .map(ans -> {
-                        Question q = questionRepository.findById(ans.getQuestionId()).orElse(null);
+                        Question q = questionMap.get(ans.getQuestionId());
                         return new AnalysisItem(ans.getQuestionId(), q != null ? q.getQuestionText() : "Unknown",
                                 ans.getSelectedOption(), q != null ? q.getCorrectAnswer() : "Unknown", ans.isCorrect());
                     }).toList();
 
+            String title = (submitted.getTest() != null && submitted.getTest().getTitle() != null)
+                    ? submitted.getTest().getTitle() : "Assessment";
+
             return ResponseEntity.ok(new SubmissionResult(
                     submitted.getId(),
-                    testId, submitted.getTest().getTitle(), submitted.getTotalQuestions(),
+                    testId, title, submitted.getTotalQuestions(),
                     submitted.getCorrectCount(), submitted.getWrongCount(), submitted.getScorePercent(),
                     submitted.getSubmittedAt(), analysis));
         } catch (Exception e) {

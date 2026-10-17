@@ -28,6 +28,45 @@ public class TestController {
     private final TestLifecycleService testLifecycleService;
     private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
+    // ─── GET COUNTS (Lightweight summary for Dashboard) ─────────────────────────
+
+    @GetMapping("/counts")
+    public ResponseEntity<Map<String, Integer>> getTestCounts() {
+        LocalDateTime now = LocalDateTime.now();
+        List<Test> tests = testRepository.findAll();
+        int practice = 0;
+        int liveMain = 0;
+        int scheduled = 0;
+
+        for (Test t : tests) {
+            String status = t.getStatus() != null ? t.getStatus().toUpperCase() : "";
+            if ("ARCHIVED".equals(status)) continue;
+
+            String type = t.getTestType() != null ? t.getTestType().toUpperCase() : "";
+            if ("PRACTICE".equals(type) && ("ACTIVE".equals(status) || "LIVE".equals(status))) {
+                practice++;
+            } else if ("MAIN".equals(type)) {
+                LocalDateTime start = t.getStartTime();
+                int duration = t.getDurationMinutes() > 0 ? t.getDurationMinutes() : 60;
+                LocalDateTime end = start != null ? start.plusMinutes(duration) : t.getEndTime();
+
+                if (start != null && now.isBefore(start)) {
+                    scheduled++;
+                } else if (start != null && !now.isBefore(start) && (end == null || !now.isAfter(end))) {
+                    liveMain++;
+                } else if (("ACTIVE".equals(status) || "LIVE".equals(status)) && (end == null || !now.isAfter(end))) {
+                    liveMain++;
+                }
+            }
+        }
+
+        return ResponseEntity.ok(Map.of(
+            "practice", practice,
+            "liveMain", liveMain,
+            "scheduled", scheduled
+        ));
+    }
+
     // ─── GET ALL ────────────────────────────────────────────────────────────────
 
     @GetMapping
@@ -196,12 +235,15 @@ public class TestController {
                 }
                 rank++;
 
-                // Resolve email from User entity to ensure learniq.com address is shown
-                String email = (attempt.getUser() != null) ? attempt.getUser().getEmail() : attempt.getUserEmail();
+                // Resolve email and name from User entity to ensure learniq.com address is shown
+                String email = (attempt.getUser() != null && attempt.getUser().getEmail() != null)
+                        ? attempt.getUser().getEmail() : (attempt.getUserEmail() != null ? attempt.getUserEmail() : "");
+                String name = (attempt.getUser() != null && attempt.getUser().getName() != null)
+                        ? attempt.getUser().getName() : (attempt.getUserName() != null ? attempt.getUserName() : "Candidate");
                 
                 learniq_backend.dto.LeaderboardEntry entry = new learniq_backend.dto.LeaderboardEntry(
                     displayRank,
-                    attempt.getUserName(),
+                    name,
                     email,
                     attempt.getScorePercent()
                 );
@@ -261,9 +303,13 @@ public class TestController {
                     if (request.description() != null) test.setDescription(request.description());
                     if (request.testType() != null) test.setTestType(request.testType().toUpperCase());
                     if (request.status() != null) test.setStatus(request.status().toUpperCase());
-                    if (request.duration() != null) test.setDurationMinutes(request.duration());
+                    if (request.duration() != null && request.duration() > 0) test.setDurationMinutes(request.duration());
 
-                    if ("MAIN".equalsIgnoreCase(test.getTestType()) && test.getStartTime() != null) {
+                    if ("PRACTICE".equalsIgnoreCase(test.getTestType())) {
+                        test.setStartTime(null);
+                        test.setEndTime(null);
+                    } else if (request.startTime() != null) {
+                        test.setStartTime(request.startTime());
                         test.setEndTime(test.getStartTime().plusMinutes(test.getDurationMinutes()));
                     }
 

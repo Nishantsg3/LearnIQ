@@ -13,6 +13,8 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
 
     boolean existsByQuestionText(String questionText);
 
+    java.util.Optional<Question> findFirstByOrderByIdAsc();
+
 
     @Query("SELECT q FROM Question q JOIN q.tests t WHERE t.id = :testId")
     List<Question> findByTestId(@Param("testId") Long testId);

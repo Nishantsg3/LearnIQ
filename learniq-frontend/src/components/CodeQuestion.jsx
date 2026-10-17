@@ -14,19 +14,32 @@ const CodeQuestion = ({ text = '', category = 'Code', className = "" }) => {
 
   if (!text) return null;
 
-  // Split text by backticks to find code segments
-  const parts = text.split(/(`[^`]+`)/g);
+  // Split text by code blocks (triple backticks or single backticks)
+  const parts = text.split(/(```[\s\S]*?```|`[^`]+`)/g);
 
   return (
     <div className={`leading-relaxed ${className}`}>
       {parts.map((part, index) => {
-        if (part.startsWith('`') && part.endsWith('`')) {
-          const code = part.slice(1, -1);
-          
-          // NEW LOGIC: Only use Snapshot for actual multi-line programs
-          const isMultiLine = code.includes('\n');
-          
-          if (!isMultiLine) {
+        let code = null;
+        let isBlock = false;
+
+        if (part.startsWith('```') && part.endsWith('```')) {
+          code = part.slice(3, -3);
+          const firstLineBreak = code.indexOf('\n');
+          if (firstLineBreak !== -1) {
+            const firstLine = code.slice(0, firstLineBreak).trim();
+            if (/^[a-zA-Z0-9_+#.-]+$/.test(firstLine)) {
+              code = code.slice(firstLineBreak + 1);
+            }
+          }
+          isBlock = true;
+        } else if (part.startsWith('`') && part.endsWith('`')) {
+          code = part.slice(1, -1);
+          isBlock = code.includes('\n');
+        }
+
+        if (code !== null) {
+          if (!isBlock) {
             return (
               <code key={index} className="mx-1 px-2 py-1 bg-[#7c3aed]/10 border border-[#7c3aed]/20 rounded-lg text-[#a78bfa] font-mono text-[14px] font-black tracking-tight shadow-sm inline-block">
                 {code}

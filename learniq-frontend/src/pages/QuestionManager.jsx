@@ -70,11 +70,15 @@ const QuestionManager = () => {
     e.preventDefault();
     setSaving(true);
     try {
+      const payload = {
+        ...form,
+        questionText: form.title || form.questionText,
+      };
       if (editingId) {
-        await api.put(`/questions/${editingId}`, form);
+        await api.put(`/questions/${editingId}`, payload);
         toast.success('Question updated');
       } else {
-        await api.post(`/questions/test/${testId}`, form);
+        await api.post(`/questions/test/${testId}`, payload);
         toast.success('Question added');
       }
       closeModal();

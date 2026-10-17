@@ -60,11 +60,15 @@ const QuestionBank = () => {
     e.preventDefault();
     setSaving(true);
     try {
+      const payload = {
+        ...formData,
+        questionText: formData.title || formData.questionText,
+      };
       if (editingId) {
-        await api.put(`/questions/bank/${editingId}`, formData);
+        await api.put(`/questions/bank/${editingId}`, payload);
         toast.success('Question updated successfully');
       } else {
-        await api.post('/questions/bank', formData);
+        await api.post('/questions/bank', payload);
         toast.success('Question indexed successfully');
       }
       setFormData({ title: '', optionA: '', optionB: '', optionC: '', optionD: '', correctAnswer: 'A', category: 'JAVA' });

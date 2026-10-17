@@ -46,6 +46,9 @@ public class AuthController {
     @Value("${app.frontend.url}")
     private String frontendUrl;
 
+    @Value("${app.auth.auto-verify:true}")
+    private boolean autoVerify;
+
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
         if (userRepository.existsByEmail(request.email())) {
@@ -54,34 +57,28 @@ public class AuthController {
 
         String otp = generateOtp();
 
-        // Bypassing OTP for faster registration (Temporary)
         User user = new User();
         user.setName(request.name().trim());
         user.setEmail(request.email().trim().toLowerCase());
-        user.setPassword(passwordEncoder.encode(request.password())); // Encoded password
+        user.setPassword(passwordEncoder.encode(request.password()));
         user.setRole(User.Role.STUDENT);
-        user.setVerified(true); // 🔥 Auto-verify
+        user.setVerified(autoVerify);
         user.setOtp(otp);
-        user.setOtpExpiry(LocalDateTime.now().plusMinutes(5));
+        user.setOtpExpiry(LocalDateTime.now().plusMinutes(10));
 
         userRepository.save(user);
 
-        System.out.println("\n=============================================");
-        System.out.println("  OTP BYPASSED: User marked as Verified");
-        System.out.println("  Email: " + user.getEmail());
-        System.out.println("=============================================\n");
-
-        /* 
-        // Skip Email Sending (Bypassed)
-        try {
-            emailService.sendRegistrationOtpEmail(user.getEmail(), otp);
-        } catch (Exception e) {
-            // Log error
-        }
-        */
-
         Map<String, String> response = new LinkedHashMap<>();
-        response.put("message", "Registration successful! You can now log in immediately.");
+        if (autoVerify) {
+            response.put("message", "Registration successful! You can now log in immediately.");
+        } else {
+            try {
+                emailService.sendRegistrationOtpEmail(user.getEmail(), otp);
+            } catch (Exception e) {
+                System.err.println("[AUTH] Failed to send registration OTP email: " + e.getMessage());
+            }
+            response.put("message", "Registration successful! Verification OTP sent to your email.");
+        }
         return ResponseEntity.ok(response);
     }
 

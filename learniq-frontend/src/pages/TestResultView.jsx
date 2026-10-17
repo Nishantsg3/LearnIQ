@@ -22,7 +22,6 @@ import {
 import api from '../utils/api';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
-import html2pdf from 'html2pdf.js';
 
 const attemptRequestCache = new Map();
 
@@ -103,14 +102,20 @@ const TestResultView = () => {
       html2canvas: { scale: 2, useCORS: true },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
-    setTimeout(() => {
-      html2pdf().set(opt).from(element).save().then(() => {
-        toast.success('Exported', { id: toastId });
+    setTimeout(async () => {
+      try {
+        const { default: html2pdf } = await import('html2pdf.js');
+        html2pdf().set(opt).from(element).save().then(() => {
+          toast.success('Exported', { id: toastId });
+          setIsExporting(false);
+        }).catch(() => {
+          toast.error('Failed', { id: toastId });
+          setIsExporting(false);
+        });
+      } catch (err) {
+        toast.error('Failed to load export library', { id: toastId });
         setIsExporting(false);
-      }).catch(() => {
-        toast.error('Failed', { id: toastId });
-        setIsExporting(false);
-      });
+      }
     }, 500);
   };
 
@@ -342,8 +347,14 @@ const AnalysisRow = ({ item, index }) => {
             { id: 'D', text: item.optionD }
           ].map(opt => {
              // Supports both label match (e.g. "C") or text match (e.g. "Option Content")
-             const isCorrectAns = opt.id === item.correctAnswer || opt.text === item.correctAnswer;
-             const isSelected = opt.id === item.selectedOption;
+             const isCorrectAns = !!(item.correctAnswer && (
+               opt.id.toUpperCase() === item.correctAnswer.trim().toUpperCase() ||
+               (opt.text && opt.text.trim().toLowerCase() === item.correctAnswer.trim().toLowerCase())
+             ));
+             const isSelected = !!(item.selectedOption && (
+               opt.id.toUpperCase() === item.selectedOption.trim().toUpperCase() ||
+               (opt.text && opt.text.trim().toLowerCase() === item.selectedOption.trim().toLowerCase())
+             ));
 
              return (
                 <div 

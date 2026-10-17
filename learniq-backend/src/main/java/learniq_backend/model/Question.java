@@ -12,6 +12,10 @@ import java.time.LocalDateTime;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Entity
+@Table(name = "question", indexes = {
+    @Index(name = "idx_question_category", columnList = "category"),
+    @Index(name = "idx_question_is_deleted", columnList = "isDeleted")
+})
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Getter
 @Setter
@@ -37,6 +41,7 @@ public class Question {
     @LastModifiedDate
     private LocalDateTime updatedAt;
 
+    @com.fasterxml.jackson.annotation.JsonAlias({"title", "text"})
     @Column(unique = true, length = 1000)
     private String questionText;
 
@@ -59,6 +64,8 @@ public class Question {
     public void setId(Long id) { this.id = id; }
     public String getQuestionText() { return questionText; }
     public void setQuestionText(String questionText) { this.questionText = questionText; }
+    public String getTitle() { return questionText; }
+    public void setTitle(String title) { this.questionText = title; }
     public String getOptionA() { return optionA; }
     public void setOptionA(String optionA) { this.optionA = optionA; }
     public String getOptionB() { return optionB; }

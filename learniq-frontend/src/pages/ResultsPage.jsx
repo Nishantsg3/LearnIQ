@@ -65,7 +65,7 @@ const ResultsPage = () => {
     });
 
     // Segment by activeType
-    return numbered.reverse().filter(a => (a.testType || a.mode) === activeType);
+    return numbered.reverse().filter(a => ((a.testType || a.mode || '').toUpperCase() === (activeType || '').toUpperCase()));
   }, [attempts, activeType]);
 
   const handleDeleteTrigger = (e, id) => {

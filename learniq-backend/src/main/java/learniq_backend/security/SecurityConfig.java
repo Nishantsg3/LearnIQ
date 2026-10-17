@@ -43,11 +43,15 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/v1/tests", "/api/v1/tests/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/tests", "/api/v1/tests/**").hasRole("ADMIN")
 
-                        // QUESTIONS
-                        .requestMatchers(HttpMethod.GET, "/api/v1/questions", "/api/v1/questions/**").hasAnyRole("ADMIN", "STUDENT")
-                        .requestMatchers(HttpMethod.POST, "/api/v1/questions", "/api/v1/questions/**").hasAnyRole("ADMIN", "STUDENT")
-                        .requestMatchers(HttpMethod.PUT, "/api/v1/questions", "/api/v1/questions/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/v1/questions", "/api/v1/questions/**").hasRole("ADMIN")
+                        // QUESTIONS - STUDENT ACCESS (ONLY FOR ACTIVE TEST ATTEMPTS)
+                        .requestMatchers(HttpMethod.GET, "/api/v1/questions/test/*/attempt", "/api/v1/questions/test/*/time").hasAnyRole("STUDENT", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/questions/test/*/start-attempt", "/api/v1/questions/test/*/submit", "/api/v1/questions/test/*/abandon").hasAnyRole("STUDENT", "ADMIN")
+
+                        // QUESTIONS - ADMIN ACCESS (BANK, CREATION, NUCLEAR WIPE, EDIT, DELETE)
+                        .requestMatchers("/api/v1/questions/**").hasRole("ADMIN")
+
+                        // PRESETS (TEMPLATES IMPORT - ADMIN ONLY)
+                        .requestMatchers("/api/v1/presets/**").hasRole("ADMIN")
 
                         // 🔥 ATTEMPTS (ALLOW STUDENT & ADMIN ACCESS)
                         .requestMatchers("/api/v1/attempts/**").hasAnyRole("STUDENT", "ADMIN")

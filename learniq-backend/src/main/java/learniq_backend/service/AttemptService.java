@@ -187,6 +187,13 @@ public class AttemptService {
                 .orElseThrow(() -> new RuntimeException("Attempt not found"));
     }
 
+    @Transactional(readOnly = true)
+    public TestAttemptResponse getAttemptResponseById(Long id) {
+        TestAttempt attempt = testAttemptRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Attempt not found"));
+        return mapToResponse(attempt);
+    }
+
     // =========================================================
     // ✅ SUBMIT ATTEMPT
     // =========================================================
@@ -381,7 +388,7 @@ public class AttemptService {
         });
 
         return attempts.stream()
-                .map(this::mapToResponse)
+                .map(this::mapToSummaryResponse)
                 .collect(Collectors.toList());
     }
 
@@ -431,6 +438,35 @@ public class AttemptService {
         if (changed) {
             testAttemptRepository.flush();
         }
+    }
+
+    // =========================================================
+    // ⚡ LIGHTWEIGHT SUMMARY (No question joins or rank subqueries)
+    // =========================================================
+    public TestAttemptResponse mapToSummaryResponse(TestAttempt attempt) {
+        TestAttemptResponse res = new TestAttemptResponse();
+
+        res.setId(attempt.getId());
+        if (attempt.getTest() != null) {
+            res.setTestId(attempt.getTest().getId());
+            res.setTestTitle(attempt.getTest().getTitle());
+            res.setCategory(attempt.getTest().getCategory());
+            res.setTestType(attempt.getTest().getTestType());
+        } else {
+            res.setTestType(attempt.getTestType());
+        }
+        res.setUserId(attempt.getUser() != null ? attempt.getUser().getId() : null);
+        res.setScorePercent(attempt.getScorePercent());
+        res.setCorrectCount(attempt.getCorrectCount());
+        res.setWrongCount(attempt.getWrongCount());
+        res.setTotalQuestions(attempt.getTotalQuestions());
+        res.setAttemptedCount(attempt.getAttemptedCount());
+        res.setStartedAt(attempt.getStartedAt());
+        res.setSubmittedAt(attempt.getSubmittedAt());
+        res.setStatus(attempt.getStatus() != null ? attempt.getStatus().name() : "IN_PROGRESS");
+        res.setSubmitted(attempt.isSubmitted());
+
+        return res;
     }
 
     // =========================================================

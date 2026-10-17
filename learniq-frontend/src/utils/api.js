@@ -3,11 +3,11 @@ import { storage } from './storage';
 
 // Centralized Environment-Aware API Configuration
 const IS_DEV = import.meta.env.MODE === 'development';
-const PROD_URL = import.meta.env.VITE_API_URL || 'https://learniq-backend-vglf.onrender.com/api/v1';
-const LOCAL_URL = 'http://localhost:8080/api/v1';
+const DEFAULT_URL = IS_DEV ? 'http://localhost:8080/api/v1' : 'https://learniq-backend-vglf.onrender.com/api/v1';
+const BASE_URL = import.meta.env.VITE_API_URL || DEFAULT_URL;
 
 const api = axios.create({
-  baseURL: IS_DEV ? LOCAL_URL : PROD_URL,
+  baseURL: BASE_URL,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',

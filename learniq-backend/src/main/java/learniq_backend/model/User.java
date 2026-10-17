@@ -6,7 +6,10 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "users")
+@Table(name = "users", indexes = {
+    @Index(name = "idx_user_email", columnList = "email"),
+    @Index(name = "idx_user_role", columnList = "role")
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -71,7 +74,9 @@ public class User {
         createdAt = LocalDateTime.now();
     }
 
-    public LocalDateTime getCreatedAt() { return createdAt; }
+    public LocalDateTime getCreatedAt() { 
+        return createdAt != null ? createdAt : LocalDateTime.of(2026, 5, 5, 10, 0); 
+    }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
     public enum Role {
