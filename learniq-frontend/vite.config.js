@@ -7,10 +7,18 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          'vendor-icons': ['lucide-react', 'react-icons'],
-          'vendor-prism': ['prismjs'],
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('lucide-react') || id.includes('react-icons')) {
+              return 'vendor-icons';
+            }
+            if (/[\\/](react|react-dom|react-router|react-router-dom)[\\/]/.test(id)) {
+              return 'vendor-react';
+            }
+            if (id.includes('prismjs')) {
+              return 'vendor-prism';
+            }
+          }
         }
       }
     },

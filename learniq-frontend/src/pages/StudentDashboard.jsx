@@ -31,7 +31,7 @@ const StudentDashboard = () => {
           });
           return;
         }
-      } catch (err) {
+      } catch {
         // Fallback to legacy calculation if /tests/counts is not yet reached
       }
 
@@ -67,7 +67,7 @@ const StudentDashboard = () => {
         });
 
         setCounts({ practice: p, liveMain: lm, scheduled: s });
-      } catch (err) {
+      } catch {
         console.error('Failed to fetch counts');
       }
     };
@@ -120,10 +120,10 @@ const StudentDashboard = () => {
           </h1>
           <div className="px-2.5 py-1 bg-white/5 border border-white/10 rounded-full flex items-center gap-1.5">
              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-             <span className="text-[7px] font-black text-white/40 uppercase tracking-widest">Secure Portal</span>
+             <span className="text-[7px] font-black text-white/70 uppercase tracking-widest">Secure Portal</span>
           </div>
         </div>
-        <p className="text-slate-500 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] sm:tracking-[0.4em] ml-4">
+        <p className="text-slate-400 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] sm:tracking-[0.4em] ml-4">
            Candidate Dashboard | Select module to begin
         </p>
       </div>
@@ -142,10 +142,12 @@ const StatCard = ({ card, onClick }) => {
   const [hovered, setHovered] = useState(false);
 
   return (
-    <div
+    <button
+      type="button"
       onClick={onClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      className="text-left w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0f] active:scale-[0.99] transition-transform"
       style={{
         background: hovered ? '#161622' : '#0d0d12',
         border: `1px solid ${hovered ? card.accent + '30' : 'rgba(255,255,255,0.03)'}`,
@@ -189,7 +191,7 @@ const StatCard = ({ card, onClick }) => {
       }} />
 
       {/* Content Container */}
-      <div style={{ position: 'relative', zIndex: 10 }}>
+      <div style={{ position: 'relative', zIndex: 10, width: '100%' }}>
         {/* Icon + Arrow row */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: window.innerWidth < 640 ? 12 : 24 }}>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
@@ -202,7 +204,7 @@ const StatCard = ({ card, onClick }) => {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: hovered ? card.accent : '#666',
+              color: hovered ? card.accent : 'rgba(255,255,255,0.65)',
               transition: 'all 0.3s ease'
             }}>
               {React.cloneElement(card.icon, { size: window.innerWidth < 640 ? 18 : 22 })}
@@ -249,8 +251,8 @@ const StatCard = ({ card, onClick }) => {
           <ArrowUpRight
             size={20}
             style={{
-              color: hovered ? card.accent : '#333',
-              opacity: hovered ? 1 : 0.3,
+              color: hovered ? card.accent : 'rgba(255,255,255,0.5)',
+              opacity: hovered ? 1 : 0.6,
               transition: 'all 0.3s',
             }}
           />
@@ -258,7 +260,7 @@ const StatCard = ({ card, onClick }) => {
 
         {/* Label */}
         <p style={{
-          color: '#555',
+          color: 'rgba(255, 255, 255, 0.7)',
           fontSize: 10,
           fontWeight: 800,
           letterSpacing: '0.2em',
@@ -280,7 +282,7 @@ const StatCard = ({ card, onClick }) => {
             {card.description}
         </h3>
       </div>
-    </div>
+    </button>
   );
 };
 

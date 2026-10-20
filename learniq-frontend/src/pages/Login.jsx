@@ -56,7 +56,7 @@ function Login() {
 
   const labelStyle = {
     display: 'block',
-    color: '#888',
+    color: 'rgba(255, 255, 255, 0.75)',
     fontSize: 11,
     fontWeight: 700,
     letterSpacing: '0.12em',
@@ -108,7 +108,7 @@ function Login() {
       {/* Subtitle */}
       <p
         style={{
-          color: '#666',
+          color: 'rgba(255, 255, 255, 0.7)',
           fontSize: 11,
           fontWeight: 700,
           letterSpacing: '0.15em',
@@ -126,6 +126,7 @@ function Login() {
           <label style={labelStyle}>Email Address</label>
           <input
             type="email"
+            className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
             style={{ ...inputStyle, padding: '14px 20px' }}
             placeholder="Enter your student email"
             value={email}
@@ -148,6 +149,7 @@ function Login() {
                 fontWeight: 700,
                 textDecoration: 'none',
               }}
+              className="focus-visible:outline-none focus-visible:underline"
             >
               Recover?
             </Link>
@@ -155,6 +157,7 @@ function Login() {
           <div style={{ position: 'relative' }}>
             <input
               type={showPassword ? 'text' : 'password'}
+              className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
               style={{ ...inputStyle, padding: '14px 20px', paddingRight: 52 }}
               placeholder="••••••••"
               value={password}
@@ -166,6 +169,8 @@ function Login() {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              className="p-1 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 hover:text-white transition-colors"
               style={{
                 position: 'absolute',
                 right: 16,
@@ -174,7 +179,7 @@ function Login() {
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
-                color: '#555',
+                color: 'rgba(255, 255, 255, 0.65)',
                 display: 'flex',
                 alignItems: 'center',
                 padding: 0,
@@ -189,19 +194,10 @@ function Login() {
         <button
           type="submit"
           disabled={isLoggingIn}
-          className="btn-accent w-full py-4 mt-4 student-btn"
+          className="btn-accent w-full py-4 mt-4 student-btn focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1c1c22]"
         >
           {isLoggingIn ? (
-            <div
-              style={{
-                width: 20,
-                height: 20,
-                border: '2px solid rgba(255,255,255,0.3)',
-                borderTopColor: '#fff',
-                borderRadius: '50%',
-                animation: 'spin 0.8s linear infinite',
-              }}
-            />
+            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto" />
           ) : (
             <span>Sign in →</span>
           )}
@@ -211,7 +207,7 @@ function Login() {
       {/* Footer */}
       <p
         style={{
-          color: '#555',
+          color: 'rgba(255, 255, 255, 0.7)',
           fontSize: 12,
           fontWeight: 600,
           letterSpacing: '0.05em',

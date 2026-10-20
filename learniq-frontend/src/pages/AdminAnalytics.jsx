@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import api from '../utils/api';
 import { 
   Users, 
@@ -17,7 +17,6 @@ import BackToDashboard from '../components/admin/BackToDashboard';
 
 export default function AdminAnalytics() {
   const { testId } = useParams();
-  const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -56,7 +55,7 @@ export default function AdminAnalytics() {
       <div className="max-w-4xl mx-auto px-6 py-10 text-center space-y-6">
         <div className="bg-rose-500/10 border border-rose-500/20 p-8 rounded-2xl animate-in zoom-in-95 duration-500">
            <p className="text-rose-400 font-black uppercase text-[12px] tracking-[0.3em]">Critical Initialization Failure</p>
-           <p className="text-white/40 text-[10px] mt-4 font-black uppercase tracking-widest">{error || "Data set unavailable"}</p>
+           <p className="text-white/70 text-[10px] mt-4 font-black uppercase tracking-widest">{error || "Data set unavailable"}</p>
         </div>
         <div className="flex justify-center">
             <BackToDashboard />
@@ -137,11 +136,11 @@ export default function AdminAnalytics() {
 
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex items-center gap-2 px-3 py-1.5 bg-white/[0.03] border border-white/5 rounded-lg flex-1 sm:flex-none justify-center">
-                <Database size={12} className="text-indigo-500/50" />
+                <Database size={12} className="text-indigo-400" />
                 <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest truncate">{data?.category || "General"}</span>
             </div>
             <div className="flex items-center gap-2 px-3 py-1.5 bg-white/[0.03] border border-white/5 rounded-lg flex-1 sm:flex-none justify-center">
-                <Clock size={12} className="text-indigo-500/50" />
+                <Clock size={12} className="text-indigo-400" />
                 <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest truncate">{data?.durationMinutes ?? 0} MINS</span>
             </div>
           </div>
@@ -181,7 +180,7 @@ export default function AdminAnalytics() {
                   </div>
                   <div className="flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/5 rounded-lg backdrop-blur-sm">
                       <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: s.color }} />
-                      <span className="text-[8px] font-black text-white/40 uppercase tracking-widest">Live Sync</span>
+                      <span className="text-[8px] font-black text-white/70 uppercase tracking-widest">Live Sync</span>
                   </div>
               </div>
               
@@ -194,12 +193,12 @@ export default function AdminAnalytics() {
 
               {/* BOTTOM: LABEL + DESC */}
               <div className="relative z-10">
-                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] group-hover:text-white/60 transition-colors mb-1">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] group-hover:text-white/80 transition-colors mb-1">
                       {s.label}
                   </p>
                   <div className="flex items-center gap-2">
-                      <div className="w-1 h-1 rounded-full opacity-40" style={{ backgroundColor: s.color }} />
-                      <span className="text-[8px] font-bold text-slate-700 uppercase tracking-widest group-hover:text-indigo-400 transition-colors leading-tight">
+                      <div className="w-1 h-1 rounded-full opacity-60" style={{ backgroundColor: s.color }} />
+                      <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest group-hover:text-indigo-400 transition-colors leading-tight">
                           {s.desc}
                       </span>
                   </div>

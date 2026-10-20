@@ -38,7 +38,7 @@ import { AuthProvider, useAuth } from './context/AuthContext'
 const PageFallback = () => (
   <div className="flex-1 flex flex-col items-center justify-center min-h-[60vh] space-y-4">
     <div className="w-8 h-8 border-2 border-white/5 border-t-violet-500 rounded-full animate-spin"></div>
-    <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.4em]">Loading Module...</p>
+    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">Loading Module...</p>
   </div>
 );
 
@@ -211,7 +211,7 @@ function App() {
           console.log(`[DIAGNOSTIC] Backend wake-up: source=App.jsx, timestamp=${new Date().toISOString()}`);
           window.dispatchEvent(new CustomEvent('backend-awake'));
         }
-      } catch (err) {
+      } catch {
         console.log("Backend server is starting up...");
       }
     };
@@ -298,7 +298,7 @@ function App() {
                   <div className="w-16 h-16 border-4 border-violet-600/30 border-t-violet-500 rounded-full animate-spin mx-auto mb-6" />
                   <h3 className="text-xl font-black text-white uppercase tracking-tight mb-2">{wakeTitle}</h3>
                   <p className="text-gray-400 text-xs font-semibold leading-relaxed mb-1">{wakeDesc}</p>
-                  <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest leading-relaxed">
+                  <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest leading-relaxed">
                     Time remaining: {formattedTime}
                   </p>
                 </>

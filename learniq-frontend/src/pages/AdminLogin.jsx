@@ -52,7 +52,7 @@ function AdminLogin() {
 
   const labelStyle = {
     display: 'block',
-    color: '#888',
+    color: 'rgba(255, 255, 255, 0.75)',
     fontSize: 11,
     fontWeight: 700,
     letterSpacing: '0.12em',
@@ -104,7 +104,7 @@ function AdminLogin() {
       {/* Subtitle */}
       <p
         style={{
-          color: '#666',
+          color: 'rgba(255, 255, 255, 0.7)',
           fontSize: 11,
           fontWeight: 700,
           letterSpacing: '0.15em',
@@ -122,6 +122,7 @@ function AdminLogin() {
           <label style={labelStyle}>Admin Email</label>
           <input
             type="email"
+            className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
             style={{ ...inputStyle, padding: '14px 20px' }}
             placeholder="Enter your admin email"
             value={email}
@@ -140,6 +141,7 @@ function AdminLogin() {
           <div style={{ position: 'relative' }}>
             <input
               type={showPassword ? 'text' : 'password'}
+              className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
               style={{ ...inputStyle, padding: '14px 20px', paddingRight: 52 }}
               placeholder="••••••••"
               value={password}
@@ -151,6 +153,8 @@ function AdminLogin() {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              className="p-1 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 hover:text-white transition-colors"
               style={{
                 position: 'absolute',
                 right: 16,
@@ -159,7 +163,7 @@ function AdminLogin() {
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
-                color: '#555',
+                color: 'rgba(255, 255, 255, 0.65)',
                 display: 'flex',
                 alignItems: 'center',
                 padding: 0,
@@ -174,19 +178,10 @@ function AdminLogin() {
         <button
           type="submit"
           disabled={isLoggingIn}
-          className="btn-primary w-full py-4 mt-4"
+          className="btn-primary w-full py-4 mt-4 admin-btn focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1c1c22]"
         >
           {isLoggingIn ? (
-            <div
-              style={{
-                width: 20,
-                height: 20,
-                border: '2px solid rgba(255,255,255,0.3)',
-                borderTopColor: '#fff',
-                borderRadius: '50%',
-                animation: 'spin 0.8s linear infinite',
-              }}
-            />
+            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto" />
           ) : (
             <span>Access Console →</span>
           )}
@@ -196,7 +191,7 @@ function AdminLogin() {
       {/* Footer */}
       <p
         style={{
-          color: '#555',
+          color: 'rgba(255, 255, 255, 0.7)',
           fontSize: 12,
           fontWeight: 600,
           letterSpacing: '0.05em',
@@ -208,22 +203,20 @@ function AdminLogin() {
         <Link
           to="/login"
           style={{
-            color: '#666',
+            color: 'rgba(255, 255, 255, 0.75)',
             fontWeight: 700,
             textDecoration: 'none',
             letterSpacing: '0.08em',
           }}
+          className="focus-visible:outline-none focus-visible:underline hover:text-white transition-colors"
           onMouseEnter={(e) => (e.currentTarget.style.color = '#fff')}
-          onMouseLeave={(e) => (e.currentTarget.style.color = '#666')}
+          onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(255, 255, 255, 0.75)')}
         >
           ← Return to Student Login
         </Link>
       </p>
 
       <style>{`
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
         .admin-btn:hover {
           background: #2d2a6e !important;
           transform: translateY(-1px);

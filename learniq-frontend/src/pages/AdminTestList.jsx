@@ -63,7 +63,7 @@ const AdminTestList = () => {
       });
       
       setTests(normalizedData);
-    } catch (err) {
+    } catch {
       toast.error('Sync failed');
     } finally {
       setLoading(false);
@@ -119,7 +119,7 @@ const AdminTestList = () => {
         toast.success('Cluster terminated');
       }
       fetchTests();
-    } catch (err) {
+    } catch {
       toast.error(`${type === 'ARCHIVE' ? 'Archiving' : 'Termination'} failed`);
     }
   };
@@ -138,12 +138,12 @@ const AdminTestList = () => {
   if (loading) return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
       <Loader2 className="w-12 h-12 text-[#7c3aed] animate-spin" />
-      <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em]">Calibrating Infrastructure...</p>
+      <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">Calibrating Infrastructure...</p>
     </div>
   );
 
   return (
-    <div className="h-full overflow-y-auto pr-2 custom-scrollbar p-10">
+    <div className="h-full overflow-y-auto pr-2 custom-scrollbar p-4 sm:p-6 lg:p-10">
       <div className="animate-in fade-in duration-700 space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-white/5 pb-6">
           <div className="space-y-1">
@@ -171,7 +171,7 @@ const AdminTestList = () => {
                 className={`px-6 py-2 rounded-md text-[10px] font-black uppercase tracking-widest transition-all duration-500 ${
                   filterType === type 
                     ? 'bg-white text-black scale-105 shadow-[0_10px_30px_rgba(255,255,255,0.1)] font-black' 
-                    : 'text-slate-500 hover:text-white hover:bg-white/5 font-bold'
+                    : 'text-slate-400 hover:text-white hover:bg-white/5 font-bold'
                 }`}
               >
                 {type === 'practice' ? 'Practice' : 'Main'}
@@ -185,7 +185,7 @@ const AdminTestList = () => {
             <div className="space-y-6">
               <div className="flex items-center gap-3 px-1">
                 <div className="w-1 h-4 bg-emerald-500 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
-                <h2 className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em]">Practice Assessments</h2>
+                <h2 className="text-[10px] font-black text-white/70 uppercase tracking-[0.4em]">Practice Assessments</h2>
               </div>
               {practiceTests.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -194,7 +194,7 @@ const AdminTestList = () => {
                   ))}
                 </div>
               ) : (
-                <div className="bg-white/[0.01] border border-dashed border-white/5 rounded-xl py-24 flex flex-col items-center justify-center opacity-10">
+                <div className="bg-white/[0.01] border border-dashed border-white/5 rounded-xl py-24 flex flex-col items-center justify-center opacity-40 text-slate-400">
                   <p className="text-[9px] font-bold uppercase tracking-widest">No active practice tests</p>
                 </div>
               )}
@@ -205,7 +205,7 @@ const AdminTestList = () => {
             <div className="space-y-6">
               <div className="flex items-center gap-3 px-1">
                 <div className="w-1 h-4 bg-rose-500 rounded-full shadow-[0_0_10px_rgba(244,63,94,0.5)]" />
-                <h2 className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em]">Main Assessments</h2>
+                <h2 className="text-[10px] font-black text-white/70 uppercase tracking-[0.4em]">Main Assessments</h2>
               </div>
               {mainTests.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -214,7 +214,7 @@ const AdminTestList = () => {
                   ))}
                 </div>
               ) : (
-                <div className="bg-white/[0.01] border border-dashed border-white/5 rounded-xl py-24 flex flex-col items-center justify-center opacity-10">
+                <div className="bg-white/[0.01] border border-dashed border-white/5 rounded-xl py-24 flex flex-col items-center justify-center opacity-40 text-slate-400">
                   <p className="text-[9px] font-bold uppercase tracking-widest">No active main tests</p>
                 </div>
               )}
@@ -241,27 +241,75 @@ const AssessmentCard = ({ test, navigate, deleteTest, archiveTest, isMain = fals
       <div className={`w-10 h-10 flex items-center justify-center rounded-lg border border-white/5 bg-white/[0.02] transition-colors ${isMain ? 'text-rose-500' : 'text-emerald-500'}`}>
         {isMain ? <FileText size={18} /> : <Zap size={18} />}
       </div>
-      <div className="flex gap-1.5 opacity-40 group-hover:opacity-100 transition-opacity">
-        <button onClick={() => navigate(`/admin/tests/edit/${test.id}`)} className="icon-pill hover:bg-white/5 text-white/60 hover:text-white" title="Edit"><Edit2 size={14} /></button>
-        <button onClick={() => archiveTest(test.id)} className="icon-pill hover:bg-amber-500/10 text-white/60 hover:text-amber-500" title="Archive"><Archive size={14} /></button>
+      <div className="flex gap-1.5 opacity-90 sm:opacity-50 sm:group-hover:opacity-100 transition-opacity">
+        <button
+          type="button"
+          onClick={() => navigate(`/admin/tests/edit/${test.id}`)}
+          className="icon-pill w-8 h-8 hover:bg-white/5 text-white/70 hover:text-white"
+          title="Edit"
+          aria-label="Edit assessment"
+        >
+          <Edit2 size={14} />
+        </button>
+        <button
+          type="button"
+          onClick={() => archiveTest(test.id)}
+          className="icon-pill w-8 h-8 hover:bg-amber-500/10 text-white/70 hover:text-amber-500"
+          title="Archive"
+          aria-label="Archive assessment"
+        >
+          <Archive size={14} />
+        </button>
         {isMain ? (
           <>
-            <button onClick={() => navigate(`/admin/tests/${test.id}/leaderboard`)} className="icon-pill hover:bg-white/5 text-white/60 hover:text-white" title="Leaderboard"><Trophy size={14} /></button>
-            <button onClick={() => navigate(`/admin/tests/${test.id}/analytics`)} className="icon-pill hover:bg-white/5 text-white/60 hover:text-white" title="Analytics"><BarChart3 size={14} /></button>
+            <button
+              type="button"
+              onClick={() => navigate(`/admin/tests/${test.id}/leaderboard`)}
+              className="icon-pill w-8 h-8 hover:bg-white/5 text-white/70 hover:text-white"
+              title="Leaderboard"
+              aria-label="Assessment Leaderboard"
+            >
+              <Trophy size={14} />
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate(`/admin/tests/${test.id}/analytics`)}
+              className="icon-pill w-8 h-8 hover:bg-white/5 text-white/70 hover:text-white"
+              title="Analytics"
+              aria-label="Assessment Analytics"
+            >
+              <BarChart3 size={14} />
+            </button>
           </>
         ) : (
-          <button onClick={() => navigate(`/admin/tests/${test.id}/questions`)} className="icon-pill hover:bg-white/5 text-white/60 hover:text-white" title="Questions"><FileText size={14} /></button>
+          <button
+            type="button"
+            onClick={() => navigate(`/admin/tests/${test.id}/questions`)}
+            className="icon-pill w-8 h-8 hover:bg-white/5 text-white/70 hover:text-white"
+            title="Questions"
+            aria-label="Manage Questions"
+          >
+            <FileText size={14} />
+          </button>
         )}
-        <button onClick={() => deleteTest(test.id)} className="icon-pill hover:bg-rose-500/10 text-white/60 hover:text-rose-500" title="Delete"><Trash2 size={14} /></button>
+        <button
+          type="button"
+          onClick={() => deleteTest(test.id)}
+          className="icon-pill w-8 h-8 hover:bg-rose-500/10 text-white/70 hover:text-rose-500"
+          title="Delete"
+          aria-label="Delete assessment"
+        >
+          <Trash2 size={14} />
+        </button>
       </div>
     </div>
 
     <div className="space-y-3 mb-6">
       <div className="flex items-center gap-3">
-        <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded border ${isMain ? 'bg-rose-500/5 border-rose-500/10 text-rose-500/70' : 'bg-emerald-500/5 border-emerald-500/10 text-emerald-500/70'}`}>
+        <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded border ${isMain ? 'bg-rose-500/10 border-rose-500/20 text-rose-400' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'}`}>
           {isMain ? 'Main' : 'Practice'}
         </span>
-        <div className="flex items-center gap-1.5 text-white/20">
+        <div className="flex items-center gap-1.5 text-white/60">
           <Database size={10} />
           <span className="text-[9px] font-bold uppercase tracking-widest">{test.category}</span>
         </div>
@@ -272,13 +320,13 @@ const AssessmentCard = ({ test, navigate, deleteTest, archiveTest, isMain = fals
     </div>
 
     <div className="pt-4 border-t border-white/5 flex items-center justify-between">
-      <div className="flex items-center gap-4 text-[9px] font-bold text-white/20 uppercase tracking-widest">
+      <div className="flex items-center gap-4 text-[9px] font-bold text-white/60 uppercase tracking-widest">
         <span className="flex items-center gap-1.5"><Clock size={12} /> {test.durationMinutes || test.duration}M</span>
         <span className="flex items-center gap-1.5"><Database size={12} /> {test.questionCount || test.totalQuestions}Q</span>
       </div>
       <div className="flex items-center gap-2">
          <div className={`w-1.5 h-1.5 rounded-full ${isMain ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]' : 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]'} animate-pulse duration-[3000ms]`}></div>
-         <span className="text-[8px] font-black text-white/20 uppercase tracking-widest">Active</span>
+         <span className="text-[8px] font-black text-white/60 uppercase tracking-widest">Active</span>
       </div>
     </div>
   </div>

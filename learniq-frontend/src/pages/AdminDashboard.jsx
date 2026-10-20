@@ -12,13 +12,11 @@ import {
   ArrowUpRight
 } from 'lucide-react';
 import api from '../utils/api';
-import { useAuth } from '../context/AuthContext';
 import AdminProfileModal from '../components/AdminProfileModal';
 
 const THEME = '#7c3aed';
 
 const AdminDashboard = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [dashboardStats, setDashboardStats] = useState({
@@ -121,11 +119,10 @@ const AdminDashboard = () => {
 
   if (loading) return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: 16 }}>
-      <Loader2 size={36} style={{ color: THEME, animation: 'spin 1s linear infinite' }} />
-      <p style={{ color: '#555', fontSize: 11, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase' }}>
+      <Loader2 size={36} className="text-[#7c3aed] animate-spin" />
+      <p style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: 11, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase' }}>
         Synchronizing systems...
       </p>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 
@@ -148,7 +145,7 @@ const AdminDashboard = () => {
             </h1>
           </div>
           <p style={{
-            color: '#444',
+            color: 'rgba(255, 255, 255, 0.7)',
             fontSize: 10,
             fontWeight: 700,
             letterSpacing: '0.2em',
@@ -178,10 +175,12 @@ const StatCard = ({ card, onClick }) => {
   const [hovered, setHovered] = useState(false);
 
   return (
-    <div
+    <button
+      type="button"
       onClick={onClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      className="text-left w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0f] active:scale-[0.99] transition-transform"
       style={{
         background: hovered ? '#161622' : '#0d0d12',
         border: `1px solid ${hovered ? card.accent + '30' : 'rgba(255,255,255,0.03)'}`,
@@ -225,7 +224,7 @@ const StatCard = ({ card, onClick }) => {
       }} />
 
       {/* Content Container */}
-      <div style={{ position: 'relative', zIndex: 10 }}>
+      <div style={{ position: 'relative', zIndex: 10, width: '100%' }}>
         {/* Icon + Arrow row */}
         <div className="flex items-center justify-between mb-4 sm:mb-6">
           <div style={{
@@ -237,7 +236,7 @@ const StatCard = ({ card, onClick }) => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: hovered ? card.accent : '#444',
+            color: hovered ? card.accent : 'rgba(255,255,255,0.65)',
             transition: 'all 0.3s',
           }}>
             {React.cloneElement(card.icon, { size: 18 })}
@@ -246,8 +245,8 @@ const StatCard = ({ card, onClick }) => {
             <ArrowUpRight
               size={14}
               style={{
-                color: hovered ? card.accent : '#333',
-                opacity: hovered ? 1 : 0.3,
+                color: hovered ? card.accent : 'rgba(255,255,255,0.5)',
+                opacity: hovered ? 1 : 0.6,
                 transition: 'all 0.3s',
               }}
             />
@@ -256,7 +255,7 @@ const StatCard = ({ card, onClick }) => {
 
         {/* Label */}
         <p style={{
-          color: '#555',
+          color: 'rgba(255, 255, 255, 0.7)',
           fontSize: 9,
           fontWeight: 800,
           letterSpacing: '0.2em',
@@ -281,7 +280,7 @@ const StatCard = ({ card, onClick }) => {
 
         {/* Description */}
         <p style={{
-          color: hovered ? '#888' : '#333',
+          color: hovered ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.65)',
           fontSize: 10,
           fontWeight: 700,
           marginTop: 8,
@@ -291,7 +290,7 @@ const StatCard = ({ card, onClick }) => {
           {card.description}
         </p>
       </div>
-    </div>
+    </button>
   );
 };
 

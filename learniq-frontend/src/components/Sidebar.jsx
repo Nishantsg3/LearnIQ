@@ -71,13 +71,12 @@ const Sidebar = ({ onProfileClick, isOpen, onClose }) => {
       <aside 
         className={`
           fixed left-0 top-0 h-screen w-[340px] z-[70] flex flex-col shadow-[15px_0_50px_rgba(0,0,0,0.6)]
-          transition-transform duration-500 ease-in-out
+          transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]
           ${isOpen ? 'translate-x-0' : '-translate-x-full'}
-          lg:translate-x-0
+          lg:translate-x-0 sidebar-geometric
         `}
         style={{ 
           background: isAdmin ? ADMIN_COLOR : 'linear-gradient(180deg, #6d28d9 0%, #4c1d95 100%)',
-          clipPath: window.innerWidth >= 1024 ? 'polygon(0 0, 100% 0, 97% 100%, 0 100%)' : 'none',
         }}
       >
         {/* Concentric circles background (very subtle) */}
@@ -108,14 +107,15 @@ const Sidebar = ({ onProfileClick, isOpen, onClose }) => {
                 <span className="text-white">LEARN</span>
                 <span className="bg-gradient-to-r from-violet-400 to-violet-600 bg-clip-text text-transparent ml-0.5">IQ</span>
               </h1>
-              <span className="text-[7px] font-bold text-white/20 tracking-[0.4em] uppercase mt-1 truncate">Intelligence</span>
+              <span className={`text-[9px] font-semibold tracking-[0.2em] uppercase mt-0.5 truncate ${isAdmin ? 'text-white/50' : 'text-white/80'}`}>Intelligence</span>
             </div>
           </div>
 
           {/* MOBILE CLOSE BUTTON */}
           <button 
             onClick={onClose}
-            className="lg:hidden w-10 h-10 flex items-center justify-center bg-white/5 border border-white/10 rounded-full text-white/50 hover:text-white transition-all active:scale-95 flex-shrink-0 ml-4"
+            aria-label="Close navigation sidebar"
+            className="lg:hidden w-10 h-10 flex items-center justify-center bg-white/5 border border-white/10 rounded-full text-white/50 hover:text-white transition-[background-color,border-color,color,transform] duration-150 ease-out active:scale-95 flex-shrink-0 ml-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
           >
             <X size={20} />
           </button>
@@ -123,7 +123,7 @@ const Sidebar = ({ onProfileClick, isOpen, onClose }) => {
 
         {/* Navigation */}
         <nav className="flex-1 px-5 mt-4 pb-6 space-y-1 relative z-10 overflow-y-auto no-scrollbar" style={{ paddingRight: '30px' }}>
-          <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.4em] mb-6 ml-3">Registry Control</p>
+          <p className={`text-[10px] font-bold uppercase tracking-[0.2em] mb-4 ml-3 ${isAdmin ? 'text-white/50' : 'text-white/80'}`}>Registry Control</p>
           {menuItems.map((item) => {
             const isActive = checkActive(item);
             return (
@@ -132,22 +132,22 @@ const Sidebar = ({ onProfileClick, isOpen, onClose }) => {
                 to={item.path}
                 onClick={() => { if(window.innerWidth < 1024) onClose(); }}
                 className={`
-                  flex items-center gap-4 px-6 py-4 rounded-2xl text-[11px] font-bold transition-all duration-300 ease-out group relative mx-2
+                  flex items-center gap-4 px-4 py-3 sm:px-5 sm:py-3.5 rounded-xl text-[11px] font-bold transition-[background-color,border-color,color,box-shadow,transform] duration-150 ease-out group relative mx-2 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20
                   ${isActive 
-                    ? 'text-white bg-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] backdrop-blur-md scale-[1.02]' 
-                    : 'text-white/30 hover:bg-white/5 hover:text-white/80 hover:scale-[1.01]'
+                    ? 'text-white bg-white/10 border border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)] backdrop-blur-sm'
+                    : `${isAdmin ? 'text-white/65' : 'text-white/75'} hover:bg-white/5 hover:text-white border border-transparent`
                   }
                 `}
               >
                 {isActive && (
                   <div 
-                    className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-8 bg-violet-400 rounded-r-full shadow-[0_0_20px_rgba(167,139,250,1)]" 
+                    className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-violet-400 rounded-r-full shadow-[0_0_8px_rgba(167,139,250,0.4)]"
                   />
                 )}
-                <div className={`transition-all duration-300 ${isActive ? 'scale-110 text-violet-300 drop-shadow-[0_0_8px_rgba(167,139,250,0.5)]' : 'group-hover:scale-110 group-hover:text-white/80'}`}>
+                <div className={`transition-[color,transform] duration-150 ${isActive ? 'text-violet-300 drop-shadow-[0_0_8px_rgba(167,139,250,0.4)]' : 'group-hover:text-white'}`}>
                   {React.cloneElement(item.icon, { size: 18 })}
                 </div>
-                <span className={`uppercase tracking-[0.2em] transition-all duration-300 ${isActive ? 'translate-x-1' : 'group-hover:translate-x-1'}`}>
+                <span className="uppercase tracking-[0.2em] transition-transform duration-150 group-hover:translate-x-0.5">
                   {item.name}
                 </span>
               </NavLink>
@@ -161,24 +161,24 @@ const Sidebar = ({ onProfileClick, isOpen, onClose }) => {
           
           <button 
             onClick={onProfileClick}
-            className="group/profile flex items-center gap-4 cursor-pointer mb-6 p-3 rounded-md bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all w-full h-16"
+            className="group/profile flex items-center gap-4 cursor-pointer mb-6 p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-[background-color,border-color,transform] duration-150 ease-out w-full h-16 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
           >
-            <div className="w-10 h-10 rounded-md bg-white/5 flex items-center justify-center border border-white/10 overflow-hidden group-hover/profile:border-violet-400/30 transition-all shadow-xl shrink-0">
+            <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center border border-white/10 overflow-hidden group-hover/profile:border-violet-400/30 transition-all shadow-xl shrink-0">
               {user?.avatar ? (
                 <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
               ) : (
-                <UserCircle className="text-white/20 group-hover/profile:text-violet-400 transition-colors" size={20} />
+                <UserCircle className="text-white/30 group-hover/profile:text-violet-400 transition-colors" size={20} />
               )}
             </div>
             <div className="flex-1 overflow-hidden text-left">
               <p className="text-[10px] font-black text-white/90 truncate uppercase tracking-widest leading-none">{user?.name || 'Admin'}</p>
-              <p className="text-[8px] font-bold text-white/10 truncate uppercase tracking-[0.1em] mt-1.5 italic">{isAdmin ? 'System Authority' : 'Candidate identity'}</p>
+              <p className={`text-[9px] font-medium truncate uppercase tracking-[0.1em] mt-1 ${isAdmin ? 'text-white/50' : 'text-white/80'}`}>{isAdmin ? 'System Authority' : 'Candidate identity'}</p>
             </div>
           </button>
           
           <button 
             onClick={logout}
-            className="w-full flex items-center justify-center gap-3 px-4 py-3.5 rounded-md bg-white/5 text-white/30 text-[10px] font-black uppercase tracking-[0.3em] hover:bg-rose-500/10 hover:text-rose-400 transition-all duration-300 border border-white/5"
+            className={`w-full flex items-center justify-center gap-3 px-4 py-3.5 rounded-xl bg-white/5 ${isAdmin ? 'text-white/65' : 'text-white/75'} text-[10px] font-black uppercase tracking-[0.3em] hover:bg-rose-500/10 hover:border-rose-500/20 hover:text-rose-400 transition-[background-color,border-color,color,transform] duration-150 ease-out border border-white/5 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/50`}
           >
             <LogOut size={16} />
             Sign out

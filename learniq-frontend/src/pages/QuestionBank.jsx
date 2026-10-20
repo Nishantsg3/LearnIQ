@@ -49,7 +49,7 @@ const QuestionBank = () => {
       setLoading(true);
       const res = await api.get('/questions/bank');
       setQuestions(Array.isArray(res.data) ? res.data : []);
-    } catch (err) {
+    } catch {
       toast.error('Failed to sync question library');
     } finally {
       setLoading(false);
@@ -75,7 +75,7 @@ const QuestionBank = () => {
       setShowForm(false);
       setEditingId(null);
       fetchQuestions();
-    } catch (err) {
+    } catch {
       toast.error(editingId ? 'Update failed' : 'Injection failed');
     } finally {
       setSaving(false);
@@ -107,7 +107,7 @@ const QuestionBank = () => {
       await api.delete(`/questions/${pendingDeleteId}`);
       toast.success('Record purged');
       fetchQuestions();
-    } catch (err) {
+    } catch {
       toast.error('Purge failed');
     }
   };
@@ -218,13 +218,13 @@ const QuestionBank = () => {
         {/* ROW 2: FULL WIDTH SEARCH */}
         {!showForm && (
           <div className="relative group animate-in fade-in slide-in-from-top-4 duration-500 w-full">
-            <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-[#7c3aed] transition-colors" size={16} />
+            <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-white/60 group-focus-within:text-[#7c3aed] transition-colors" size={16} />
             <input 
               type="text"
               placeholder="Search assessment question library..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-[#111118] border border-white/10 rounded-lg pl-14 pr-6 h-14 text-[11px] font-black uppercase tracking-[0.2em] text-white outline-none focus:border-[#7c3aed]/50 transition-all w-full placeholder:text-white/10 shadow-2xl"
+              className="bg-[#111118] border border-white/10 rounded-lg pl-14 pr-6 h-14 text-[11px] font-black uppercase tracking-[0.2em] text-white outline-none focus:border-[#7c3aed]/50 transition-all w-full placeholder:text-white/50 shadow-2xl"
             />
           </div>
         )}
@@ -241,13 +241,13 @@ const QuestionBank = () => {
 
             <form onSubmit={handleAdd} className="flex-1 flex flex-col min-h-0">
               <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
-                <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <label className="text-[10px] font-black text-[#9ca3af] uppercase tracking-widest ml-1">Question Text</label>
                       <textarea 
                         required value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})}
-                        className="bg-[#0a0a0f] border border-white/5 rounded-[2rem] px-6 py-5 text-[11px] font-black uppercase tracking-widest text-white outline-none focus:border-[#7c3aed]/50 focus:bg-[#7c3aed]/5 transition-all w-full min-h-[100px] resize-none"
+                        className="bg-[#0a0a0f] border border-white/5 rounded-2xl sm:rounded-[2rem] px-5 sm:px-6 py-4 sm:py-5 text-[11px] font-black uppercase tracking-widest text-white outline-none focus:border-[#7c3aed]/50 focus:bg-[#7c3aed]/5 transition-all w-full min-h-[100px] resize-none"
                         placeholder="Enter the question..."
                       />
                     </div>
@@ -309,14 +309,14 @@ const QuestionBank = () => {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-6 mt-4 border-t border-white/5 shrink-0">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 pt-4 sm:pt-6 mt-4 border-t border-white/5 shrink-0">
                   <div className="flex items-center gap-4">
                     <span className="text-[10px] font-black text-[#9ca3af] uppercase tracking-widest">Correct Answer:</span>
                     <div className="flex gap-2">
                        {['A', 'B', 'C', 'D'].map(opt => (
                         <button 
                           key={opt} type="button" onClick={() => setFormData({...formData, correctAnswer: opt})}
-                          className={`w-10 h-10 rounded-full font-black text-[11px] transition-all border-2 ${formData.correctAnswer === opt ? 'bg-[#7c3aed] border-[#7c3aed] text-white shadow-[0_0_15px_rgba(124,58,237,0.4)]' : 'bg-[#0a0a0f] border-white/5 text-slate-500 hover:border-white/20 hover:text-white'}`}
+                          className={`w-10 h-10 rounded-full font-black text-[11px] transition-all border-2 ${formData.correctAnswer === opt ? 'bg-[#7c3aed] border-[#7c3aed] text-white shadow-[0_0_15px_rgba(124,58,237,0.4)]' : 'bg-[#0a0a0f] border-white/5 text-slate-400 hover:border-white/20 hover:text-white'}`}
                         >
                           {opt}
                         </button>
@@ -328,7 +328,7 @@ const QuestionBank = () => {
                       setShowForm(false);
                       setEditingId(null);
                       setFormData({ title: '', optionA: '', optionB: '', optionC: '', optionD: '', correctAnswer: 'A', category: 'JAVA' });
-                    }} className="px-6 h-10 text-[11px] font-black text-slate-500 uppercase tracking-widest hover:text-white transition-colors">Cancel</button>
+                    }} className="px-6 h-10 text-[11px] font-black text-slate-400 uppercase tracking-widest hover:text-white transition-colors">Cancel</button>
                     <button type="submit" disabled={saving} className="px-8 h-10 bg-white text-black rounded-full font-black uppercase text-[11px] tracking-widest hover:shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:-translate-y-0.5 transition-all">
                         {saving ? 'Saving...' : (editingId ? 'Update Question' : 'Add Question')}
                     </button>
@@ -344,10 +344,10 @@ const QuestionBank = () => {
                 <div key={q.id} className="bg-[#111118] border border-white/5 rounded-2xl px-6 py-5 hover:border-[#7c3aed]/30 transition-all group flex flex-col sm:flex-row items-start justify-between shadow-lg gap-4 overflow-hidden">
                   <div className="flex-1 pr-10">
                     <div className="flex items-center gap-3 mb-3">
-                      <span className="text-[9px] font-black text-white/20 uppercase tracking-widest bg-black/40 px-3 py-1 rounded-full border border-white/5">
+                      <span className="text-[9px] font-black text-white/60 uppercase tracking-widest bg-black/40 px-3 py-1 rounded-full border border-white/5">
                         Entry #{String(index + 1).padStart(3, '0')}
                       </span>
-                      <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest bg-black/20 px-3 py-1 rounded-full border border-white/5">
+                      <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest bg-black/20 px-3 py-1 rounded-full border border-white/5">
                         {q.category || q.tag || q.topic || "UNCATEGORIZED"}
                       </span>
                     </div>
@@ -355,17 +355,33 @@ const QuestionBank = () => {
                     
                     <div className="flex flex-wrap gap-x-6 gap-y-3 mt-4">
                       {['A', 'B', 'C', 'D'].map(opt => (
-                        <div key={opt} className={`text-[9px] font-black uppercase tracking-widest flex items-center gap-2 min-w-0 flex-shrink ${q.correctAnswer === opt ? 'text-emerald-400' : 'text-slate-600'}`}>
+                        <div key={opt} className={`text-[9px] font-black uppercase tracking-widest flex items-center gap-2 min-w-0 flex-shrink ${q.correctAnswer === opt ? 'text-emerald-400' : 'text-slate-400'}`}>
                           <span className={`w-5 h-5 rounded flex-shrink-0 flex items-center justify-center border ${q.correctAnswer === opt ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-black/20 border-white/5'}`}>{opt}</span>
-                          <span className="truncate opacity-60 min-w-0 break-words">{q[`option${opt}`]}</span>
+                          <span className="truncate opacity-80 min-w-0 break-words">{q[`option${opt}`]}</span>
                         </div>
                       ))}
                     </div>
                   </div>
 
-                  <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => editQuestion(q)} className="p-2.5 bg-black/40 border border-white/5 text-[#7c3aed] hover:bg-[#7c3aed]/10 rounded-full transition-all"><Edit3 size={14} /></button>
-                    <button onClick={() => deleteQuestion(q.id)} className="p-2.5 bg-black/40 border border-white/5 text-rose-500 hover:bg-rose-500/10 rounded-full transition-all"><Trash2 size={14} /></button>
+                  <div className="flex gap-2 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => editQuestion(q)}
+                      className="p-2.5 bg-black/40 border border-white/5 text-[#7c3aed] hover:bg-[#7c3aed]/10 rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7c3aed]/50"
+                      title="Edit Question"
+                      aria-label="Edit question"
+                    >
+                      <Edit3 size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => deleteQuestion(q.id)}
+                      className="p-2.5 bg-black/40 border border-white/5 text-rose-500 hover:bg-rose-500/10 rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/50"
+                      title="Delete Question"
+                      aria-label="Delete question"
+                    >
+                      <Trash2 size={14} />
+                    </button>
                   </div>
                 </div>
               ))}

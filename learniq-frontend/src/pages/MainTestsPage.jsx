@@ -87,7 +87,7 @@ const MainTestsPage = () => {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] space-y-4">
         <div className="w-8 h-8 border-2 border-white/5 border-t-red-500 rounded-full animate-spin"></div>
-        <p className="text-[10px] font-black text-white/10 uppercase tracking-[0.4em]">Loading...</p>
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">Loading...</p>
       </div>
     );
   }
@@ -106,8 +106,8 @@ const MainTestsPage = () => {
           </div>
           <div className="space-y-0.5">
             <h1 className="text-lg sm:text-2xl font-black text-white uppercase tracking-tight leading-none">Section 2</h1>
-            <p className="text-slate-500 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] sm:tracking-[0.4em]">Main Assessments</p>
-            <p className="hidden sm:block text-white/20 text-[9px] font-medium uppercase tracking-[0.2em]">Demonstrate your mastery and achieve your target performance in the main evaluation window.</p>
+            <p className="text-slate-400 text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] sm:tracking-[0.4em]">Main Assessments</p>
+            <p className="hidden sm:block text-white/60 text-xs font-normal mt-1 leading-relaxed">Demonstrate your mastery and achieve your target performance in the main evaluation window.</p>
           </div>
         </div>
 
@@ -129,7 +129,7 @@ const MainTestsPage = () => {
             </div>
             <div className="space-y-2">
               <h3 className="text-lg font-black text-white/80 uppercase tracking-widest">No main assessment scheduled</h3>
-              <p className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">Please check back later for upcoming evaluation windows.</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Please check back later for upcoming evaluation windows.</p>
             </div>
             <button 
                 onClick={() => fetchData()}
@@ -153,7 +153,6 @@ const MainTestsPage = () => {
                   latestAttempt={latestAttempt}
                   isCompleted={isCompleted}
                   isLocked={isLocked}
-                  pastAttemptId={pastAttempts[0]?.id}
                   onAction={() => {
                     if (isLocked) {
                         toast(`Access Restricted: Unlocking in ${new Date(new Date(test.startTime) - new Date()).toISOString().substr(11, 8)}`, { 
@@ -191,7 +190,7 @@ const MainTestsPage = () => {
   );
 };
 
-const StatCard = ({ test, latestAttempt, isCompleted, isLocked, pastAttemptId, onAction }) => {
+const StatCard = ({ test, latestAttempt, isCompleted, isLocked, onAction }) => {
   const [hovered, setHovered] = useState(false);
   const [timeLeft, setTimeLeft] = useState('');
   const accent = isLocked ? '#64748b' : '#ef4444'; // Red for active
@@ -274,7 +273,7 @@ const StatCard = ({ test, latestAttempt, isCompleted, isLocked, pastAttemptId, o
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: hovered ? accent : '#444',
+                color: hovered ? accent : '#94a3b8',
                 transition: 'all 0.3s',
             }}>
                 {isLocked ? <Lock size={18} /> : <Shield size={18} />}
@@ -289,11 +288,11 @@ const StatCard = ({ test, latestAttempt, isCompleted, isLocked, pastAttemptId, o
                     Completed
                 </div>
             ) : latestAttempt ? (
-                <div className="px-3 py-1 bg-red-500/10 text-red-400 border border-red-500/20 rounded-md text-[8px] font-black uppercase tracking-widest h-fit">
+                 <div className="px-3 py-1 bg-red-500/10 text-red-400 border border-red-500/20 rounded-md text-[8px] font-black uppercase tracking-widest h-fit">
                     Active
                 </div>
             ) : (
-                <div className="px-3 py-1 bg-red-500/10 text-red-400 border border-red-500/20 rounded-md text-[8px] font-black uppercase tracking-widest h-fit">
+                 <div className="px-3 py-1 bg-red-500/10 text-red-400 border border-red-500/20 rounded-md text-[8px] font-black uppercase tracking-widest h-fit">
                     Main Test
                 </div>
             )}
@@ -301,29 +300,29 @@ const StatCard = ({ test, latestAttempt, isCompleted, isLocked, pastAttemptId, o
 
         {/* Identity: Category + Title */}
         <div className="mb-3">
-            <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1.5">{test.category || 'General'}</p>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">{test.category || 'General'}</p>
             <h3 className="text-lg font-black text-white/90 uppercase tracking-tight leading-tight line-clamp-2 min-h-[2.5rem]">{test.title}</h3>
         </div>
 
         {/* Info: Duration + Questions */}
         <div className="flex items-center gap-3 mb-0">
-            <div className="flex items-center gap-2 text-[9px] font-bold text-slate-500 uppercase tracking-widest bg-white/5 px-2.5 py-1.5 rounded-md border border-white/5">
-                <Clock size={12} className="text-red-500/50" />
+            <div className="flex items-center gap-2 text-[9px] font-bold text-slate-300 uppercase tracking-widest bg-white/5 px-2.5 py-1.5 rounded-md border border-white/5">
+                <Clock size={12} className="text-red-400" />
                 {test.durationMinutes}m
             </div>
-            <div className="flex items-center gap-2 text-[9px] font-bold text-slate-500 uppercase tracking-widest bg-white/5 px-2.5 py-1.5 rounded-md border border-white/5">
-                <FileText size={12} className="text-red-500/50" />
+            <div className="flex items-center gap-2 text-[9px] font-bold text-slate-300 uppercase tracking-widest bg-white/5 px-2.5 py-1.5 rounded-md border border-white/5">
+                <FileText size={12} className="text-red-400" />
                 {test.questionCount}q
             </div>
         </div>
 
         {/* Footer: Action Button */}
-        <div className={`pt-5 mt-4 border-t border-white/5 flex items-center justify-between transition-all duration-300 ${hovered ? 'opacity-100' : 'opacity-30'}`}>
-           <div className={`text-[10px] font-black uppercase tracking-widest whitespace-nowrap overflow-hidden text-ellipsis mr-4 ${isLocked ? 'text-red-500/80 animate-pulse' : 'text-white'}`}>
+        <div className={`pt-5 mt-4 border-t border-white/5 flex items-center justify-between transition-all duration-300 ${hovered ? 'opacity-100' : 'opacity-70 sm:opacity-50'}`}>
+           <div className={`text-[10px] font-black uppercase tracking-widest whitespace-nowrap overflow-hidden text-ellipsis mr-4 ${isLocked ? 'text-red-400 animate-pulse' : 'text-white'}`}>
               {isLocked ? (
                   <div className="flex items-center gap-3">
-                      <span className="text-white/20">STARTS IN</span>
-                      <span className="font-mono text-xs tabular-nums text-red-500">{timeLeft || '--:--'}</span>
+                      <span className="text-white/70">STARTS IN</span>
+                      <span className="font-mono text-xs tabular-nums text-red-400">{timeLeft || '--:--'}</span>
                   </div>
               ) : isCompleted ? 'View Result Report' : latestAttempt ? 'Resume Session' : 'Start Assessment'}
            </div>

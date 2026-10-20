@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { History, FileText, TrendingUp, ArrowUpRight, CheckCircle2, ChevronRight, Trash2, Zap, Trophy, Send } from 'lucide-react';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
+import ConfirmModal from '../components/ConfirmModal';
 
 const formatDateTime = (value) => {
   if (!value) return '—';
@@ -40,7 +41,7 @@ const ResultsPage = () => {
         api.get('/attempts/me')
       ]);
       setAttempts(Array.isArray(attemptsRes.data) ? attemptsRes.data : []);
-    } catch (err) {
+    } catch {
       toast.error('Failed to load results history');
     } finally {
       setLoading(false);
@@ -82,7 +83,7 @@ const ResultsPage = () => {
         setShowDeleteConfirm(false);
         setDeletingId(null);
         fetchData();
-    } catch (err) {
+    } catch {
         toast.error('Failed to delete attempt');
     }
   };
@@ -91,7 +92,7 @@ const ResultsPage = () => {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] space-y-4">
         <div className="w-8 h-8 border-2 border-white/5 border-t-violet-500 rounded-full animate-spin"></div>
-        <p className="text-[10px] font-black text-white/10 uppercase tracking-[0.4em]">Loading Ledger...</p>
+        <p className="text-[10px] font-black text-white/70 uppercase tracking-[0.4em]">Loading Ledger...</p>
       </div>
     );
   }
@@ -102,15 +103,17 @@ const ResultsPage = () => {
         {/* HEADER */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 shrink-0">
           <div className="flex items-center gap-6">
-            <div 
+            <button
+              type="button"
               onClick={() => navigate('/student/dashboard')}
-              className="w-14 h-14 bg-violet-500/10 border border-violet-500/20 rounded-md flex items-center justify-center text-violet-400 cursor-pointer hover:bg-violet-500/20 transition-all shadow-[0_0_30px_rgba(124,58,237,0.1)]"
+              aria-label="Return to Dashboard"
+              className="w-14 h-14 bg-violet-500/10 border border-violet-500/20 rounded-md flex items-center justify-center text-violet-400 cursor-pointer hover:bg-violet-500/20 transition-all shadow-[0_0_30px_rgba(124,58,237,0.1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
             >
               <History size={24} />
-            </div>
+            </button>
             <div className="space-y-1">
               <h1 className="text-2xl font-black text-white uppercase tracking-tight">Performance History</h1>
-              <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.4em]">Analysis Ledger & Performance Records</p>
+              <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.4em]">Analysis Ledger & Performance Records</p>
             </div>
           </div>
 
@@ -118,17 +121,19 @@ const ResultsPage = () => {
               {/* METALLIC SWITCH */}
               <div className="flex w-full sm:w-auto bg-[#0a0a0f] border border-white/10 p-1 rounded-lg shrink-0 shadow-2xl gap-1">
                   <button 
+                      type="button"
                       onClick={() => setActiveType('PRACTICE')}
-                      className={`flex-1 px-3 sm:px-6 py-2 rounded-md text-[10px] font-black uppercase tracking-widest transition-all ${
-                          activeType === 'PRACTICE' ? 'bg-violet-600 text-white shadow-lg shadow-violet-600/20' : 'text-slate-500 hover:text-white hover:bg-white/5'
+                      className={`flex-1 px-3 sm:px-6 py-2 rounded-md text-[10px] font-black uppercase tracking-widest transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 ${
+                          activeType === 'PRACTICE' ? 'bg-violet-600 text-white shadow-lg shadow-violet-600/20' : 'text-slate-400 hover:text-white hover:bg-white/5'
                       }`}
                   >
                       Practice
                   </button>
                   <button 
+                      type="button"
                       onClick={() => setActiveType('MAIN')}
-                      className={`flex-1 px-3 sm:px-6 py-2 rounded-md text-[10px] font-black uppercase tracking-widest transition-all ${
-                          activeType === 'MAIN' ? 'bg-violet-600 text-white shadow-lg shadow-violet-600/20' : 'text-slate-500 hover:text-white hover:bg-white/5'
+                      className={`flex-1 px-3 sm:px-6 py-2 rounded-md text-[10px] font-black uppercase tracking-widest transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 ${
+                          activeType === 'MAIN' ? 'bg-violet-600 text-white shadow-lg shadow-violet-600/20' : 'text-slate-400 hover:text-white hover:bg-white/5'
                       }`}
                   >
                       Main
@@ -137,8 +142,9 @@ const ResultsPage = () => {
 
               <div className="flex items-center gap-3">
                   <button
+                      type="button"
                       onClick={() => navigate('/student/dashboard')}
-                      className="flex items-center gap-2 px-6 py-3 bg-white/5 border border-white/10 rounded-full hover:bg-white/10 transition-all text-slate-400 hover:text-white group shrink-0"
+                      className="flex items-center gap-2 px-6 py-3 bg-white/5 border border-white/10 rounded-full hover:bg-white/10 transition-all text-slate-400 hover:text-white group shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
                   >
                       <ArrowUpRight size={14} className="group-hover:rotate-45 transition-transform" />
                       <span className="text-[10px] font-black uppercase tracking-widest">Dashboard</span>
@@ -151,18 +157,18 @@ const ResultsPage = () => {
         <div className="flex-1 min-h-0 bg-[#0d0d12]/50 border border-white/5 rounded-2xl sm:rounded-[2rem] overflow-hidden flex flex-col shadow-2xl">
           {/* LEDGER HEADER - hidden on mobile */}
           <div className="hidden md:grid grid-cols-12 gap-4 px-8 py-5 bg-white/[0.02] border-b border-white/5 shrink-0">
-              <div className="col-span-5 text-[10px] font-black text-slate-600 uppercase tracking-widest">Assessment Detail</div>
-              <div className="col-span-2 text-[10px] font-black text-slate-600 uppercase tracking-widest text-center">Status</div>
-              <div className="col-span-2 text-[10px] font-black text-slate-600 uppercase tracking-widest text-center">Score</div>
-              <div className="col-span-3 text-[10px] font-black text-slate-600 uppercase tracking-widest text-right">Actions</div>
+              <div className="col-span-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Assessment Detail</div>
+              <div className="col-span-2 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Status</div>
+              <div className="col-span-2 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Score</div>
+              <div className="col-span-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</div>
           </div>
 
           {/* LEDGER BODY */}
           <div className="flex-1 overflow-y-auto no-scrollbar">
               {filteredAttempts.length === 0 ? (
                   <div className="h-full flex flex-col items-center justify-center text-center space-y-6">
-                      <History size={40} className="text-white/5" />
-                      <p className="text-[11px] text-slate-700 font-black uppercase tracking-widest">No {activeType.toLowerCase()} records found</p>
+                      <History size={40} className="text-white/20" />
+                      <p className="text-[11px] text-slate-400 font-black uppercase tracking-widest">No {activeType.toLowerCase()} records found</p>
                   </div>
               ) : (
                   <div className="divide-y divide-white/5">
@@ -187,7 +193,7 @@ const ResultsPage = () => {
                                       <div className="flex items-center gap-3 mt-1">
                                           <span className="text-[8px] font-black text-violet-400/80 uppercase tracking-widest">Attempt #{attempt.attemptNumber}</span>
                                           <span className="w-1 h-1 bg-white/10 rounded-full"></span>
-                                          <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">{formatDateTime(attempt.submittedAt || attempt.startedAt)}</span>
+                                          <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{formatDateTime(attempt.submittedAt || attempt.startedAt)}</span>
                                       </div>
                                   </div>
                               </div>
@@ -214,22 +220,25 @@ const ResultsPage = () => {
                                           {Math.round(attempt.scorePercent)}%
                                       </div>
                                   ) : (
-                                      <span className="text-slate-700 text-[10px] font-black uppercase tracking-widest">—</span>
+                                      <span className="text-slate-400 text-[10px] font-black uppercase tracking-widest">—</span>
                                   )}
                               </div>
                               <div className="col-span-3 flex justify-end items-center gap-3">
                                    {activeType !== 'MAIN' && (
                                        <button
-                                          onClick={(e) => handleDeleteTrigger(e, attempt.id)}
-                                          className="p-2.5 bg-rose-500/5 hover:bg-rose-500/10 border border-rose-500/10 hover:border-rose-500/20 text-rose-500 rounded-full transition-all"
-                                          title="Delete Attempt"
-                                      >
-                                          <Trash2 size={14} />
-                                      </button>
+                                           type="button"
+                                           onClick={(e) => handleDeleteTrigger(e, attempt.id)}
+                                           className="p-2.5 bg-rose-500/5 hover:bg-rose-500/10 border border-rose-500/10 hover:border-rose-500/20 text-rose-500 rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/50"
+                                           title="Delete Attempt"
+                                           aria-label="Delete Attempt"
+                                       >
+                                           <Trash2 size={14} />
+                                       </button>
                                    )}
                                   <button
+                                      type="button"
                                       onClick={() => navigate(`/results/${attempt.id}`)}
-                                      className="flex items-center gap-2 px-4 py-2.5 bg-white/[0.03] border border-white/5 rounded-full text-[9px] font-black text-slate-400 uppercase tracking-widest hover:bg-violet-500 hover:text-white hover:border-violet-400 transition-all group/btn"
+                                      className="flex items-center gap-2 px-4 py-2.5 bg-white/[0.03] border border-white/5 rounded-full text-[9px] font-black text-slate-300 uppercase tracking-widest hover:bg-violet-500 hover:text-white hover:border-violet-400 transition-all group/btn focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
                                   >
                                       View Report
                                       <ChevronRight size={12} className="group-hover/btn:translate-x-0.5 transition-transform" />
@@ -263,14 +272,24 @@ const ResultsPage = () => {
                                   )}
                               </div>
                               <div className="flex items-center justify-between">
-                                  <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">{formatDateTime(attempt.submittedAt || attempt.startedAt)}</span>
+                                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{formatDateTime(attempt.submittedAt || attempt.startedAt)}</span>
                                   <div className="flex items-center gap-2">
                                       {activeType !== 'MAIN' && (
-                                          <button onClick={(e) => handleDeleteTrigger(e, attempt.id)} className="p-1.5 bg-rose-500/5 border border-rose-500/10 text-rose-500 rounded-lg transition-all" title="Delete">
+                                          <button
+                                              type="button"
+                                              onClick={(e) => handleDeleteTrigger(e, attempt.id)}
+                                              className="p-1.5 bg-rose-500/5 border border-rose-500/10 text-rose-500 rounded-lg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/50"
+                                              title="Delete Attempt"
+                                              aria-label="Delete Attempt"
+                                          >
                                               <Trash2 size={12} />
                                           </button>
                                       )}
-                                      <button onClick={() => navigate(`/results/${attempt.id}`)} className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-600 text-white rounded-lg text-[9px] font-black uppercase tracking-widest transition-all">
+                                      <button
+                                          type="button"
+                                          onClick={() => navigate(`/results/${attempt.id}`)}
+                                          className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-600 text-white rounded-lg text-[9px] font-black uppercase tracking-widest transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
+                                      >
                                           Report <ChevronRight size={10} />
                                       </button>
                                   </div>
@@ -285,49 +304,29 @@ const ResultsPage = () => {
           {/* LEDGER FOOTER */}
           <div className="px-8 py-4 bg-white/[0.01] border-t border-white/5 shrink-0 flex items-center justify-between">
               <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2 text-[8px] font-black text-slate-600 uppercase tracking-widest">
+                  <div className="flex items-center gap-2 text-[8px] font-black text-slate-400 uppercase tracking-widest">
                       <div className="w-2 h-2 bg-emerald-500/50 rounded-full"></div>
                       Verified Entries
                   </div>
               </div>
-              <p className="text-[8px] font-black text-slate-700 uppercase tracking-widest">Total Records: {filteredAttempts.length}</p>
+              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Total Records: {filteredAttempts.length}</p>
           </div>
         </div>
       </div>
 
       {/* ── DELETE MODAL ────────────────────────────────────────── */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 z-[999] flex items-center justify-center p-6">
-          <div 
-            className="absolute inset-0 bg-black/60 backdrop-blur-md animate-in fade-in duration-300"
-            onClick={() => setShowDeleteConfirm(false)}
-          />
-          <div className="relative bg-[#1a1a2e]/80 border-2 border-white/10 backdrop-blur-xl rounded-3xl max-w-sm w-full shadow-[0_50px_100px_rgba(0,0,0,0.6)] p-8 text-center animate-in zoom-in duration-300">
-            <div className="w-20 h-20 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-rose-500/20">
-              <Trash2 size={32} className="text-rose-500"/>
-            </div>
-            <h3 className="text-2xl font-black text-white uppercase tracking-tight mb-2">Delete Record?</h3>
-            <p className="text-gray-400 text-[10px] font-black uppercase tracking-[0.2em] leading-relaxed mb-8">
-              This action is permanent and cannot be undone.
-            </p>
-            
-            <div className="flex flex-col gap-3">
-              <button
-                onClick={confirmDelete}
-                className="w-full py-4 bg-rose-600 hover:bg-rose-500 text-white rounded-full font-black uppercase text-[11px] tracking-[0.2em] transition-all shadow-lg shadow-rose-600/20"
-              >
-                Yes, Delete Record
-              </button>
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                className="w-full py-4 bg-white/5 hover:bg-white/10 text-gray-400 rounded-full font-black uppercase text-[11px] tracking-widest transition-all border border-white/5"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        isOpen={showDeleteConfirm}
+        onClose={() => {
+          setShowDeleteConfirm(false);
+          setDeletingId(null);
+        }}
+        onConfirm={confirmDelete}
+        title="Delete Record?"
+        message="This action is permanent and cannot be undone."
+        confirmText="Yes, Delete Record"
+        cancelText="Cancel"
+      />
     </div>
   );
 };

@@ -1,5 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Users,
   Search,
@@ -26,9 +25,56 @@ import ConfirmModal from '../components/ConfirmModal';
 const AdminStudents = () => {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm] = useState('');
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const profileModalRef = useRef(null);
+  const profileCloseBtnRef = useRef(null);
+  const previousFocusRef = useRef(null);
+
+  useEffect(() => {
+    if (selectedStudent) {
+      previousFocusRef.current = document.activeElement;
+      const timer = setTimeout(() => {
+        profileCloseBtnRef.current?.focus();
+      }, 50);
+      return () => clearTimeout(timer);
+    } else if (previousFocusRef.current) {
+      previousFocusRef.current.focus?.();
+    }
+  }, [selectedStudent]);
+
+  useEffect(() => {
+    if (!selectedStudent || showDeleteConfirm) return;
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setSelectedStudent(null);
+        return;
+      }
+
+      if (e.key === 'Tab' && profileModalRef.current) {
+        const focusable = profileModalRef.current.querySelectorAll(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedStudent, showDeleteConfirm]);
 
   useEffect(() => {
     fetchStudents();
@@ -40,7 +86,7 @@ const AdminStudents = () => {
       const res = await api.get('/admin/students');
       const userList = Array.isArray(res.data) ? res.data : (res.data.users || []);
       setStudents(userList);
-    } catch (err) {
+    } catch {
       toast.error('Failed to load student directory');
     } finally {
       setLoading(false);
@@ -92,25 +138,25 @@ const AdminStudents = () => {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
         <Loader2 className="w-12 h-12 text-violet-500 animate-spin" />
-        <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.4em]">Synchronizing Registry...</p>
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">Synchronizing Registry...</p>
       </div>
     );
   }
 
   return (
-    <div className="h-full overflow-y-auto pr-2 custom-scrollbar p-10">
+    <div className="h-full overflow-y-auto pr-2 custom-scrollbar p-4 sm:p-6 lg:p-10">
       <div className="animate-in fade-in duration-700 space-y-6">
         {/* Header & Controls */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-white/5 pb-6">
           <div className="space-y-1">
             <h1 className="text-xl font-black text-white uppercase tracking-[0.2em]">Student Directory</h1>
-            <p className="text-white/20 text-[9px] font-bold uppercase tracking-[0.3em]">Governance & User Access</p>
+            <p className="text-white/60 text-[9px] font-bold uppercase tracking-[0.3em]">Governance & User Access</p>
           </div>
 
           <div className="flex items-center gap-2 min-w-0 shrink-0 ml-auto md:ml-0">
             <button
               onClick={fetchStudents}
-              className={`w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-[#111118] border border-white/10 text-white/30 hover:text-white hover:bg-violet-600/20 hover:border-violet-500/40 transition-all shrink-0 flex items-center justify-center relative ${loading ? 'cursor-wait' : 'cursor-pointer'}`}
+              className={`w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-[#111118] border border-white/10 text-white/60 hover:text-white hover:bg-violet-600/20 hover:border-violet-500/40 transition-all shrink-0 flex items-center justify-center relative ${loading ? 'cursor-wait' : 'cursor-pointer'}`}
               title="Refresh"
             >
               <RotateCw size={14} sm:size={20} className={loading ? 'animate-spin' : ''} />
@@ -126,7 +172,7 @@ const AdminStudents = () => {
               <Users size={16} sm:size={18} strokeWidth={2.5} />
             </div>
             <div>
-              <p className="text-[7px] sm:text-[8px] font-black text-white/20 uppercase tracking-[0.2em]">Total Students</p>
+              <p className="text-[7px] sm:text-[8px] font-black text-white/60 uppercase tracking-[0.2em]">Total Students</p>
               <p className="text-base sm:text-lg font-black text-white tabular-nums tracking-tighter mt-0.5">{students.length}</p>
             </div>
           </div>
@@ -144,19 +190,21 @@ const AdminStudents = () => {
                   <span className="text-[11px] font-black text-white uppercase tracking-widest">{student.name}</span>
                   <div className="flex items-center gap-2 mt-0.5">
                     <ShieldCheck size={8} className="text-violet-500/50" />
-                    <span className="text-[8px] font-black text-white/20 uppercase tracking-widest">Candidate Signature</span>
+                    <span className="text-[8px] font-black text-white/60 uppercase tracking-widest">Candidate Signature</span>
                   </div>
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => setSelectedStudent(student)}
-                className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/40"
+                aria-label={`View profile for ${student.name}`}
+                className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/70 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
               >
                 <Info size={16} />
               </button>
             </div>
           )) : (
-            <div className="py-20 text-center opacity-20">
+            <div className="py-20 text-center opacity-40 text-slate-400">
               <Users size={40} className="mx-auto mb-4" />
               <p className="text-[10px] font-black uppercase tracking-widest">No Results</p>
             </div>
@@ -169,11 +217,11 @@ const AdminStudents = () => {
             <table className="w-full text-left border-collapse">
               <thead className="bg-black/20 border-b border-white/5">
                 <tr>
-                  <th className="px-6 py-4 text-[9px] font-black text-white/30 uppercase tracking-[0.2em]">Identity</th>
-                  <th className="px-6 py-4 text-[9px] font-black text-white/30 uppercase tracking-[0.2em]">Email Address</th>
-                  <th className="px-6 py-4 text-[9px] font-black text-white/30 uppercase tracking-[0.2em]">Role</th>
-                  <th className="px-6 py-4 text-[9px] font-black text-white/30 uppercase tracking-[0.2em]">Registration</th>
-                  <th className="px-6 py-4 text-[9px] font-black text-white/30 uppercase tracking-[0.2em] text-center">Profile</th>
+                  <th className="px-6 py-4 text-[9px] font-black text-white/60 uppercase tracking-[0.2em]">Identity</th>
+                  <th className="px-6 py-4 text-[9px] font-black text-white/60 uppercase tracking-[0.2em]">Email Address</th>
+                  <th className="px-6 py-4 text-[9px] font-black text-white/60 uppercase tracking-[0.2em]">Role</th>
+                  <th className="px-6 py-4 text-[9px] font-black text-white/60 uppercase tracking-[0.2em]">Registration</th>
+                  <th className="px-6 py-4 text-[9px] font-black text-white/60 uppercase tracking-[0.2em] text-center">Profile</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
@@ -186,30 +234,32 @@ const AdminStudents = () => {
                         </div>
                         <div className="flex flex-col">
                           <span className="text-[11px] font-black text-white uppercase tracking-widest">{student.name}</span>
-                          <span className="text-[8px] font-black text-white/20 uppercase tracking-widest mt-0.5">Candidate Signature</span>
+                          <span className="text-[8px] font-black text-white/60 uppercase tracking-widest mt-0.5">Candidate Signature</span>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-5">
-                      <span className="text-[10px] font-black text-white/40 group-hover:text-white/60 transition-colors lowercase tracking-wider">{student.email}</span>
+                      <span className="text-[10px] font-black text-white/70 group-hover:text-white/90 transition-colors lowercase tracking-wider">{student.email}</span>
                     </td>
                     <td className="px-6 py-5">
                       <div className="flex items-center gap-2">
                         <ShieldCheck size={10} className="text-violet-500/50" />
-                        <span className="text-[9px] font-black text-white/40 uppercase tracking-widest">
+                        <span className="text-[9px] font-black text-white/70 uppercase tracking-widest">
                           Student
                         </span>
                       </div>
                     </td>
                     <td className="px-6 py-5">
-                      <span className="text-[10px] font-black text-white/20 tabular-nums tracking-widest">
+                      <span className="text-[10px] font-black text-white/60 tabular-nums tracking-widest">
                         {formatDate(student)}
                       </span>
                     </td>
                     <td className="px-6 py-5 text-center">
                       <button
+                        type="button"
                         onClick={() => setSelectedStudent(student)}
-                        className="icon-pill bg-white/5 text-white/20 hover:text-white hover:bg-white/10"
+                        aria-label={`View profile for ${student.name}`}
+                        className="icon-pill bg-white/5 text-white/70 hover:text-white hover:bg-white/10"
                         title="View Profile"
                       >
                         <Info size={14} />
@@ -219,7 +269,7 @@ const AdminStudents = () => {
                 )) : (
                   <tr>
                     <td colSpan="5" className="px-6 py-32 text-center">
-                      <div className="flex flex-col items-center justify-center space-y-6 opacity-10">
+                      <div className="flex flex-col items-center justify-center space-y-6 opacity-40 text-slate-400">
                         <Users size={40} strokeWidth={1} />
                         <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white">No profiles match selection</p>
                       </div>
@@ -235,13 +285,25 @@ const AdminStudents = () => {
       {/* STUDENT PROFILE MODAL */}
       {selectedStudent && (
         <div className="fixed inset-0 z-[999] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-md animate-in fade-in duration-300" onClick={() => setSelectedStudent(null)} />
-          <div className="relative w-full max-w-xl bg-[#0a0a0f] border border-white/10 rounded-[2.5rem] shadow-[0_40px_120px_rgba(0,0,0,0.8)] overflow-hidden animate-in zoom-in-95 duration-300">
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 bg-black/80 backdrop-blur-md animate-in fade-in duration-300"
+            onClick={() => setSelectedStudent(null)}
+          />
+          <div
+            ref={profileModalRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="student-profile-title"
+            className="relative w-full max-w-xl bg-[#0a0a0f] border border-white/10 rounded-[2.5rem] shadow-[0_40px_120px_rgba(0,0,0,0.8)] overflow-hidden animate-in zoom-in-95 duration-300"
+          >
             {/* Header */}
             <div className={`h-32 bg-gradient-to-br ${getGradient(selectedStudent.name)} relative`}>
               <button
+                type="button"
                 onClick={() => setSelectedStudent(null)}
-                className="absolute top-6 right-6 p-2 bg-black/20 hover:bg-black/40 text-white rounded-full transition-all"
+                aria-label="Close profile"
+                className="absolute top-6 right-6 p-2 bg-black/20 hover:bg-black/40 text-white rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
               >
                 <X size={16} />
               </button>
@@ -255,7 +317,7 @@ const AdminStudents = () => {
             <div className="pt-16 pb-8 px-10">
               <div className="flex items-start justify-between mb-8">
                 <div className="space-y-1">
-                  <h2 className="text-2xl font-black text-white uppercase tracking-tighter">{selectedStudent.name}</h2>
+                  <h2 id="student-profile-title" className="text-2xl font-black text-white uppercase tracking-tighter">{selectedStudent.name}</h2>
                 </div>
                 <div className="px-4 py-1.5 rounded-full border bg-emerald-500/10 border-emerald-500/20 text-emerald-500 text-[9px] font-black uppercase tracking-widest">
                   Account Active
@@ -266,15 +328,15 @@ const AdminStudents = () => {
               <div className="space-y-4">
                 <div className="flex items-center justify-between p-4 bg-white/[0.02] rounded-2xl border border-white/5">
                   <div className="flex items-center gap-3">
-                    <Mail size={14} className="text-white/20" />
-                    <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Email Identity</span>
+                    <Mail size={14} className="text-white/50" />
+                    <span className="text-[10px] font-black text-white/70 uppercase tracking-widest">Email Identity</span>
                   </div>
                   <span className="text-[11px] font-bold text-white/80">{selectedStudent.email}</span>
                 </div>
                 <div className="flex items-center justify-between p-4 bg-white/[0.02] rounded-2xl border border-white/5">
                   <div className="flex items-center gap-3">
-                    <Calendar size={14} className="text-white/20" />
-                    <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Registration Date</span>
+                    <Calendar size={14} className="text-white/50" />
+                    <span className="text-[10px] font-black text-white/70 uppercase tracking-widest">Registration Date</span>
                   </div>
                   <span className="text-[11px] font-bold text-white/80">
                     {formatDate(selectedStudent)}
@@ -282,8 +344,8 @@ const AdminStudents = () => {
                 </div>
                 <div className="flex items-center justify-between p-4 bg-white/[0.02] rounded-2xl border border-white/5">
                   <div className="flex items-center gap-3">
-                    <ShieldCheck size={14} className="text-white/20" />
-                    <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Access Privilege</span>
+                    <ShieldCheck size={14} className="text-white/50" />
+                    <span className="text-[10px] font-black text-white/70 uppercase tracking-widest">Access Privilege</span>
                   </div>
                   <span className="text-[11px] font-bold text-white/80 uppercase tracking-widest">Standard Student</span>
                 </div>
@@ -291,12 +353,15 @@ const AdminStudents = () => {
 
               <div className="mt-10 flex gap-4">
                 <button
+                  ref={profileCloseBtnRef}
+                  type="button"
                   onClick={() => setSelectedStudent(null)}
                   className="btn-secondary flex-1 py-4"
                 >
                   Close Profile
                 </button>
                 <button
+                  type="button"
                   onClick={() => setShowDeleteConfirm(true)}
                   className="btn-danger flex-[2] py-4"
                 >
