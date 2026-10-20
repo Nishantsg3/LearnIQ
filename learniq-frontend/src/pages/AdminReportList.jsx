@@ -44,7 +44,7 @@ const AdminReportList = ({ mode = 'ANALYTICS' }) => {
         );
         
         setTests(testsWithStats);
-      } catch (err) {
+      } catch {
         toast.error('Failed to load assessment data');
       } finally {
         setLoading(false);
@@ -66,20 +66,20 @@ const AdminReportList = ({ mode = 'ANALYTICS' }) => {
   );
 
   return (
-    <div className="h-[calc(100vh-80px)] overflow-y-auto custom-scrollbar p-10">
-      <div className="animate-in fade-in duration-700 space-y-12">
+    <div className="h-[calc(100vh-80px)] overflow-y-auto custom-scrollbar p-4 sm:p-6 lg:p-10">
+      <div className="animate-in fade-in duration-700 space-y-6 sm:space-y-12">
         
         {/* HEADER CLUSTER */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-10 border-b border-white/5 pb-10">
-          <div className="flex items-center gap-6">
-              <div className={`p-5 rounded-[1.5rem] bg-white/[0.03] border border-white/5 shadow-2xl ${mode === 'ANALYTICS' ? 'text-indigo-400' : 'text-amber-400'}`}>
-                  {mode === 'ANALYTICS' ? <BarChart2 size={28} /> : <Award size={28} />}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 sm:gap-10 border-b border-white/5 pb-6 sm:pb-10">
+          <div className="flex items-center gap-4 sm:gap-6">
+              <div className={`p-3 sm:p-5 rounded-2xl sm:rounded-[1.5rem] bg-white/[0.03] border border-white/5 shadow-2xl ${mode === 'ANALYTICS' ? 'text-indigo-400' : 'text-amber-400'}`}>
+                  {mode === 'ANALYTICS' ? <BarChart2 size={24} className="sm:w-7 sm:h-7" /> : <Award size={24} className="sm:w-7 sm:h-7" />}
               </div>
               <div>
-                  <h1 className="text-3xl font-black text-white uppercase tracking-tight italic leading-none">
+                  <h1 className="text-xl sm:text-3xl font-black text-white uppercase tracking-tight italic leading-none">
                       {mode === 'ANALYTICS' ? 'Performance Analytics' : 'Merit Rankings'}
                   </h1>
-                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] mt-3">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] mt-2 sm:mt-3">
                       Audit assessment {mode === 'ANALYTICS' ? 'telemetry' : 'rankings'} • Select cluster to proceed
                   </p>
               </div>
@@ -87,13 +87,13 @@ const AdminReportList = ({ mode = 'ANALYTICS' }) => {
 
           <div className="flex flex-col sm:flex-row items-center gap-4 min-w-0 w-full md:w-auto">
               <div className="relative group w-full sm:w-[240px]">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-indigo-400 transition-colors" size={14} />
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-400 transition-colors" size={14} />
                   <input 
                       type="text" 
                       placeholder="Search..." 
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
-                      className="bg-[#0d0d12] border border-white/5 rounded-full h-10 pl-10 pr-4 text-[10px] font-black uppercase tracking-widest text-white outline-none focus:border-indigo-500/50 transition-all w-full placeholder:text-white/10 shadow-2xl"
+                      className="bg-[#0d0d12] border border-white/5 rounded-full h-10 pl-10 pr-4 text-[10px] font-black uppercase tracking-widest text-white outline-none focus:border-indigo-500/50 transition-all w-full placeholder:text-white/50 shadow-2xl"
                   />
               </div>
               <div className="flex items-center gap-2 min-w-0 shrink-0 self-end sm:self-auto">
@@ -104,13 +104,13 @@ const AdminReportList = ({ mode = 'ANALYTICS' }) => {
 
         {/* LIST / TABLE VIEW */}
         {filteredTests.length === 0 ? (
-          <div className="py-40 bg-[#0d0d12] border border-dashed border-white/5 rounded-[4rem] flex flex-col items-center justify-center text-center space-y-8 animate-pulse">
-              <div className="w-20 h-20 rounded-[2rem] bg-white/[0.02] flex items-center justify-center border border-white/5 shadow-2xl">
-                <AlertCircle size={32} className="text-slate-800" />
+          <div className="py-20 sm:py-40 bg-[#0d0d12] border border-dashed border-white/5 rounded-3xl sm:rounded-[4rem] flex flex-col items-center justify-center text-center space-y-6 sm:space-y-8 animate-pulse">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl sm:rounded-[2rem] bg-white/[0.02] flex items-center justify-center border border-white/5 shadow-2xl">
+                <AlertCircle size={32} className="text-slate-600" />
               </div>
               <div className="space-y-4">
-                <p className="text-[12px] font-black text-slate-500 uppercase tracking-[0.5em]">Zero matches detected</p>
-                <p className="text-[9px] font-black text-slate-700 uppercase tracking-[0.3em]">Refine search parameters or classification sectors</p>
+                <p className="text-[12px] font-black text-slate-300 uppercase tracking-[0.5em]">Zero matches detected</p>
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">Refine search parameters or classification sectors</p>
               </div>
           </div>
         ) : (
@@ -139,19 +139,19 @@ const AdminReportList = ({ mode = 'ANALYTICS' }) => {
                             {test?.title || "Untitled Assessment"}
                           </span>
                           <div className="flex items-center gap-4 mt-2">
-                            <span className="flex items-center gap-1 text-[10px] text-slate-500 font-medium">
-                              <Clock size={10} className="text-slate-600" />
+                            <span className="flex items-center gap-1 text-[10px] text-slate-400 font-medium">
+                              <Clock size={10} className="text-slate-400" />
                               {test?.durationMinutes ?? 0} M
                             </span>
-                            <span className="text-slate-700">•</span>
-                            <span className="flex items-center gap-1 text-[10px] text-slate-500 font-medium">
-                              <FileText size={10} className="text-slate-600" />
+                            <span className="text-slate-500">•</span>
+                            <span className="flex items-center gap-1 text-[10px] text-slate-400 font-medium">
+                              <FileText size={10} className="text-slate-400" />
                               {test?.questionCount ?? 0} Q
                             </span>
                             {test?.archived && (
                               <>
-                                <span className="text-slate-700">•</span>
-                                <span className="px-2 py-0.5 bg-rose-500/10 border border-rose-500/20 text-rose-500 text-[8px] font-black uppercase tracking-widest rounded">
+                                <span className="text-slate-500">•</span>
+                                <span className="px-2 py-0.5 bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[8px] font-black uppercase tracking-widest rounded">
                                   ARCHIVED
                                 </span>
                               </>
@@ -187,16 +187,20 @@ const AdminReportList = ({ mode = 'ANALYTICS' }) => {
                       <td className="px-8 py-6 text-right">
                         {mode === 'ANALYTICS' ? (
                           <button 
+                            type="button"
                             onClick={() => navigate(`/admin/tests/${test.id}/analytics`)}
-                            className="px-4 py-2 text-[10px] font-black uppercase tracking-wider bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors inline-flex items-center gap-2"
+                            aria-label={`Audit reports for ${test?.title || 'assessment'}`}
+                            className="px-4 py-2 text-[10px] font-black uppercase tracking-wider bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors inline-flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
                           >
                             <BarChart2 size={12} />
                             Audit Reports
                           </button>
                         ) : (
                           <button 
+                            type="button"
                             onClick={() => navigate(`/admin/tests/${test.id}/leaderboard`)}
-                            className="px-4 py-2 text-[10px] font-black uppercase tracking-wider bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors inline-flex items-center gap-2"
+                            aria-label={`Merit rankings for ${test?.title || 'assessment'}`}
+                            className="px-4 py-2 text-[10px] font-black uppercase tracking-wider bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors inline-flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
                           >
                             <Award size={12} />
                             Merit Rankings

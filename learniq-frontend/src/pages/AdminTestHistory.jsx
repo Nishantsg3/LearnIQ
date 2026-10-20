@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   AlertCircle,
   Loader2,
@@ -36,6 +36,53 @@ const AdminTestHistory = () => {
     confirmText: ''
   });
 
+  const summaryModalRef = useRef(null);
+  const summaryCloseBtnRef = useRef(null);
+  const previousSummaryFocusRef = useRef(null);
+
+  useEffect(() => {
+    if (selectedTest) {
+      previousSummaryFocusRef.current = document.activeElement;
+      const timer = setTimeout(() => {
+        summaryCloseBtnRef.current?.focus();
+      }, 50);
+      return () => clearTimeout(timer);
+    } else if (previousSummaryFocusRef.current) {
+      previousSummaryFocusRef.current.focus?.();
+    }
+  }, [selectedTest]);
+
+  useEffect(() => {
+    if (!selectedTest || confirmConfig.isOpen) return;
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setSelectedTest(null);
+        return;
+      }
+
+      if (e.key === 'Tab' && summaryModalRef.current) {
+        const focusable = summaryModalRef.current.querySelectorAll(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedTest, confirmConfig.isOpen]);
+
   useEffect(() => {
     fetchTests();
   }, []);
@@ -49,7 +96,7 @@ const AdminTestHistory = () => {
         type: (t.testType || t.type || '').toLowerCase()
       }));
       setTests(normalizedData);
-    } catch (err) {
+    } catch {
       toast.error('Failed to sync history ledger');
     } finally {
       setLoading(false);
@@ -125,7 +172,7 @@ const AdminTestHistory = () => {
         toast.success('Record purged');
       }
       fetchTests();
-    } catch (err) {
+    } catch {
       toast.error(`${type === 'RESTORE' ? 'Restoration' : 'Purge'} failed`);
     }
   };
@@ -133,7 +180,7 @@ const AdminTestHistory = () => {
   if (loading) return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
       <Loader2 className="w-12 h-12 text-[#7c3aed] animate-spin" />
-      <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em]">Retrieving Audit Ledger...</p>
+      <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">Retrieving Audit Ledger...</p>
     </div>
   );
 
@@ -143,7 +190,7 @@ const AdminTestHistory = () => {
         <div className="flex items-center justify-between gap-4">
           <div className="space-y-1">
             <h1 className="text-xl font-black text-white uppercase tracking-[0.2em] italic">Assessment History</h1>
-            <p className="text-white/20 text-[9px] font-bold uppercase tracking-[0.3em]">Archival Records & Legacy Data</p>
+            <p className="text-white/60 text-[9px] font-bold uppercase tracking-[0.3em]">Archival Records & Legacy Data</p>
           </div>
           <div className="flex items-center gap-2 min-w-0 shrink-0">
              <BackToDashboard />
@@ -159,7 +206,7 @@ const AdminTestHistory = () => {
                   className={`flex-1 px-3 py-2.5 rounded-md text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${
                     filterType === type 
                       ? 'bg-violet-600 text-white shadow-lg shadow-violet-600/20' 
-                      : 'text-white/20 hover:text-white/40 hover:bg-white/5'
+                      : 'text-white/60 hover:text-white hover:bg-white/5'
                   }`}
                 >
                   {type}
@@ -169,13 +216,13 @@ const AdminTestHistory = () => {
 
             {/* SEARCH */}
             <div className="relative group w-full">
-              <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-violet-500 transition-colors" />
+              <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50 group-focus-within:text-violet-500 transition-colors" />
               <input 
                 type="text"
                 placeholder="Search history..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-[#0f0f14] border border-white/5 rounded-lg pl-10 pr-4 py-3.5 text-[10px] font-black uppercase tracking-widest text-white outline-none focus:border-violet-500/30 transition-all w-full placeholder:text-white/5 shadow-2xl"
+                className="bg-[#0f0f14] border border-white/5 rounded-lg pl-10 pr-4 py-3.5 text-[10px] font-black uppercase tracking-widest text-white outline-none focus:border-violet-500/30 transition-all w-full placeholder:text-white/50 shadow-2xl"
               />
             </div>
         </div>
@@ -187,10 +234,10 @@ const AdminTestHistory = () => {
                 <table className="w-full text-left border-collapse">
                     <thead className="bg-black/20 border-b border-white/5">
                         <tr>
-                            <th className="px-6 py-4 text-[9px] font-black text-white/30 uppercase tracking-[0.2em]">Test Identity</th>
-                            <th className="px-6 py-4 text-[9px] font-black text-white/30 uppercase tracking-[0.2em] text-right">Archive Stamp</th>
-                            <th className="px-6 py-4 text-[9px] font-black text-white/30 uppercase tracking-[0.2em] text-center">Info</th>
-                            <th className="px-6 py-4 text-[9px] font-black text-white/30 uppercase tracking-[0.2em] text-right">Actions</th>
+                            <th className="px-6 py-4 text-[9px] font-black text-white/60 uppercase tracking-[0.2em]">Test Identity</th>
+                            <th className="px-6 py-4 text-[9px] font-black text-white/60 uppercase tracking-[0.2em] text-right">Archive Stamp</th>
+                            <th className="px-6 py-4 text-[9px] font-black text-white/60 uppercase tracking-[0.2em] text-center">Info</th>
+                            <th className="px-6 py-4 text-[9px] font-black text-white/60 uppercase tracking-[0.2em] text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
@@ -199,13 +246,13 @@ const AdminTestHistory = () => {
                                 <td className="px-6 py-5">
                                     <div className="flex items-center gap-3">
                                       <span className="text-[11px] font-black text-white uppercase tracking-widest">{test.title}</span>
-                                      <span className={`text-[7px] font-black px-1.5 py-0.5 rounded border ${filterType === 'main' ? 'border-rose-500/20 text-rose-500/40' : 'border-emerald-500/20 text-emerald-500/40'} uppercase`}>
+                                      <span className={`text-[7px] font-black px-1.5 py-0.5 rounded border ${filterType === 'main' ? 'border-rose-500/20 text-rose-400' : 'border-emerald-500/20 text-emerald-400'} uppercase`}>
                                         {test.category}
                                       </span>
                                     </div>
                                 </td>
                                 <td className="px-6 py-5 text-right">
-                                    <span className="text-[9px] font-black text-white/10 uppercase tracking-widest">
+                                    <span className="text-[9px] font-black text-white/60 uppercase tracking-widest">
                                         {new Date(test.createdAt || Date.now()).toLocaleDateString('en-US', { 
                                           month: 'short', 
                                           day: 'numeric'
@@ -214,9 +261,11 @@ const AdminTestHistory = () => {
                                 </td>
                                 <td className="px-6 py-5 text-center">
                                     <button 
+                                      type="button"
                                       onClick={() => setSelectedTest(test)}
-                                      className="p-2.5 bg-white/5 text-white/40 hover:text-white hover:bg-white/10 rounded-full transition-all"
+                                      className="p-2.5 bg-white/5 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400"
                                       title="View Summary"
+                                      aria-label={`View summary for ${test.title}`}
                                     >
                                       <Info size={14} />
                                     </button>
@@ -224,16 +273,20 @@ const AdminTestHistory = () => {
                                 <td className="px-6 py-5 text-right">
                                     <div className="flex items-center justify-end gap-2">
                                       <button 
+                                        type="button"
                                         onClick={() => handleRestoreClick(test.id)}
-                                        className="p-2.5 bg-emerald-500/5 text-emerald-500/40 hover:text-emerald-500 hover:bg-emerald-500/10 rounded-full transition-all"
+                                        className="p-2.5 bg-emerald-500/5 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
                                         title="Restore to Active"
+                                        aria-label={`Restore ${test.title} to active`}
                                       >
                                         <RefreshCcw size={14} />
                                       </button>
                                       <button 
+                                        type="button"
                                         onClick={() => handleDeleteClick(test.id)}
-                                        className="p-2.5 bg-rose-500/5 text-rose-500/40 hover:text-rose-500 hover:bg-rose-500/10 rounded-full transition-all"
+                                        className="p-2.5 bg-rose-500/5 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
                                         title="Purge Record"
+                                        aria-label={`Purge record for ${test.title}`}
                                       >
                                         <Trash2 size={14} />
                                       </button>
@@ -246,7 +299,7 @@ const AdminTestHistory = () => {
             </div>
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center py-32 opacity-10">
+        <div className="flex flex-col items-center justify-center py-32 opacity-50 text-slate-400">
           <div className="p-6 bg-white/5 rounded-full mb-6">
             <Search size={40} strokeWidth={1} />
           </div>
@@ -259,14 +312,29 @@ const AdminTestHistory = () => {
       {/* DEPLOYMENT SUMMARY MODAL */}
       {selectedTest && (
         <div className="fixed inset-0 lg:pl-[340px] z-[100] flex items-center justify-center p-6 animate-in fade-in duration-300">
-          <div className="absolute inset-0 bg-transparent" onClick={() => setSelectedTest(null)} />
-          <div className="relative w-full max-w-md bg-[#0a0a0f] border border-white/10 rounded-[2.5rem] shadow-[0_30px_100px_rgba(0,0,0,0.8)] overflow-hidden animate-in zoom-in-95 duration-300">
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 bg-black/80 backdrop-blur-md"
+            onClick={() => setSelectedTest(null)}
+          />
+          <div
+            ref={summaryModalRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="history-modal-title"
+            className="relative w-full max-w-md bg-[#0a0a0f] border border-white/10 rounded-[2.5rem] shadow-[0_30px_100px_rgba(0,0,0,0.8)] overflow-hidden animate-in zoom-in-95 duration-300"
+          >
             <div className="p-8 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
               <div>
-                <h2 className="text-sm font-black text-white uppercase tracking-[0.2em] italic">Deployment Summary</h2>
+                <h2 id="history-modal-title" className="text-sm font-black text-white uppercase tracking-[0.2em] italic">Deployment Summary</h2>
                 <p className="text-[#9ca3af] text-[9px] font-black uppercase tracking-[0.3em] mt-1">Archived Cluster Parameters</p>
               </div>
-              <button onClick={() => setSelectedTest(null)} className="p-2 hover:bg-white/5 rounded-xl text-white/20 hover:text-white transition-all">
+              <button
+                type="button"
+                onClick={() => setSelectedTest(null)}
+                aria-label="Close summary"
+                className="p-2 hover:bg-white/5 rounded-xl text-slate-400 hover:text-white transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+              >
                 <X size={20} />
               </button>
             </div>
@@ -276,26 +344,26 @@ const AdminTestHistory = () => {
                 <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
                 <div className="space-y-4">
                   <div className="flex justify-between items-center text-[10px] font-bold">
-                    <span className="text-white/30 uppercase tracking-widest flex items-center gap-2"><Zap size={12}/> Mode</span>
+                    <span className="text-white/60 uppercase tracking-widest flex items-center gap-2"><Zap size={12}/> Mode</span>
                     <span className={`tracking-widest uppercase ${selectedTest.type === 'main' ? 'text-rose-500' : 'text-emerald-500'}`}>
                       {selectedTest.type}
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-[10px] font-bold">
-                    <span className="text-white/30 uppercase tracking-widest flex items-center gap-2"><Database size={12}/> Subject</span>
+                    <span className="text-white/60 uppercase tracking-widest flex items-center gap-2"><Database size={12}/> Subject</span>
                     <span className="text-white/80 tracking-widest uppercase">{selectedTest.category}</span>
                   </div>
                   <div className="flex justify-between items-center text-[10px] font-bold">
-                    <span className="text-white/30 uppercase tracking-widest flex items-center gap-2"><FileText size={12}/> Questions</span>
+                    <span className="text-white/60 uppercase tracking-widest flex items-center gap-2"><FileText size={12}/> Questions</span>
                     <span className="text-white/80 tracking-widest uppercase">{selectedTest.questionCount || selectedTest.totalQuestions} Questions</span>
                   </div>
                   <div className="flex justify-between items-center text-[10px] font-bold">
-                    <span className="text-white/30 uppercase tracking-widest flex items-center gap-2"><Clock size={12}/> Duration</span>
+                    <span className="text-white/60 uppercase tracking-widest flex items-center gap-2"><Clock size={12}/> Duration</span>
                     <span className="text-white/80 tracking-widest uppercase">{selectedTest.durationMinutes || selectedTest.duration} Minutes</span>
                   </div>
                   <div className="flex justify-between items-center text-[10px] font-bold pt-4 border-t border-white/5">
-                    <span className="text-white/30 uppercase tracking-widest flex items-center gap-2"><Calendar size={12}/> Deployed</span>
-                    <span className="text-white/40 tracking-widest uppercase">
+                    <span className="text-white/60 uppercase tracking-widest flex items-center gap-2"><Calendar size={12}/> Deployed</span>
+                    <span className="text-white/70 tracking-widest uppercase">
                       {new Date(selectedTest.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                     </span>
                   </div>
@@ -303,8 +371,10 @@ const AdminTestHistory = () => {
               </div>
 
               <button 
+                ref={summaryCloseBtnRef}
+                type="button"
                 onClick={() => setSelectedTest(null)}
-                className="w-full py-4 bg-white text-black rounded-full font-black uppercase text-[10px] tracking-[0.4em] transition-all hover:bg-white/90 active:scale-[0.98]"
+                className="w-full py-4 bg-white text-black rounded-full font-black uppercase text-[10px] tracking-[0.4em] transition-all hover:bg-white/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400"
               >
                 Close Summary
               </button>

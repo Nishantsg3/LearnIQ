@@ -79,7 +79,7 @@ const TestResultView = () => {
             }
           }
         }
-      } catch (err) {
+      } catch {
         toast.error('Unable to retrieve records');
         navigate('/student/dashboard');
       } finally {
@@ -112,7 +112,7 @@ const TestResultView = () => {
           toast.error('Failed', { id: toastId });
           setIsExporting(false);
         });
-      } catch (err) {
+      } catch {
         toast.error('Failed to load export library', { id: toastId });
         setIsExporting(false);
       }
@@ -128,9 +128,6 @@ const TestResultView = () => {
   const clientScore    = reviewList.length > 0 ? Math.round((clientCorrect / reviewList.length) * 100) : 0;
   const isPassed       = clientScore >= 40;
 
-  const isExpired = test?.endTime ? new Date() > new Date(test.endTime) : true;
-  const isAdmin = user?.role === 'ADMIN';
-  
   // Deterministic Rank Calculation — matches by backend-provided rank
   const globalStandingData = useMemo(() => {
     return {
@@ -143,7 +140,7 @@ const TestResultView = () => {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] space-y-4">
         <div className="w-10 h-10 border-2 border-white/5 border-t-violet-500 rounded-full animate-spin"></div>
-        <p className="text-[10px] font-black text-white/10 uppercase tracking-[0.4em]">Compiling Analytics...</p>
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">Compiling Analytics...</p>
       </div>
     );
   }
@@ -156,10 +153,10 @@ const TestResultView = () => {
         </div>
         <div className="text-center space-y-2">
             <h2 className="text-xl font-black text-white uppercase tracking-tight">Record Not Found</h2>
-            <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">The requested assessment intelligence is unavailable</p>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">The requested assessment intelligence is unavailable</p>
         </div>
-        <button 
-            onClick={() => navigate('/student/dashboard')} 
+        <button
+            onClick={() => navigate('/student/dashboard')}
             className="px-10 py-4 bg-white/5 border border-white/10 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-all font-black uppercase text-[11px] tracking-widest"
         >
             Return to Command Center
@@ -179,7 +176,7 @@ const TestResultView = () => {
       {/* HEADER */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 shrink-0 no-print">
           <div className="space-y-1">
-              <div className="flex items-center gap-3 text-slate-500 text-[8px] md:text-[9px] font-black uppercase tracking-[0.4em]">
+              <div className="flex items-center gap-3 text-slate-400 text-[8px] md:text-[9px] font-black uppercase tracking-[0.4em]">
                   <Target size={10} className="text-violet-500" />
                   Performance Intelligence
               </div>
@@ -195,12 +192,17 @@ const TestResultView = () => {
           </div>
 
           <div className="flex items-center gap-2">
-              <button onClick={handleExportPDF} className="hidden sm:flex px-4 py-2 bg-white/5 border border-white/10 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-all items-center gap-2">
+              <button
+                type="button"
+                onClick={handleExportPDF}
+                disabled={isExporting}
+                className="hidden sm:flex px-4 py-2 bg-white/5 border border-white/10 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-all items-center gap-2 disabled:opacity-50"
+              >
                   <Download size={12} />
-                  <span className="text-[8px] font-black uppercase tracking-widest">PDF</span>
+                  <span className="text-[8px] font-black uppercase tracking-widest">{isExporting ? 'Exporting...' : 'PDF'}</span>
               </button>
-              <button 
-                onClick={() => navigate('/student/dashboard')} 
+              <button
+                onClick={() => navigate('/student/dashboard')}
                 className="shrink-0 h-9 px-4 md:px-5 flex items-center gap-2 bg-white/5 border border-white/10 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-all whitespace-nowrap group"
               >
                   <ArrowUpRight size={12} className="group-hover:rotate-45 transition-transform shrink-0" />
@@ -211,23 +213,23 @@ const TestResultView = () => {
 
       {/* MAIN CONTENT AREA - NO SCROLL IN SUMMARY */}
       <div ref={reportRef} className="flex-1 flex flex-col gap-6 overflow-visible">
-          
+
           {/* SUMMARY GRID */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6 shrink-0 h-full max-h-fit">
               {/* RADIAL SCORE CARD */}
               <div className="lg:col-span-5 bg-gradient-to-b from-[#161622] to-[#0d0d12] border border-white/5 rounded-2xl md:rounded-[2rem] p-6 sm:p-8 flex flex-col items-center justify-center relative overflow-hidden shadow-2xl h-full min-h-[280px]">
                   <div className={`absolute top-0 left-0 w-full h-1 ${isPassed ? 'bg-emerald-500' : 'bg-rose-500'} opacity-30`}></div>
-                  
+
                   <div className="relative w-28 h-28 md:w-36 md:h-36 flex items-center justify-center mb-6">
                       <svg className="absolute inset-0 w-full h-full -rotate-90">
                           <circle cx="56" cy="56" r="50" stroke="currentColor" strokeWidth="4" fill="transparent" className="text-white/5 md:hidden" />
                           <circle cx="72" cy="72" r="66" stroke="currentColor" strokeWidth="4" fill="transparent" className="text-white/5 hidden md:block" />
-                          
-                          <circle 
-                              cx={window.innerWidth < 768 ? "56" : "72"} 
-                              cy={window.innerWidth < 768 ? "56" : "72"} 
-                              r={window.innerWidth < 768 ? "50" : "66"} 
-                              stroke="currentColor" strokeWidth="6" fill="transparent" 
+
+                          <circle
+                              cx={window.innerWidth < 768 ? "56" : "72"}
+                              cy={window.innerWidth < 768 ? "56" : "72"}
+                              r={window.innerWidth < 768 ? "50" : "66"}
+                              stroke="currentColor" strokeWidth="6" fill="transparent"
                               className={isPassed ? 'text-emerald-500' : 'text-rose-500'}
                               strokeDasharray={window.innerWidth < 768 ? 314 : 414}
                               strokeDashoffset={(window.innerWidth < 768 ? 314 : 414) - ((window.innerWidth < 768 ? 314 : 414) * clientScore) / 100}
@@ -238,7 +240,7 @@ const TestResultView = () => {
                           <span className="text-3xl md:text-5xl font-black text-white tracking-tighter tabular-nums leading-none">
                               {clientScore}
                           </span>
-                          <span className="text-sm md:text-xl text-slate-500 font-bold">%</span>
+                          <span className="text-sm md:text-xl text-slate-400 font-bold">%</span>
                       </div>
                   </div>
 
@@ -268,11 +270,11 @@ const TestResultView = () => {
                   <KPICard label="Incorrect" value={clientWrong} color="#f43f5e" icon={<X size={16} />} />
                   <KPICard label="Items" value={reviewList.length || attempt?.totalQuestions} color="#6366f1" icon={<FileText size={16} />} />
                   {test?.testType === 'MAIN' ? (
-                      <KPICard 
-                        label="Global Rank" 
-                        value={loading ? '...' : `#${globalStandingData.rank}`} 
-                        color="#fbbf24" 
-                        icon={<Award size={16} />} 
+                      <KPICard
+                        label="Global Rank"
+                        value={loading ? '...' : `#${globalStandingData.rank}`}
+                        color="#fbbf24"
+                        icon={<Award size={16} />}
                       />
                   ) : (
                     <KPICard label="Accuracy" value={clientScore + '%'} color="#a78bfa" icon={<PieChart size={16} />} />
@@ -293,7 +295,7 @@ const TestResultView = () => {
                 </div>
               </div>
               <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto bg-black/20 sm:bg-transparent px-4 py-3 sm:p-0 rounded-2xl sm:rounded-none shrink-0 border border-white/5 sm:border-none">
-                <p className="text-[8px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest sm:mb-1">Current Rank</p>
+                <p className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest sm:mb-1">Current Rank</p>
                 <div className="flex items-baseline gap-1 text-right">
                   <span className="text-2xl sm:text-4xl font-black text-white tracking-tighter italic tabular-nums leading-none">
                     #{globalStandingData.rank}
@@ -309,7 +311,7 @@ const TestResultView = () => {
 
 const KPICard = ({ label, value, color, icon }) => (
   <div className="bg-[#0d0d12] border border-white/5 rounded-[1.5rem] p-4 flex flex-col items-center justify-center text-center shadow-lg hover:border-white/10 transition-all group h-full">
-    <div 
+    <div
         className="w-8 h-8 rounded-lg mb-2 flex items-center justify-center border transition-all"
         style={{ background: `${color}10`, borderColor: `${color}20`, color: color }}
     >
@@ -318,7 +320,7 @@ const KPICard = ({ label, value, color, icon }) => (
     <p className="text-xl font-black tabular-nums tracking-tighter text-white">
       {value}
     </p>
-    <p className="text-[7px] font-black text-slate-600 uppercase tracking-widest mt-1">{label}</p>
+    <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mt-1">{label}</p>
   </div>
 );
 
@@ -329,7 +331,7 @@ const AnalysisRow = ({ item, index }) => {
        <div className="flex flex-col md:flex-row justify-between items-start gap-8 relative z-10">
           <div className="flex-1 space-y-4">
              <div className="flex items-center gap-4">
-                <span className="px-3 py-1 bg-white/5 border border-white/5 rounded-lg text-[8px] font-black text-slate-500 uppercase tracking-widest">Question {index + 1}</span>
+                <span className="px-3 py-1 bg-white/5 border border-white/5 rounded-lg text-[8px] font-black text-slate-400 uppercase tracking-widest">Question {index + 1}</span>
                 <div className={`w-2 h-2 rounded-full ${isCorrect ? 'bg-emerald-500' : 'bg-rose-500'} shadow-[0_0_10px_currentColor]`}></div>
              </div>
              <h4 className="text-lg sm:text-xl font-black text-white uppercase tracking-tight leading-tight max-w-3xl break-words min-w-0 overflow-hidden">{item.questionText}</h4>
@@ -357,17 +359,17 @@ const AnalysisRow = ({ item, index }) => {
              ));
 
              return (
-                <div 
+                <div
                   key={opt.id}
                   className={`p-5 rounded-2xl border flex items-center gap-5 transition-all ${
-                    isCorrectAns ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 
-                    isSelected ? 'bg-rose-500/10 border-rose-500/30 text-rose-400' : 
-                    'bg-white/[0.02] border-white/5 text-slate-500'
+                    isCorrectAns ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' :
+                    isSelected ? 'bg-rose-500/10 border-rose-500/30 text-rose-400' :
+                    'bg-white/[0.02] border-white/5 text-slate-400'
                   }`}
                 >
                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-[11px] font-black border ${
-                        isCorrectAns ? 'bg-emerald-500/20 border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.1)]' : 
-                        isSelected ? 'bg-rose-500/20 border-rose-500/30' : 
+                        isCorrectAns ? 'bg-emerald-500/20 border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.1)]' :
+                        isSelected ? 'bg-rose-500/20 border-rose-500/30' :
                         'bg-white/5 border-white/10'
                    }`}>
                       {opt.id}

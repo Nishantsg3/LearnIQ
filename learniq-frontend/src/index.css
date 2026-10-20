@@ -46,7 +46,7 @@
 
   /* Centralized Button System (Pill-Shaped Action Buttons) */
   .btn-base {
-    @apply flex items-center justify-center gap-2 px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all shrink-0 shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100;
+    @apply flex items-center justify-center gap-2 px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-widest shrink-0 shadow-sm transition-[transform,background-color,border-color,box-shadow,opacity] duration-150 ease-out active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-black disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 disabled:pointer-events-none;
   }
 
   .btn-primary {
@@ -54,7 +54,7 @@
   }
 
   .btn-secondary {
-    @apply btn-base bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:bg-white/10;
+    @apply btn-base bg-white/5 border border-white/10 text-slate-300 hover:text-white hover:bg-white/10;
   }
 
   .btn-danger {
@@ -78,7 +78,7 @@
   }
 
   .btn-ghost {
-    @apply btn-base bg-transparent text-slate-400 hover:text-white hover:bg-white/5;
+    @apply btn-base bg-transparent text-slate-300 hover:text-white hover:bg-white/5;
   }
 
   .btn-outline {
@@ -86,7 +86,7 @@
   }
 
   .icon-pill {
-    @apply p-2 rounded-full transition-all flex items-center justify-center;
+    @apply p-2 rounded-full transition-[transform,background-color,color] duration-150 ease-out flex items-center justify-center active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50;
   }
 
   /* Global Fallback for Unrefactored Action Buttons - Removed aggressive rounding */
@@ -100,11 +100,11 @@
     padding-right: 2rem;
     padding-top: 0.75rem;
     padding-bottom: 0.75rem;
-    transition: all 0.3s ease;
+    transition: transform 100ms cubic-bezier(0.2, 0, 0, 1), background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
   }
   
-  button[class*="px-"]:not([class*="sidebar"]):not([class*="nav"]):not(.p-2):not(.p-3):not(.icon-only):not(.btn-base):active {
-    transform: scale(0.95) !important;
+  button[class*="px-"]:not([class*="sidebar"]):not([class*="nav"]):not(.p-2):not(.p-3):not(.icon-only):not(.btn-base):not([class*="rounded-"]):not(:disabled):active {
+    transform: scale(0.97) !important;
   }
 
   /* Badges */
@@ -443,10 +443,10 @@ select {
 
 .card-header {
   font-size: 11px;
-  font-weight: 900;
-  color: rgba(255, 255, 255, 0.2);
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.6);
   text-transform: uppercase;
-  letter-spacing: 0.4em;
+  letter-spacing: 0.25em;
   margin-bottom: 8px;
   display: flex;
   align-items: center;
@@ -457,7 +457,7 @@ select {
   padding: 12px;
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.04);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -470,39 +470,39 @@ select {
   justify-content: space-between;
   font-size: 11px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.65);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
 }
 
 .divider {
   height: 1px;
-  background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.05), transparent);
+  background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.06), transparent);
   margin: 4px 0;
 }
 
 .hint-text {
   font-size: 10px;
-  color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.55);
   font-weight: 500;
   margin-top: 4px;
 }
 
 .section-title {
   font-size: 10px;
-  font-weight: 900;
-  color: rgba(255, 255, 255, 0.3);
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.65);
   text-transform: uppercase;
-  letter-spacing: 0.3em;
+  letter-spacing: 0.2em;
   margin-bottom: 4px;
 }
 
 .input-compact {
-  @apply w-full px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-[11px] text-white placeholder:text-white/20 outline-none focus:border-indigo-500/50 focus:bg-white/[0.08] transition-all;
+  @apply w-full px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-[11px] text-white placeholder:text-white/35 outline-none focus:border-indigo-500/50 focus:bg-white/[0.08] transition-colors duration-150;
 }
 
 .label-compact {
-  @apply text-[9px] font-black text-white/40 uppercase tracking-widest mb-0.5 ml-1;
+  @apply text-[9px] font-bold text-white/65 uppercase tracking-widest mb-0.5 ml-1;
 }
 
 /* Custom Scrollbar - Premium Minimal */
@@ -642,4 +642,60 @@ input:-webkit-autofill:active {
 .test-card-button {
   margin-top: 10px;
   padding: 14px !important;
+}
+
+/* Accessibility: prefers-reduced-motion (Apple Design Guideline §14) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Preserve gentle opacity fades for state comprehension without vestibular displacement */
+  .transition-opacity,
+  .animate-in {
+    transition: opacity 150ms ease !important;
+    transform: none !important;
+  }
+
+  /* Neutralize distracting infinite pings and spinning while ensuring status indicators remain fully visible */
+  .animate-ping,
+  .animate-pulse,
+  .animate-spin {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+
+  /* Neutralize scale/translate transforms on hover and active states */
+  .card-premium:hover,
+  .stat-card:hover,
+  button:active,
+  button:not(:disabled):active {
+    transform: none !important;
+  }
+}
+
+/* Sidebar Desktop Geometric Cut (Reactive responsive replacement for JS window.innerWidth) */
+@media (min-width: 1024px) {
+  .sidebar-geometric {
+    clip-path: polygon(0 0, 100% 0, 97% 100%, 0 100%);
+  }
+}
+@media (max-width: 1023px) {
+  .sidebar-geometric {
+    clip-path: none;
+  }
+}
+
+/* Accessibility: prefers-reduced-transparency (Apple Design Guideline §14) */
+@media (prefers-reduced-transparency: reduce) {
+  header.sticky {
+    background-color: #0a0a0f !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
 }

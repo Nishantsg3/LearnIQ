@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import CodeQuestion from '../components/CodeQuestion';
@@ -52,6 +52,57 @@ const TestReview = () => {
   const [exitPath, setExitPath] = useState(null);
   const [showPalette, setShowPalette] = useState(false);
 
+  const exitModalRef = useRef(null);
+  const cancelExitBtnRef = useRef(null);
+  const previousFocusRef = useRef(null);
+
+  // Focus trap, Escape listener, and focus restoration for exit modal
+  useEffect(() => {
+    if (!showExitConfirm) return;
+    previousFocusRef.current = document.activeElement;
+    const timer = setTimeout(() => {
+      cancelExitBtnRef.current?.focus();
+    }, 50);
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setShowExitConfirm(false);
+        return;
+      }
+      if (e.key === 'Tab') {
+        if (!exitModalRef.current) return;
+        const focusable = exitModalRef.current.querySelectorAll(
+          'button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('keydown', handleKeyDown);
+      if (previousFocusRef.current && typeof previousFocusRef.current.focus === 'function') {
+        previousFocusRef.current.focus();
+      }
+    };
+  }, [showExitConfirm]);
+
   const fetchAttemptData = useCallback(async () => {
     try {
       setLoading(true);
@@ -78,19 +129,17 @@ const TestReview = () => {
   const themeText    = 'text-violet-400';
   const themeBg      = 'bg-violet-600';
   const themeHover   = 'hover:bg-violet-500';
-  const themeBorder  = 'border-violet-500';
-  const themeLightBg = 'bg-violet-600/20';
 
   /* Palette colour — uses calcIsCorrect so it matches option highlights */
   const paletteStyle = (q, idx, isCurrent) => {
     const correct  = calcIsCorrect(q);
     const skipped  = calcIsSkipped(q);
-    const base = 'w-10 h-10 rounded-lg text-sm font-bold flex items-center justify-center cursor-pointer transition-all relative';
+    const base = 'w-10 h-10 rounded-lg text-sm font-bold flex items-center justify-center cursor-pointer transition-all relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#12122a]';
 
     const bgColour = correct ? 'bg-emerald-600' : skipped ? 'bg-slate-700' : 'bg-red-600';
     if (isCurrent) return `${base} ring-2 ring-white ring-offset-2 ring-offset-[#0e0e1a] ${bgColour} text-white shadow-lg z-10`;
 
-    if (skipped) return `${base} bg-slate-900 text-slate-500 border border-slate-800`;
+    if (skipped) return `${base} bg-slate-900 text-slate-400 border border-slate-800`;
     if (correct) return `${base} bg-emerald-600/20 text-emerald-400 border border-emerald-500/30`;
     return          `${base} bg-red-600/20 text-red-400 border border-red-500/30`;
   };
@@ -118,16 +167,18 @@ const TestReview = () => {
       <header className="flex items-center justify-between px-3 sm:px-6 py-2 md:py-3 bg-[#12122a] border-b border-[#2a2a4a] flex-shrink-0 z-50 relative gap-2">
         <div className="flex items-center gap-1.5 md:gap-4 min-w-0">
           <button 
+            type="button"
             onClick={() => { setExitPath(-1); setShowExitConfirm(true); }} 
-            className="flex items-center gap-1.5 px-2 md:px-2.5 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all group shrink-0"
+            aria-label="Exit Review"
+            className="flex items-center gap-1.5 px-2 md:px-2.5 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all group shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400"
           >
             <ArrowLeft size={14} className="text-gray-400 group-hover:text-white transition-colors"/>
-            <span className="hidden sm:inline text-[10px] font-black text-gray-500 group-hover:text-white uppercase tracking-widest transition-colors">Exit</span>
+            <span className="hidden sm:inline text-[10px] font-black text-slate-300 group-hover:text-white uppercase tracking-widest transition-colors">Exit</span>
           </button>
           
           <div className="hidden md:flex flex-col shrink-0">
             <span className="text-[10px] font-black uppercase tracking-[0.2em] mb-0.5">
-              <span className="text-white/40">LEARN</span>
+              <span className="text-white/70">LEARN</span>
               <span className="text-violet-500">IQ</span>
             </span>
             <span className={`${themeText} font-black text-xs tracking-widest uppercase truncate`}>
@@ -145,11 +196,11 @@ const TestReview = () => {
           <div className="hidden lg:flex items-center gap-4 shrink-0">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-emerald-500"/>
-              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{clientCorrectCount}</span>
+              <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">{clientCorrectCount}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-red-500"/>
-              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{clientWrongCount}</span>
+              <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">{clientWrongCount}</span>
             </div>
           </div>
 
@@ -159,20 +210,24 @@ const TestReview = () => {
           </div>
 
           <button 
+            type="button"
             onClick={() => setShowPalette(prev => !prev)}
-            className="lg:hidden p-2 md:p-2.5 rounded-xl border text-[10px] md:text-xs font-black transition-all bg-white/5 border-white/10 text-white active:scale-95 flex items-center gap-1 md:gap-2"
+            className="lg:hidden p-2 md:p-2.5 rounded-xl border text-[10px] md:text-xs font-black transition-all bg-white/5 border-white/10 text-white active:scale-95 flex items-center gap-1 md:gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400"
+            aria-label="Toggle Question Palette"
           >
             <span className={themeText}>Q{currentIndex + 1}</span>
-            <span className="text-white/20">/</span>
+            <span className="text-white/60">/</span>
             <span>{questions.length}</span>
           </button>
 
           <button 
+            type="button"
             onClick={() => { setExitPath('/student/dashboard'); setShowExitConfirm(true); }} 
-            className="flex items-center gap-2 px-3 md:px-4 h-8 md:h-9 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all group shrink-0"
+            aria-label="Return to Dashboard"
+            className="flex items-center gap-2 px-3 md:px-4 h-8 md:h-9 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all group shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400"
           >
             <ArrowUpRight size={14} className="text-gray-400 group-hover:text-white transition-colors group-hover:rotate-45 transition-transform"/>
-            <span className="hidden sm:inline text-[10px] font-black text-gray-500 group-hover:text-white uppercase tracking-widest transition-colors whitespace-nowrap">Dashboard</span>
+            <span className="hidden sm:inline text-[10px] font-black text-slate-300 group-hover:text-white uppercase tracking-widest transition-colors whitespace-nowrap">Dashboard</span>
           </button>
         </div>
       </header>
@@ -312,21 +367,21 @@ const TestReview = () => {
         `}>
           <div className="px-5 pt-5 pb-3 border-b border-white/5 flex flex-col shrink-0">
             <div className="flex items-center justify-between mb-4">
-              <p className="text-[9px] font-black text-gray-500 uppercase tracking-[0.3em]">Result Board</p>
-              <button onClick={() => setShowPalette(false)} className="lg:hidden p-1 text-gray-500 hover:text-white transition-colors">
+              <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.3em]">Result Board</p>
+              <button onClick={() => setShowPalette(false)} className="lg:hidden p-1 text-slate-400 hover:text-white transition-colors" aria-label="Close palette">
                 <X size={18} />
               </button>
             </div>
             
             <div className="grid grid-cols-2 gap-3 mb-4">
               <div className="bg-[#0e0e1a] border border-white/5 rounded-xl p-3 text-center">
-                <p className="text-[7px] font-black text-gray-600 uppercase tracking-widest mb-1">Accuracy</p>
+                <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1">Accuracy</p>
                 <p className="text-sm font-black text-white">
                   {questions.length > 0 ? Math.round((clientCorrectCount / questions.length) * 100) : 0}%
                 </p>
               </div>
               <div className="bg-[#0e0e1a] border border-white/5 rounded-xl p-3 text-center">
-                <p className="text-[7px] font-black text-gray-600 uppercase tracking-widest mb-1">Items</p>
+                <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1">Items</p>
                 <p className="text-sm font-black text-white">{questions.length}</p>
               </div>
             </div>
@@ -334,18 +389,27 @@ const TestReview = () => {
 
           <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
             <div className="grid grid-cols-4 gap-2">
-              {questions.map((q, idx) => (
-                <button 
-                  key={idx} 
-                  onClick={() => {
-                    setCurrentIndex(idx);
-                    if (window.innerWidth < 1024) setShowPalette(false);
-                  }} 
-                  className={paletteStyle(q, idx, idx === currentIndex)}
-                >
-                  {idx + 1}
-                </button>
-              ))}
+              {questions.map((q, idx) => {
+                const isCurrent = idx === currentIndex;
+                const correct = calcIsCorrect(q);
+                const skipped = calcIsSkipped(q);
+                const statusLabel = correct ? 'Correct' : skipped ? 'Skipped' : 'Incorrect';
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      setCurrentIndex(idx);
+                      if (window.innerWidth < 1024) setShowPalette(false);
+                    }}
+                    className={paletteStyle(q, idx, isCurrent)}
+                    aria-label={`Question ${idx + 1}: ${statusLabel}`}
+                    aria-current={isCurrent ? 'true' : undefined}
+                  >
+                    {idx + 1}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -354,23 +418,23 @@ const TestReview = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-2.5 h-2.5 rounded bg-emerald-500"/>
-                  <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Correct</span>
+                  <span className="text-[9px] font-bold text-white/75 uppercase tracking-widest">Correct</span>
                 </div>
                 <span className="text-[10px] font-black text-emerald-400">{clientCorrectCount}</span>
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-2.5 h-2.5 rounded bg-red-500"/>
-                  <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Incorrect</span>
+                  <span className="text-[9px] font-bold text-white/75 uppercase tracking-widest">Incorrect</span>
                 </div>
                 <span className="text-[10px] font-black text-red-400">{clientWrongCount}</span>
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-2.5 h-2.5 rounded bg-slate-700"/>
-                  <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Skipped</span>
+                  <span className="text-[9px] font-bold text-white/75 uppercase tracking-widest">Skipped</span>
                 </div>
-                <span className="text-[10px] font-black text-gray-400">{clientSkipCount}</span>
+                <span className="text-[10px] font-black text-slate-300">{clientSkipCount}</span>
               </div>
             </div>
           </div>
@@ -379,29 +443,44 @@ const TestReview = () => {
 
       {/* ── EXIT CONFIRMATION MODAL ── */}
       {showExitConfirm && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0a0a15]/95 p-6 animate-in fade-in duration-300">
-          <div className="relative bg-[#1a1a2e] border border-white/10 rounded-3xl max-w-sm w-full shadow-[0_30px_100px_rgba(0,0,0,0.8)] p-8 text-center transform animate-in zoom-in duration-300">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+          <div
+            className="absolute inset-0 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
+            onClick={() => setShowExitConfirm(false)}
+            aria-hidden="true"
+          />
+          <div
+            ref={exitModalRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="exit-modal-title"
+            aria-describedby="exit-modal-description"
+            className="relative bg-[#1a1a2e] border border-white/10 rounded-3xl max-w-sm w-full shadow-[0_30px_100px_rgba(0,0,0,0.8)] p-8 text-center animate-in zoom-in-95 duration-200"
+          >
             <div className="w-16 h-16 bg-violet-600/20 rounded-full flex items-center justify-center mx-auto mb-6 border border-violet-500/30">
               <Home size={28} className="text-violet-400"/>
             </div>
-            <h3 className="text-xl font-black text-white uppercase tracking-tight mb-2">
+            <h3 id="exit-modal-title" className="text-xl font-black text-white uppercase tracking-tight mb-2">
               {exitPath === '/student/dashboard' ? 'Go to Dashboard?' : 'Exit Review?'}
             </h3>
-            <p className="text-gray-400 text-xs font-bold uppercase tracking-widest leading-relaxed mb-8">
+            <p id="exit-modal-description" className="text-white/70 text-xs font-medium leading-relaxed mb-8">
               {exitPath === '/student/dashboard' 
                 ? 'Are you sure you want to return to the main dashboard?' 
                 : 'Are you sure you want to leave the review mode?'}
             </p>
             <div className="flex gap-3">
               <button
+                ref={cancelExitBtnRef}
+                type="button"
                 onClick={() => setShowExitConfirm(false)}
-                className="flex-1 py-3 bg-[#252545] hover:bg-[#2d2d55] text-gray-300 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all"
+                className="flex-1 py-3 bg-[#252545] hover:bg-[#2d2d55] text-white rounded-xl font-black uppercase text-[10px] tracking-widest transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 active:scale-95"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={() => navigate(exitPath)}
-                className="flex-1 py-3 bg-violet-600 hover:bg-violet-500 text-white rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg shadow-violet-600/20 transition-all"
+                className="flex-1 py-3 bg-violet-600 hover:bg-violet-500 text-white rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg shadow-violet-600/20 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 active:scale-95"
               >
                 Confirm
               </button>

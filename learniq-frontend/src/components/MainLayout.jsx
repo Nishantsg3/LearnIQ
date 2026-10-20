@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { LogOut, UserCircle, Menu } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { BRANDING } from '../config/branding';
@@ -8,7 +8,6 @@ import { BRANDING } from '../config/branding';
 const MainLayout = ({ children, onProfileClick }) => {
   const { user, logout, isOffline } = useAuth();
   const location = useLocation();
-  const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Auto-close sidebar on window resize if moving to desktop
@@ -84,17 +83,13 @@ const MainLayout = ({ children, onProfileClick }) => {
         
         {/* Top Header - Studio Grade */}
         <header 
-          className="h-20 px-3 sm:px-6 lg:px-10 flex items-center justify-between shrink-0 z-40 relative sticky top-0"
-          style={{ 
-            background: '#0a0a0f',
-            borderBottom: '1px solid rgba(255,255,255,0.02)'
-          }}
+          className="h-20 px-3 sm:px-6 lg:px-10 flex items-center justify-between shrink-0 z-40 sticky top-0 bg-[#0a0a0f]/80 backdrop-blur-md border-b border-white/[0.06] transition-[background-color,border-color] duration-150 ease-out"
         >
           <div className="flex items-center gap-2 sm:gap-4 lg:gap-12 min-w-0 flex-1">
             {/* MOBILE MENU TOGGLE */}
             <button 
               onClick={() => setIsSidebarOpen(true)}
-              className="lg:hidden w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-white transition-all active:scale-95"
+              className="lg:hidden w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/50 hover:text-white transition-[background-color,border-color,color,transform] duration-150 ease-out active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
             >
               <Menu size={20} />
             </button>
@@ -107,7 +102,7 @@ const MainLayout = ({ children, onProfileClick }) => {
                   className="h-8 w-8 object-contain drop-shadow-[0_0_8px_rgba(124,58,237,0.3)]" 
                 />
               </div>
-              <span className="hidden sm:block text-white/10 font-thin text-lg sm:text-xl select-none">/</span>
+              <span className="hidden sm:block text-white/20 font-thin text-lg sm:text-xl select-none">/</span>
               <h1 className="text-[9px] sm:text-[10px] lg:text-sm font-black text-white uppercase tracking-[0.2em] sm:tracking-[0.25em] truncate italic flex-1">
                 {getPageTitle()}
               </h1>
@@ -131,32 +126,32 @@ const MainLayout = ({ children, onProfileClick }) => {
             <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-4">
               <button 
                 onClick={onProfileClick}
-                className="flex items-center justify-between gap-3 sm:gap-4 lg:gap-6 px-2 sm:px-6 py-2 rounded-md bg-white/5 border border-white/10 hover:bg-white/10 transition-all group/profile shadow-2xl min-w-0 sm:min-w-[180px] lg:min-w-[220px] relative overflow-hidden h-14"
+                className="flex items-center justify-between gap-3 sm:gap-4 lg:gap-6 px-3 sm:px-5 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-[background-color,border-color,transform] duration-150 ease-out group/profile shadow-2xl min-w-0 sm:min-w-[180px] lg:min-w-[220px] relative overflow-hidden h-14 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
               >
                  <div className="absolute top-0 left-0 w-1 h-full bg-violet-600/40" />
                  <div className="text-left hidden sm:block">
                    <p className="text-[10px] font-black text-white uppercase tracking-[0.15em] group-hover/profile:text-violet-400 transition-colors truncate max-w-[120px] lg:max-w-none">
                      {user?.name || 'Scholar'}
                    </p>
-                   <p className="text-[8px] font-bold text-white/10 uppercase tracking-[0.2em] mt-0.5 italic">
+                   <p className="text-[9px] font-medium text-white/50 uppercase tracking-[0.15em] mt-0.5">
                      {user?.role === 'ADMIN' ? 'System Authority' : 'Authorized Identity'}
                    </p>
                  </div>
-                 <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-md bg-white/5 flex items-center justify-center border border-white/10 overflow-hidden shadow-xl group-hover/profile:border-violet-500/30 transition-all shrink-0">
+                 <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-white/5 flex items-center justify-center border border-white/10 overflow-hidden shadow-xl group-hover/profile:border-violet-500/30 transition-all shrink-0">
                    {user?.avatar ? (
                       <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
                    ) : (
-                      <UserCircle className="text-white/20" size={18} />
+                      <UserCircle className="text-white/30" size={18} />
                    )}
                  </div>
               </button>
 
               <button 
                 onClick={logout}
-                className="w-9 h-9 sm:w-10 sm:h-10 lg:w-11 lg:h-11 rounded-full bg-white/5 border border-white/5 flex items-center justify-center text-white/20 hover:bg-rose-500/10 hover:border-rose-500/20 hover:text-rose-500 transition-all group shadow-sm"
+                className="w-9 h-9 sm:w-10 sm:h-10 lg:w-11 lg:h-11 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/50 hover:bg-rose-500/10 hover:border-rose-500/20 hover:text-rose-400 transition-[background-color,border-color,color,transform] duration-150 ease-out group shadow-sm active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/50"
                 title="Logout"
               >
-                <LogOut size={18} className="group-hover:translate-x-1 transition-transform" />
+                <LogOut size={18} className="group-hover:translate-x-0.5 transition-transform duration-150" />
               </button>
             </div>
           </div>

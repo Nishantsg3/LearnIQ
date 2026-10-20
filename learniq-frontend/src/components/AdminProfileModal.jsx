@@ -1,29 +1,52 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Camera, Save, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-const AdminProfileModal = ({ isOpen, onClose }) => {
-  const { user, updateUser } = useAuth();
+const AdminProfileModalContent = ({ user, updateUser, onClose }) => {
   const [name, setName] = useState(user?.name || '');
   const [isSaving, setIsSaving] = useState(false);
   const [previewImage, setPreviewImage] = useState(user?.avatar || null);
 
-  useEffect(() => {
-    if (isOpen) {
-      setName(user?.name || '');
-      setPreviewImage(user?.avatar || null);
-    }
-  }, [isOpen, user]);
+  const modalRef = useRef(null);
+  const closeBtnRef = useRef(null);
 
   useEffect(() => {
-    const handleEsc = (e) => {
-      if (e.key === 'Escape') onClose();
+    const previousFocus = document.activeElement;
+    const timer = setTimeout(() => {
+      closeBtnRef.current?.focus();
+    }, 50);
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
+
+      if (e.key === 'Tab' && modalRef.current) {
+        const focusable = modalRef.current.querySelectorAll(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     };
-    window.addEventListener('keydown', handleEsc);
-    return () => window.removeEventListener('keydown', handleEsc);
-  }, [onClose]);
 
-  if (!isOpen) return null;
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('keydown', handleKeyDown);
+      previousFocus?.focus?.();
+    };
+  }, [onClose]);
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -53,18 +76,28 @@ const AdminProfileModal = ({ isOpen, onClose }) => {
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       {/* Backdrop */}
       <div 
+        aria-hidden="true"
         className="absolute inset-0 bg-black/80 backdrop-blur-md transition-opacity duration-300 animate-in fade-in"
         onClick={onClose}
       />
       
       {/* Modal Card */}
-      <div className="relative z-[110] bg-[#111118] border border-white/5 rounded-3xl w-full max-w-md overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.6)] animate-in zoom-in-95 duration-200">
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="admin-profile-title"
+        className="relative z-[110] bg-[#111118] border border-white/5 rounded-3xl w-full max-w-md overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.6)] animate-in zoom-in-95 duration-200"
+      >
         {/* Header */}
         <div className="p-6 border-b border-white/5 flex items-center justify-between">
-          <h2 className="text-[11px] font-black text-white uppercase tracking-[0.4em]">Identity Synchronization</h2>
+          <h2 id="admin-profile-title" className="text-[11px] font-black text-white uppercase tracking-[0.4em]">Identity Synchronization</h2>
           <button 
+            ref={closeBtnRef}
+            type="button"
             onClick={onClose}
-            className="p-2 text-white/20 hover:text-white transition-colors rounded-full hover:bg-white/5"
+            aria-label="Close profile modal"
+            className="p-2 text-slate-400 hover:text-white transition-colors rounded-full hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400"
           >
             <X size={18} />
           </button>
@@ -78,7 +111,7 @@ const AdminProfileModal = ({ isOpen, onClose }) => {
                 {previewImage ? (
                   <img src={previewImage} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
-                  <User className="text-white/10" size={40} />
+                  <User className="text-white/20" size={40} />
                 )}
                 
                 <label className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
@@ -101,7 +134,7 @@ const AdminProfileModal = ({ isOpen, onClose }) => {
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full px-6 py-3 bg-[#0a0a0f] border border-white/5 rounded-full text-white text-xs placeholder:text-white/5 outline-none focus:border-[#7c3aed]/50 transition-all duration-200"
+                className="w-full px-6 py-3 bg-[#0a0a0f] border border-white/5 rounded-full text-white text-xs placeholder:text-white/50 outline-none focus:border-[#7c3aed]/50 transition-all duration-200"
                 placeholder="Identity Reference"
                 required
               />
@@ -131,6 +164,12 @@ const AdminProfileModal = ({ isOpen, onClose }) => {
       </div>
     </div>
   );
+};
+
+const AdminProfileModal = ({ isOpen, onClose }) => {
+  const { user, updateUser } = useAuth();
+  if (!isOpen) return null;
+  return <AdminProfileModalContent user={user} updateUser={updateUser} onClose={onClose} />;
 };
 
 export default AdminProfileModal;
