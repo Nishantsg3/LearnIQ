@@ -122,7 +122,7 @@ public class AdminController {
         User admin = new User();
         admin.setName(request.name().trim());
         admin.setEmail(request.email().trim().toLowerCase());
-        admin.setPassword(request.password()); // 🔥 Plain text for prototype
+        admin.setPassword(passwordEncoder.encode(request.password())); // BCrypt hashed
         admin.setRole(User.Role.ADMIN);
         admin.setVerified(true); // Admins created by other admins are pre-verified
 

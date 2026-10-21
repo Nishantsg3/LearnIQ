@@ -511,6 +511,20 @@ public class AttemptService {
         }
 
         // 🔥 POPULATE ANSWER KEY / REVIEWS
+        // SECURITY GATE: In-progress attempts must NEVER expose correct answers or correctness indicators.
+        // Answer reviews and answer keys are strictly restricted to SUBMITTED attempts.
+        boolean isSubmitted = attempt.getStatus() == TestAttempt.Status.SUBMITTED && attempt.isSubmitted();
+
+        if (isSubmitted) {
+            res.setScorePercent(attempt.getScorePercent());
+            res.setCorrectCount(attempt.getCorrectCount());
+            res.setWrongCount(attempt.getWrongCount());
+        } else {
+            res.setScorePercent(-1);
+            res.setCorrectCount(0);
+            res.setWrongCount(0);
+        }
+
         List<TestAttemptResponse.AnswerReview> reviews = new ArrayList<>();
         if (attempt.getTest() != null) {
             List<Question> questions = questionRepository.findByTestId(attempt.getTest().getId());
@@ -523,16 +537,21 @@ public class AttemptService {
                 ar.setOptionB(q.getOptionB());
                 ar.setOptionC(q.getOptionC());
                 ar.setOptionD(q.getOptionD());
-                ar.setCorrectAnswer(q.getCorrectAnswer());
 
-                // Find user's specific answer for this question
+                // Find user's specific answer for this question (preserves student selections on resume)
                 attempt.getAnswers().stream()
                         .filter(a -> a.getQuestionId().equals(q.getId()))
                         .findFirst()
                         .ifPresent(userAns -> {
                             ar.setSelectedOption(userAns.getSelectedOption());
-                            ar.setCorrect(userAns.isCorrect());
+                            ar.setCorrect(isSubmitted && userAns.isCorrect());
                         });
+
+                if (isSubmitted) {
+                    ar.setCorrectAnswer(q.getCorrectAnswer());
+                } else {
+                    ar.setCorrectAnswer(null);
+                }
 
                 reviews.add(ar);
             }
