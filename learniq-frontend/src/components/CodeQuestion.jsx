@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import Prism from 'prismjs';
+import Prism from '../utils/prism-setup';
 import 'prismjs/themes/prism-tomorrow.css';
 import 'prismjs/components/prism-java';
 import 'prismjs/components/prism-python';

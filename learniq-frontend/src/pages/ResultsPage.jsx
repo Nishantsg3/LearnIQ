@@ -11,7 +11,7 @@ const formatDateTime = (value) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleString('en-IN', {
-    day: '2-digit', month: 'short', year: 'numeric', 
+    day: '2-digit', month: 'short', year: 'numeric',
     hour: '2-digit', minute: '2-digit', second: '2-digit',
     hour12: true
   });
@@ -19,7 +19,7 @@ const formatDateTime = (value) => {
 
 const isSubmitted = (a) => {
   if (!a) return false;
-  return a.submitted === true 
+  return a.submitted === true
       || a.status === 'SUBMITTED'
       || (a.scorePercent !== undefined && a.scorePercent !== null && a.scorePercent >= 0);
 };
@@ -99,41 +99,41 @@ const ResultsPage = () => {
 
   return (
     <div className="flex-1 flex flex-col p-4 md:p-8 min-h-0 bg-[#0d0d10]">
-      <div className="h-full flex flex-col space-y-4 sm:space-y-10 min-h-0">
+      <div className="h-full flex flex-col space-y-4 sm:space-y-8 min-h-0">
         {/* HEADER */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 shrink-0">
-          <div className="flex items-center gap-6">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 shrink-0">
+          <div className="flex items-center gap-4 sm:gap-5">
             <button
               type="button"
               onClick={() => navigate('/student/dashboard')}
               aria-label="Return to Dashboard"
-              className="w-14 h-14 bg-violet-500/10 border border-violet-500/20 rounded-md flex items-center justify-center text-violet-400 cursor-pointer hover:bg-violet-500/20 transition-all shadow-[0_0_30px_rgba(124,58,237,0.1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
+              className="w-12 h-12 sm:w-13 sm:h-13 bg-violet-500/10 border border-violet-500/20 rounded-2xl flex items-center justify-center text-violet-400 cursor-pointer hover:bg-violet-500/20 active:scale-95 transition-all shadow-[0_0_30px_rgba(124,58,237,0.1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 shrink-0"
             >
-              <History size={24} />
+              <History size={22} />
             </button>
-            <div className="space-y-1">
-              <h1 className="text-2xl font-black text-white uppercase tracking-tight">Performance History</h1>
-              <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.4em]">Analysis Ledger & Performance Records</p>
+            <div className="space-y-0.5">
+              <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">Performance History</h1>
+              <p className="text-slate-400 text-xs font-normal tracking-normal">Historical attempts, scores, and performance analytics</p>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 sm:gap-4 lg:gap-6">
-              {/* METALLIC SWITCH */}
-              <div className="flex w-full sm:w-auto bg-[#0a0a0f] border border-white/10 p-1 rounded-lg shrink-0 shadow-2xl gap-1">
-                  <button 
+          <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+              {/* APPLE-STYLE SEGMENTED SWITCH */}
+              <div className="flex w-full sm:w-auto bg-white/[0.04] border border-white/[0.08] p-1 rounded-xl shrink-0 shadow-sm gap-1">
+                  <button
                       type="button"
                       onClick={() => setActiveType('PRACTICE')}
-                      className={`flex-1 px-3 sm:px-6 py-2 rounded-md text-[10px] font-black uppercase tracking-widest transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 ${
-                          activeType === 'PRACTICE' ? 'bg-violet-600 text-white shadow-lg shadow-violet-600/20' : 'text-slate-400 hover:text-white hover:bg-white/5'
+                      className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 ${
+                          activeType === 'PRACTICE' ? 'bg-violet-600 text-white shadow-md shadow-violet-600/30' : 'text-slate-400 hover:text-white hover:bg-white/[0.06]'
                       }`}
                   >
                       Practice
                   </button>
-                  <button 
+                  <button
                       type="button"
                       onClick={() => setActiveType('MAIN')}
-                      className={`flex-1 px-3 sm:px-6 py-2 rounded-md text-[10px] font-black uppercase tracking-widest transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 ${
-                          activeType === 'MAIN' ? 'bg-violet-600 text-white shadow-lg shadow-violet-600/20' : 'text-slate-400 hover:text-white hover:bg-white/5'
+                      className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 ${
+                          activeType === 'MAIN' ? 'bg-violet-600 text-white shadow-md shadow-violet-600/30' : 'text-slate-400 hover:text-white hover:bg-white/[0.06]'
                       }`}
                   >
                       Main
@@ -144,83 +144,91 @@ const ResultsPage = () => {
                   <button
                       type="button"
                       onClick={() => navigate('/student/dashboard')}
-                      className="flex items-center gap-2 px-6 py-3 bg-white/5 border border-white/10 rounded-full hover:bg-white/10 transition-all text-slate-400 hover:text-white group shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
+                      className="flex items-center gap-2 px-5 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-full hover:bg-white/[0.08] active:scale-95 transition-all text-slate-300 hover:text-white group shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
                   >
-                      <ArrowUpRight size={14} className="group-hover:rotate-45 transition-transform" />
-                      <span className="text-[10px] font-black uppercase tracking-widest">Dashboard</span>
+                      <ArrowUpRight size={14} className="group-hover:rotate-45 transition-transform duration-200" />
+                      <span className="text-xs font-semibold tracking-wide">Dashboard</span>
                   </button>
               </div>
           </div>
         </div>
 
         {/* CONTENT AREA */}
-        <div className="flex-1 min-h-0 bg-[#0d0d12]/50 border border-white/5 rounded-2xl sm:rounded-[2rem] overflow-hidden flex flex-col shadow-2xl">
+        <div
+          className="apple-card flex-1 min-h-0 rounded-2xl sm:rounded-3xl overflow-hidden flex flex-col shadow-2xl relative"
+          style={{
+            background: 'rgba(16, 16, 23, 0.75)',
+            boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.08), 0 24px 64px -12px rgba(0,0,0,0.6)'
+          }}
+        >
           {/* LEDGER HEADER - hidden on mobile */}
-          <div className="hidden md:grid grid-cols-12 gap-4 px-8 py-5 bg-white/[0.02] border-b border-white/5 shrink-0">
-              <div className="col-span-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Assessment Detail</div>
-              <div className="col-span-2 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Status</div>
-              <div className="col-span-2 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Score</div>
-              <div className="col-span-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</div>
+          <div className="hidden md:grid grid-cols-12 gap-4 px-8 py-4 bg-white/[0.02] border-b border-white/[0.06] shrink-0">
+              <div className="col-span-5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Assessment Detail</div>
+              <div className="col-span-2 text-[11px] font-semibold text-slate-400 uppercase tracking-wider text-center">Status</div>
+              <div className="col-span-2 text-[11px] font-semibold text-slate-400 uppercase tracking-wider text-center">Score</div>
+              <div className="col-span-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wider text-right">Actions</div>
           </div>
 
           {/* LEDGER BODY */}
-          <div className="flex-1 overflow-y-auto no-scrollbar">
+          <div className="flex-1 overflow-y-auto custom-scrollbar">
               {filteredAttempts.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center text-center space-y-6">
-                      <History size={40} className="text-white/20" />
-                      <p className="text-[11px] text-slate-400 font-black uppercase tracking-widest">No {activeType.toLowerCase()} records found</p>
+                  <div className="h-full flex flex-col items-center justify-center text-center space-y-4 p-8">
+                      <div className="w-14 h-14 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center text-white/30">
+                        <History size={28} />
+                      </div>
+                      <p className="text-sm font-medium text-slate-400">No {activeType.toLowerCase()} assessment records found</p>
                   </div>
               ) : (
-                  <div className="divide-y divide-white/5">
+                  <div className="divide-y divide-white/[0.04]">
                       {filteredAttempts.map(attempt => (
                           <React.Fragment key={attempt.id}>
-                          <div className="hidden md:grid grid-cols-12 gap-4 px-8 py-6 items-center hover:bg-white/[0.02] transition-colors group">
+                          <div className="hidden md:grid grid-cols-12 gap-4 px-8 py-5 items-center hover:bg-white/[0.02] transition-colors group">
                               <div className="col-span-5 flex items-center gap-4">
-                                  <div className="w-10 h-10 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-center text-slate-500 group-hover:text-violet-400 group-hover:border-violet-500/20 transition-all">
+                                  <div className="w-10 h-10 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-slate-400 group-hover:text-violet-400 group-hover:border-violet-500/30 transition-all shrink-0">
                                       <FileText size={18} />
                                   </div>
                                   <div>
                                       <div className="flex items-center gap-2">
-                                          <h4 className="text-sm font-black text-white/90 uppercase tracking-tight group-hover:text-white transition-colors">
+                                          <h4 className="text-sm font-semibold text-white/90 tracking-tight group-hover:text-white transition-colors">
                                               {attempt.testTitle}
                                           </h4>
-                                          <span className={`px-2 py-0.5 border text-[7px] font-black uppercase tracking-[0.2em] rounded ${
-                                              activeType === 'MAIN' ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'
+                                          <span className={`px-2 py-0.5 border text-[9px] font-semibold uppercase tracking-wider rounded-md ${
+                                              activeType === 'MAIN' ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
                                           }`}>
-                                              {activeType} Assessment
+                                              {activeType}
                                           </span>
                                       </div>
                                       <div className="flex items-center gap-3 mt-1">
-                                          <span className="text-[8px] font-black text-violet-400/80 uppercase tracking-widest">Attempt #{attempt.attemptNumber}</span>
-                                          <span className="w-1 h-1 bg-white/10 rounded-full"></span>
-                                          <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{formatDateTime(attempt.submittedAt || attempt.startedAt)}</span>
+                                          <span className="text-[11px] font-medium text-violet-400/90">Attempt #{attempt.attemptNumber}</span>
+                                          <span className="w-1 h-1 bg-white/20 rounded-full"></span>
+                                          <span className="text-[11px] font-normal text-slate-400 tabular-nums">{formatDateTime(attempt.submittedAt || attempt.startedAt)}</span>
                                       </div>
                                   </div>
                               </div>
                                <div className="col-span-2 flex justify-center">
                                   {isSubmitted(attempt) ? (
-                                      <div className="flex items-center gap-2 text-emerald-500/80">
-                                          <CheckCircle2 size={12} />
-                                          <span className="text-[9px] font-black uppercase tracking-widest">Completed</span>
+                                      <div className="flex items-center gap-1.5 text-emerald-400 font-medium text-xs">
+                                          <CheckCircle2 size={13} />
+                                          <span>Completed</span>
                                       </div>
                                   ) : (
-                                      <div className="flex items-center gap-2 text-amber-500/80 animate-pulse">
-                                          <Zap size={12} />
-                                          <span className="text-[9px] font-black uppercase tracking-widest">In Progress</span>
+                                      <div className="flex items-center gap-1.5 text-amber-400 font-medium text-xs">
+                                          <Zap size={13} />
+                                          <span>In Progress</span>
                                       </div>
                                   )}
                               </div>
                               <div className="col-span-2 flex justify-center">
                                   {isSubmitted(attempt) ? (
-                                      <div className={`px-4 py-1.5 rounded-full text-[10px] font-black border tracking-widest ${
-                                          attempt.scorePercent >= 40 
-                                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                                      <div className={`px-3 py-1 rounded-full text-xs font-semibold border tabular-nums ${
+                                          attempt.scorePercent >= 40
+                                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                                           : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
                                       }`}>
                                           {Math.round(attempt.scorePercent)}%
                                       </div>
                                   ) : (
-                                      <span className="text-slate-400 text-[10px] font-black uppercase tracking-widest">—</span>
+                                      <span className="text-slate-500 text-xs font-semibold">—</span>
                                   )}
                               </div>
                               <div className="col-span-3 flex justify-end items-center gap-3">
@@ -228,7 +236,7 @@ const ResultsPage = () => {
                                        <button
                                            type="button"
                                            onClick={(e) => handleDeleteTrigger(e, attempt.id)}
-                                           className="p-2.5 bg-rose-500/5 hover:bg-rose-500/10 border border-rose-500/10 hover:border-rose-500/20 text-rose-500 rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/50"
+                                           className="p-2.5 bg-rose-500/5 hover:bg-rose-500/10 border border-rose-500/10 hover:border-rose-500/25 text-rose-400 rounded-full transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/50"
                                            title="Delete Attempt"
                                            aria-label="Delete Attempt"
                                        >
@@ -238,59 +246,59 @@ const ResultsPage = () => {
                                   <button
                                       type="button"
                                       onClick={() => navigate(`/results/${attempt.id}`)}
-                                      className="flex items-center gap-2 px-4 py-2.5 bg-white/[0.03] border border-white/5 rounded-full text-[9px] font-black text-slate-300 uppercase tracking-widest hover:bg-violet-500 hover:text-white hover:border-violet-400 transition-all group/btn focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
+                                      className="flex items-center gap-2 px-4 py-2 bg-white/[0.04] border border-white/[0.08] rounded-full text-xs font-semibold text-slate-200 hover:bg-violet-600 hover:text-white hover:border-violet-500 transition-all group/btn active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
                                   >
                                       View Report
-                                      <ChevronRight size={12} className="group-hover/btn:translate-x-0.5 transition-transform" />
+                                      <ChevronRight size={13} className="group-hover/btn:translate-x-0.5 transition-transform duration-150" />
                                   </button>
                               </div>
                           </div>
 
                           {/* Mobile card layout */}
-                          <div className="md:hidden px-4 py-4 border-b border-white/5 hover:bg-white/[0.02] transition-colors">
+                          <div className="md:hidden px-4 py-4 border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors">
                               <div className="flex items-start justify-between gap-3 mb-3">
                                   <div className="flex items-center gap-3 min-w-0">
-                                      <div className="w-8 h-8 rounded-lg bg-white/[0.03] border border-white/5 flex items-center justify-center text-slate-500 shrink-0">
+                                      <div className="w-8 h-8 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-slate-400 shrink-0">
                                           <FileText size={14} />
                                       </div>
                                       <div className="min-w-0">
-                                          <h4 className="text-xs font-black text-white/90 uppercase tracking-tight truncate">{attempt.testTitle}</h4>
-                                          <span className="text-[8px] font-black text-violet-400/80 uppercase tracking-widest">Attempt #{attempt.attemptNumber}</span>
+                                          <h4 className="text-xs font-semibold text-white/90 truncate">{attempt.testTitle}</h4>
+                                          <span className="text-[10px] font-medium text-violet-400">Attempt #{attempt.attemptNumber}</span>
                                       </div>
                                   </div>
                                   {isSubmitted(attempt) ? (
-                                      <div className={`shrink-0 px-2.5 py-1 rounded-full text-[9px] font-black border ${
-                                          attempt.scorePercent >= 40 
-                                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                                      <div className={`shrink-0 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border tabular-nums ${
+                                          attempt.scorePercent >= 40
+                                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                                           : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
                                       }`}>{Math.round(attempt.scorePercent)}%</div>
                                   ) : (
-                                      <div className="shrink-0 flex items-center gap-1 text-amber-500/80 animate-pulse">
-                                          <Zap size={10} />
-                                          <span className="text-[8px] font-black uppercase">Live</span>
+                                      <div className="shrink-0 flex items-center gap-1 text-amber-400">
+                                          <Zap size={11} />
+                                          <span className="text-[10px] font-semibold uppercase">Live</span>
                                       </div>
                                   )}
                               </div>
                               <div className="flex items-center justify-between">
-                                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{formatDateTime(attempt.submittedAt || attempt.startedAt)}</span>
+                                  <span className="text-[10px] font-normal text-slate-400 tabular-nums">{formatDateTime(attempt.submittedAt || attempt.startedAt)}</span>
                                   <div className="flex items-center gap-2">
                                       {activeType !== 'MAIN' && (
                                           <button
                                               type="button"
                                               onClick={(e) => handleDeleteTrigger(e, attempt.id)}
-                                              className="p-1.5 bg-rose-500/5 border border-rose-500/10 text-rose-500 rounded-lg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/50"
+                                              className="p-1.5 bg-rose-500/5 border border-rose-500/10 text-rose-400 rounded-lg transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/50"
                                               title="Delete Attempt"
                                               aria-label="Delete Attempt"
                                           >
-                                              <Trash2 size={12} />
+                                              <Trash2 size={13} />
                                           </button>
                                       )}
                                       <button
                                           type="button"
                                           onClick={() => navigate(`/results/${attempt.id}`)}
-                                          className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-600 text-white rounded-lg text-[9px] font-black uppercase tracking-widest transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
+                                          className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-600 text-white rounded-lg text-xs font-semibold transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
                                       >
-                                          Report <ChevronRight size={10} />
+                                          Report <ChevronRight size={11} />
                                       </button>
                                   </div>
                               </div>

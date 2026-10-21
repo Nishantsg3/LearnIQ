@@ -29,11 +29,55 @@
     padding: 0;
     background-color: #000000;
     height: 100vh;
-    @apply bg-[#000000] text-slate-50 font-sans antialiased;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    @apply bg-[#000000] text-slate-50 antialiased;
   }
 }
 
 @layer components {
+  /* Apple Design: Translucent glass materials & depth hierarchy (§12) */
+  .apple-glass {
+    background: rgba(13, 13, 18, 0.72);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+  }
+
+  .apple-card {
+    background: rgba(18, 18, 26, 0.65);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.06), 0 8px 24px -4px rgba(0, 0, 0, 0.4);
+    transition: transform 120ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 150ms ease, border-color 150ms ease, background-color 150ms ease;
+  }
+  .apple-card:hover {
+    border-color: rgba(255, 255, 255, 0.16);
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.12), 0 16px 36px -6px rgba(0, 0, 0, 0.55);
+    transform: translateY(-2px);
+  }
+  .apple-card:active {
+    transform: scale(0.985) !important;
+    transition: transform 80ms ease-out;
+  }
+
+  /* Apple Design: Sheet & dialog modal spring materialization (§4, §12) */
+  .apple-dialog {
+    background: rgba(17, 17, 24, 0.94);
+    backdrop-filter: blur(28px) saturate(190%);
+    -webkit-backdrop-filter: blur(28px) saturate(190%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.15), 0 32px 80px -12px rgba(0, 0, 0, 0.85);
+  }
+
+  /* Apple Design: Responsive spring easing curve (§4) */
+  .ease-spring {
+    transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
   /* Professional SaaS Cards */
   .card-base {
     @apply bg-[#111827] border border-[#1f2937] rounded-xl overflow-hidden transition-all;
@@ -102,7 +146,7 @@
     padding-bottom: 0.75rem;
     transition: transform 100ms cubic-bezier(0.2, 0, 0, 1), background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
   }
-  
+
   button[class*="px-"]:not([class*="sidebar"]):not([class*="nav"]):not(.p-2):not(.p-3):not(.icon-only):not(.btn-base):not([class*="rounded-"]):not(:disabled):active {
     transform: scale(0.97) !important;
   }
@@ -138,7 +182,7 @@
   background: rgba(17, 17, 24, 0.85);
   backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.04);
-  box-shadow: 
+  box-shadow:
     0 10px 30px rgba(0, 0, 0, 0.4),
     inset 0 1px 0 rgba(255, 255, 255, 0.03);
   transition: all 0.25s ease;
@@ -150,7 +194,7 @@
 
 .card-premium:hover {
   transform: translateY(-4px) scale(1.01);
-  box-shadow: 
+  box-shadow:
     0 20px 40px rgba(0, 0, 0, 0.6),
     0 0 0 1px rgba(124, 58, 237, 0.25);
 }
@@ -346,7 +390,7 @@ h1, h2, h3, h4, h5, h6 {
   box-sizing: border-box;
   overflow: hidden;
   min-height: 0;
-  
+
   /* Safe-Fit Strategy */
   transform: scale(0.95);
   transform-origin: top center;
@@ -508,13 +552,13 @@ select {
 /* Custom Scrollbar - Premium Minimal */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { 
-  background: rgba(124, 58, 237, 0.2); 
-  border-radius: 20px; 
+::-webkit-scrollbar-thumb {
+  background: rgba(124, 58, 237, 0.2);
+  border-radius: 20px;
   transition: all 0.3s;
 }
-::-webkit-scrollbar-thumb:hover { 
-  background: rgba(124, 58, 237, 0.5); 
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(124, 58, 237, 0.5);
 }
 ::-webkit-scrollbar-thumb:hover { background: #334155; }
 
@@ -673,9 +717,14 @@ input:-webkit-autofill:active {
   /* Neutralize scale/translate transforms on hover and active states */
   .card-premium:hover,
   .stat-card:hover,
+  .apple-card,
+  .apple-card:hover,
+  .apple-card:active,
+  .apple-dialog,
   button:active,
   button:not(:disabled):active {
     transform: none !important;
+    transition: opacity 150ms ease, background-color 150ms ease, border-color 150ms ease !important;
   }
 }
 
