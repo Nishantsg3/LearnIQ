@@ -15,9 +15,6 @@ export default defineConfig({
             if (/[\\/](react|react-dom|react-router|react-router-dom)[\\/]/.test(id)) {
               return 'vendor-react';
             }
-            if (id.includes('prismjs')) {
-              return 'vendor-prism';
-            }
           }
         }
       }

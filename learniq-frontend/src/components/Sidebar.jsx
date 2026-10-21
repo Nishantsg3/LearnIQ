@@ -1,11 +1,11 @@
 import React from 'react';
 import { useLocation, NavLink } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  Play, 
-  Calendar, 
-  History, 
-  LogOut, 
+import {
+  LayoutDashboard,
+  Play,
+  Calendar,
+  History,
+  LogOut,
   Database,
   Zap,
   Plus,
@@ -62,20 +62,20 @@ const Sidebar = ({ onProfileClick, isOpen, onClose }) => {
     <>
       {/* MOBILE OVERLAY */}
       {isOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] lg:hidden animate-in fade-in duration-300"
           onClick={onClose}
         />
       )}
 
-      <aside 
+      <aside
         className={`
           fixed left-0 top-0 h-screen w-[340px] z-[70] flex flex-col shadow-[15px_0_50px_rgba(0,0,0,0.6)]
           transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]
           ${isOpen ? 'translate-x-0' : '-translate-x-full'}
           lg:translate-x-0 sidebar-geometric
         `}
-        style={{ 
+        style={{
           background: isAdmin ? ADMIN_COLOR : 'linear-gradient(180deg, #6d28d9 0%, #4c1d95 100%)',
         }}
       >
@@ -112,7 +112,7 @@ const Sidebar = ({ onProfileClick, isOpen, onClose }) => {
           </div>
 
           {/* MOBILE CLOSE BUTTON */}
-          <button 
+          <button
             onClick={onClose}
             aria-label="Close navigation sidebar"
             className="lg:hidden w-10 h-10 flex items-center justify-center bg-white/5 border border-white/10 rounded-full text-white/50 hover:text-white transition-[background-color,border-color,color,transform] duration-150 ease-out active:scale-95 flex-shrink-0 ml-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
@@ -123,7 +123,7 @@ const Sidebar = ({ onProfileClick, isOpen, onClose }) => {
 
         {/* Navigation */}
         <nav className="flex-1 px-5 mt-4 pb-6 space-y-1 relative z-10 overflow-y-auto no-scrollbar" style={{ paddingRight: '30px' }}>
-          <p className={`text-[10px] font-bold uppercase tracking-[0.2em] mb-4 ml-3 ${isAdmin ? 'text-white/50' : 'text-white/80'}`}>Registry Control</p>
+          <p className={`text-[10px] font-semibold uppercase tracking-wider mb-3 ml-3 ${isAdmin ? 'text-white/60' : 'text-white/80'}`}>Navigation</p>
           {menuItems.map((item) => {
             const isActive = checkActive(item);
             return (
@@ -132,22 +132,22 @@ const Sidebar = ({ onProfileClick, isOpen, onClose }) => {
                 to={item.path}
                 onClick={() => { if(window.innerWidth < 1024) onClose(); }}
                 className={`
-                  flex items-center gap-4 px-4 py-3 sm:px-5 sm:py-3.5 rounded-xl text-[11px] font-bold transition-[background-color,border-color,color,box-shadow,transform] duration-150 ease-out group relative mx-2 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20
-                  ${isActive 
-                    ? 'text-white bg-white/10 border border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)] backdrop-blur-sm'
-                    : `${isAdmin ? 'text-white/65' : 'text-white/75'} hover:bg-white/5 hover:text-white border border-transparent`
+                  flex items-center gap-3.5 px-4 py-2.5 sm:px-4.5 sm:py-3 rounded-xl text-[12px] font-semibold transition-[background-color,border-color,color,box-shadow,transform] duration-150 ease-out group relative mx-2 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20
+                  ${isActive
+                    ? 'text-white bg-white/12 border border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.18),0_4px_16px_rgba(0,0,0,0.25)] backdrop-blur-md'
+                    : `${isAdmin ? 'text-white/70' : 'text-white/80'} hover:bg-white/[0.06] hover:text-white border border-transparent`
                   }
                 `}
               >
                 {isActive && (
-                  <div 
-                    className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-violet-400 rounded-r-full shadow-[0_0_8px_rgba(167,139,250,0.4)]"
+                  <div
+                    className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-5 bg-violet-400 rounded-r-full shadow-[0_0_8px_rgba(167,139,250,0.4)]"
                   />
                 )}
                 <div className={`transition-[color,transform] duration-150 ${isActive ? 'text-violet-300 drop-shadow-[0_0_8px_rgba(167,139,250,0.4)]' : 'group-hover:text-white'}`}>
                   {React.cloneElement(item.icon, { size: 18 })}
                 </div>
-                <span className="uppercase tracking-[0.2em] transition-transform duration-150 group-hover:translate-x-0.5">
+                <span className="tracking-tight transition-transform duration-150 group-hover:translate-x-0.5">
                   {item.name}
                 </span>
               </NavLink>
@@ -158,27 +158,27 @@ const Sidebar = ({ onProfileClick, isOpen, onClose }) => {
         {/* Footer Profile */}
         <div className="p-6 pb-6 relative z-10 flex-shrink-0" style={{ paddingRight: '30px' }}>
           <div className="h-px bg-white/5 mb-4 w-full" />
-          
-          <button 
+
+          <button
             onClick={onProfileClick}
-            className="group/profile flex items-center gap-4 cursor-pointer mb-6 p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-[background-color,border-color,transform] duration-150 ease-out w-full h-16 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+            className="group/profile flex items-center gap-3.5 cursor-pointer mb-4 p-3 rounded-2xl bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] hover:border-white/[0.14] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)] transition-[background-color,border-color,transform] duration-150 ease-out w-full h-15 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
           >
-            <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center border border-white/10 overflow-hidden group-hover/profile:border-violet-400/30 transition-all shadow-xl shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center border border-white/10 overflow-hidden group-hover/profile:border-violet-400/30 transition-all shadow-sm shrink-0">
               {user?.avatar ? (
                 <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
               ) : (
-                <UserCircle className="text-white/30 group-hover/profile:text-violet-400 transition-colors" size={20} />
+                <UserCircle className="text-white/40 group-hover/profile:text-violet-400 transition-colors" size={20} />
               )}
             </div>
             <div className="flex-1 overflow-hidden text-left">
-              <p className="text-[10px] font-black text-white/90 truncate uppercase tracking-widest leading-none">{user?.name || 'Admin'}</p>
-              <p className={`text-[9px] font-medium truncate uppercase tracking-[0.1em] mt-1 ${isAdmin ? 'text-white/50' : 'text-white/80'}`}>{isAdmin ? 'System Authority' : 'Candidate identity'}</p>
+              <p className="text-[12px] font-semibold text-white/90 truncate tracking-tight leading-tight">{user?.name || (isAdmin ? 'Administrator' : 'Student')}</p>
+              <p className={`text-[10px] font-medium truncate tracking-wide mt-0.5 ${isAdmin ? 'text-white/60' : 'text-white/80'}`}>{isAdmin ? 'System Authority' : 'Candidate Identity'}</p>
             </div>
           </button>
-          
-          <button 
+
+          <button
             onClick={logout}
-            className={`w-full flex items-center justify-center gap-3 px-4 py-3.5 rounded-xl bg-white/5 ${isAdmin ? 'text-white/65' : 'text-white/75'} text-[10px] font-black uppercase tracking-[0.3em] hover:bg-rose-500/10 hover:border-rose-500/20 hover:text-rose-400 transition-[background-color,border-color,color,transform] duration-150 ease-out border border-white/5 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/50`}
+            className={`w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl bg-white/[0.04] ${isAdmin ? 'text-white/70' : 'text-white/80'} text-[11px] font-semibold tracking-tight hover:bg-rose-500/10 hover:border-rose-500/25 hover:text-rose-400 transition-[background-color,border-color,color,transform] duration-150 ease-out border border-white/[0.06] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/50`}
           >
             <LogOut size={16} />
             Sign out

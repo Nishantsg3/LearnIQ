@@ -62,12 +62,12 @@ const AdminProfileModalContent = ({ user, updateUser, onClose }) => {
     setIsSaving(true);
     // Simulate slight delay for premium feel
     await new Promise(resolve => setTimeout(resolve, 800));
-    
-    updateUser({ 
-      name, 
-      avatar: previewImage 
+
+    updateUser({
+      name,
+      avatar: previewImage
     });
-    
+
     setIsSaving(false);
     onClose();
   };
@@ -75,88 +75,90 @@ const AdminProfileModalContent = ({ user, updateUser, onClose }) => {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div 
+      <div
         aria-hidden="true"
         className="absolute inset-0 bg-black/80 backdrop-blur-md transition-opacity duration-300 animate-in fade-in"
         onClick={onClose}
       />
-      
-      {/* Modal Card */}
+
+      {/* Modal Card - Apple Sheet Material & Spring Motion (§12, §4) */}
       <div
         ref={modalRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="admin-profile-title"
-        className="relative z-[110] bg-[#111118] border border-white/5 rounded-3xl w-full max-w-md overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.6)] animate-in zoom-in-95 duration-200"
+        className="relative z-[110] bg-[#101017]/95 backdrop-blur-2xl border border-white/12 rounded-[1.75rem] w-full max-w-md overflow-hidden shadow-[inset_0_1px_0_0_rgba(255,255,255,0.18),0_32px_80px_rgba(0,0,0,0.85)] transition-[transform,opacity] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] animate-in zoom-in-95"
       >
+        {/* Subtle Light Catch Top Edge */}
+        <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-violet-500/40 to-transparent" />
+
         {/* Header */}
-        <div className="p-6 border-b border-white/5 flex items-center justify-between">
-          <h2 id="admin-profile-title" className="text-[11px] font-black text-white uppercase tracking-[0.4em]">Identity Synchronization</h2>
-          <button 
+        <div className="p-6 border-b border-white/[0.08] flex items-center justify-between">
+          <h2 id="admin-profile-title" className="text-sm font-semibold text-white tracking-tight">Identity Profile</h2>
+          <button
             ref={closeBtnRef}
             type="button"
             onClick={onClose}
             aria-label="Close profile modal"
-            className="p-2 text-slate-400 hover:text-white transition-colors rounded-full hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400"
+            className="p-2 text-slate-400 hover:text-white transition-colors rounded-full hover:bg-white/5 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400"
           >
             <X size={18} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-8 space-y-8">
+        <form onSubmit={handleSubmit} className="p-6 sm:p-7 space-y-6">
           {/* Avatar Section */}
           <div className="flex flex-col items-center">
             <div className="relative group">
-              <div className="w-24 h-24 rounded-2xl bg-black/40 border border-white/10 flex items-center justify-center overflow-hidden transition-all group-hover:border-[#7c3aed]/50 shadow-2xl">
+              <div className="w-22 h-22 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-center overflow-hidden transition-all group-hover:border-violet-500/50 shadow-md">
                 {previewImage ? (
                   <img src={previewImage} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
-                  <User className="text-white/20" size={40} />
+                  <User className="text-white/30" size={36} />
                 )}
-                
-                <label className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                  <Camera className="text-white" size={24} />
+
+                <label className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer backdrop-blur-xs">
+                  <Camera className="text-white" size={22} />
                   <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
                 </label>
               </div>
-              <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[#7c3aed] flex items-center justify-center border-2 border-[#111118]">
-                <Camera size={12} className="text-white" />
+              <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-violet-600 flex items-center justify-center border-2 border-[#101017] shadow-sm">
+                <Camera size={11} className="text-white" />
               </div>
             </div>
-            <p className="text-[9px] font-black text-[#9ca3af] uppercase tracking-widest mt-4">Update Profile Avatar</p>
+            <p className="text-[11px] font-medium text-white/60 tracking-normal mt-3">Profile Photo</p>
           </div>
 
           {/* Form Fields */}
           <div className="space-y-4">
             <div className="space-y-2">
-              <label className="text-[9px] font-black text-[#9ca3af] uppercase tracking-[0.2em] ml-1">Universal Display Name</label>
-              <input 
+              <label className="text-[11px] font-medium text-white/70 tracking-wider uppercase ml-1">Display Name</label>
+              <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full px-6 py-3 bg-[#0a0a0f] border border-white/5 rounded-full text-white text-xs placeholder:text-white/50 outline-none focus:border-[#7c3aed]/50 transition-all duration-200"
-                placeholder="Identity Reference"
+                className="w-full px-4 py-2.5 bg-white/[0.04] border border-white/10 rounded-xl text-white text-sm placeholder:text-white/40 outline-none focus:border-violet-500/60 focus:bg-white/[0.07] transition-all duration-150"
+                placeholder="Your Name"
                 required
               />
             </div>
           </div>
 
           {/* Actions */}
-          <button 
+          <button
             type="submit"
             disabled={isSaving}
-            style={{ background: 'linear-gradient(135deg, #7c3aed, #6d28d9)' }}
-            className="w-full py-4 rounded-full flex items-center justify-center gap-3 text-white font-black uppercase text-[11px] tracking-[0.3em] transition-all hover:brightness-110 hover:-translate-y-0.5 hover:shadow-[0_0_20px_rgba(124,58,237,0.3)] disabled:opacity-50"
+            className="w-full py-3 rounded-xl bg-violet-600 hover:bg-violet-500 flex items-center justify-center gap-2.5 text-white font-semibold text-sm tracking-tight transition-all active:scale-[0.98] shadow-lg shadow-violet-600/25 disabled:opacity-50"
           >
             {isSaving ? (
               <>
                 <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                <span>Synchronizing...</span>
+                <span>Saving...</span>
               </>
             ) : (
               <>
-                <Save size={18} />
-                <span>Confirm Changes</span>
+                <Save size={16} />
+                <span>Save Changes</span>
               </>
             )}
           </button>

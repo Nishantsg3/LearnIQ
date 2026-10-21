@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { 
-  FileText, 
-  Database, 
+import {
+  FileText,
+  Database,
   Zap,
   Clock,
   Calendar,
@@ -45,27 +45,27 @@ const AdminTestMaker = () => {
     const monthLabel = new Date(calendarYear, calendarMonth).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
     return (
-      <div className="p-3 bg-[#0f0f14] border border-white/10 rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200 box-border w-[280px]">
+      <div className="apple-dialog p-4 rounded-2xl shadow-2xl animate-in zoom-in-95 duration-150 box-border w-[300px]">
         {/* Month/Year Navigation */}
         <div className="flex items-center justify-between mb-3 px-1">
           <button type="button" onClick={() => {
             if (calendarMonth === 0) { setCalendarMonth(11); setCalendarYear(calendarYear - 1); }
             else { setCalendarMonth(calendarMonth - 1); }
-          }} className="p-1.5 rounded-lg hover:bg-white/10 text-white/70 hover:text-white transition-all">
+          }} className="p-1.5 rounded-lg hover:bg-white/10 text-white/70 hover:text-white transition-all active:scale-95">
             ←
           </button>
-          <span className="text-[10px] font-black text-white/80 uppercase tracking-[0.2em]">{monthLabel}</span>
+          <span className="text-xs font-semibold text-white/90 tracking-wide">{monthLabel}</span>
           <button type="button" onClick={() => {
             if (calendarMonth === 11) { setCalendarMonth(0); setCalendarYear(calendarYear + 1); }
             else { setCalendarMonth(calendarMonth + 1); }
-          }} className="p-1.5 rounded-lg hover:bg-white/10 text-white/70 hover:text-white transition-all">
+          }} className="p-1.5 rounded-lg hover:bg-white/10 text-white/70 hover:text-white transition-all active:scale-95">
             →
           </button>
         </div>
 
         {/* Day headers */}
         <div className="grid grid-cols-7 gap-1 mb-1">
-          {['S','M','T','W','T','F','S'].map((d, i) => <div key={i} className="text-[8px] font-black text-violet-400 text-center">{d}</div>)}
+          {['S','M','T','W','T','F','S'].map((d, i) => <div key={i} className="text-[10px] font-semibold text-violet-400/80 text-center">{d}</div>)}
         </div>
 
         {/* Day cells */}
@@ -89,14 +89,14 @@ const AdminTestMaker = () => {
                   setFormData({...formData, startTime: `${dateStr}T${time}`});
                   setShowCalendar(false);
                 }}
-                className={`aspect-square flex items-center justify-center rounded-lg text-[9px] font-bold transition-all ${
+                className={`aspect-square flex items-center justify-center rounded-lg text-[11px] font-semibold transition-all active:scale-95 ${
                   isPast
                     ? 'opacity-20 cursor-not-allowed text-white/20'
                     : isSelected
-                      ? 'bg-violet-500 text-white shadow-[0_0_10px_rgba(124,58,237,0.4)]'
+                      ? 'bg-violet-600 text-white shadow-[0_0_12px_rgba(124,58,237,0.4)]'
                       : isToday
-                        ? 'text-violet-400 border border-violet-500/30 bg-violet-500/5'
-                        : 'text-white/70 hover:bg-white/5 hover:text-white'
+                        ? 'text-violet-400 border border-violet-500/40 bg-violet-500/10'
+                        : 'text-white/80 hover:bg-white/10 hover:text-white'
                 }`}
               >
                 {day}
@@ -109,27 +109,27 @@ const AdminTestMaker = () => {
   };
 
   const renderClockContent = () => (
-    <div className="p-5 bg-[#0a0a0f] border border-white/10 rounded-[2rem] shadow-[0_30px_100px_rgba(0,0,0,0.9)] animate-in zoom-in-95 duration-300 box-border w-[300px]">
+    <div className="apple-dialog p-5 rounded-3xl shadow-[0_30px_100px_rgba(0,0,0,0.9)] animate-in zoom-in-95 duration-150 box-border w-[310px]">
        <div className="flex items-center justify-between gap-2 mb-4">
-            <div className="flex items-baseline gap-1 bg-white/5 px-3 py-1.5 rounded-xl border border-white/5">
-              <button 
+            <div className="flex items-baseline gap-1 bg-white/[0.04] px-3.5 py-1.5 rounded-xl border border-white/[0.08]">
+              <button
                 type="button"
                 onClick={() => setClockMode('HOUR')}
-                className={`text-xl font-black transition-all ${clockMode === 'HOUR' ? 'text-violet-400' : 'text-white/60 hover:text-white/80'}`}
+                className={`text-xl font-bold transition-all active:scale-95 ${clockMode === 'HOUR' ? 'text-violet-400' : 'text-white/60 hover:text-white/80'}`}
               >
                 {formData.startTime?.split('T')[1] ? (parseInt(formData.startTime.split('T')[1].split(':')[0]) % 12 || 12).toString().padStart(2, '0') : '12'}
               </button>
-              <span className="text-white/50 font-black text-lg">:</span>
-              <button 
+              <span className="text-white/40 font-bold text-lg">:</span>
+              <button
                 type="button"
                 onClick={() => setClockMode('MINUTE')}
-                className={`text-xl font-black transition-all ${clockMode === 'MINUTE' ? 'text-violet-400' : 'text-white/60 hover:text-white/80'}`}
+                className={`text-xl font-bold transition-all active:scale-95 ${clockMode === 'MINUTE' ? 'text-violet-400' : 'text-white/60 hover:text-white/80'}`}
               >
                 {formData.startTime?.split('T')[1]?.split(':')[1] || '00'}
               </button>
             </div>
 
-            <div className="flex gap-1 bg-white/5 rounded-lg p-0.5">
+            <div className="flex gap-1 bg-white/[0.04] border border-white/[0.08] rounded-xl p-1">
               {['AM', 'PM'].map(p => {
                 const hour = parseInt(formData.startTime?.split('T')[1]?.split(':')[0] || '12');
                 const isPM = hour >= 12;
@@ -146,7 +146,7 @@ const AdminTestMaker = () => {
                       if (p === 'AM' && hourInt >= 12) hourInt -= 12;
                       setFormData({...formData, startTime: `${date}T${hourInt.toString().padStart(2, '0')}:${m}`});
                     }}
-                    className={`px-2 py-0.5 rounded-md text-[8px] font-black transition-all ${active ? 'bg-violet-600 text-white shadow-lg' : 'text-white/60 hover:text-white'}`}
+                    className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all active:scale-95 ${active ? 'bg-violet-600 text-white shadow-sm' : 'text-white/60 hover:text-white'}`}
                   >
                     {p}
                   </button>
@@ -155,11 +155,11 @@ const AdminTestMaker = () => {
             </div>
         </div>
 
-        <div className="relative aspect-square w-full bg-white/[0.02] rounded-full border border-white/5 flex items-center justify-center mb-5">
-            <div 
+        <div className="relative aspect-square w-full bg-white/[0.02] rounded-full border border-white/[0.06] flex items-center justify-center mb-5">
+            <div
               className="absolute w-0.5 bg-violet-500 origin-bottom transition-all duration-300"
-              style={{ 
-                height: '38%', 
+              style={{
+                height: '38%',
                 bottom: '50%',
                 left: 'calc(50% - 0.5px)',
                 transform: `rotate(${(() => {
@@ -167,7 +167,7 @@ const AdminTestMaker = () => {
                     const min = parseInt(formData.startTime?.split('T')[1]?.split(':')[1] || '00');
                     const val = clockMode === 'HOUR' ? (hour % 12) : (min / 5);
                     return val * 30;
-                })()}deg)` 
+                })()}deg)`
               }}
             >
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-violet-600 shadow-[0_0_15px_rgba(124,58,237,0.5)] border-2 border-violet-400/50" />
@@ -178,8 +178,8 @@ const AdminTestMaker = () => {
               const angle = (i * 30) - 90;
               const x = 40 * Math.cos(angle * Math.PI / 180);
               const y = 40 * Math.sin(angle * Math.PI / 180);
-              
-              const currentVal = clockMode === 'HOUR' 
+
+              const currentVal = clockMode === 'HOUR'
                 ? (parseInt(formData.startTime?.split('T')[1]?.split(':')[0] || '12') % 12 || 12)
                 : (parseInt(formData.startTime?.split('T')[1]?.split(':')[1] || '00'));
               const active = val === currentVal;
@@ -200,33 +200,33 @@ const AdminTestMaker = () => {
                         setFormData({...formData, startTime: `${date}T${h}:${val.toString().padStart(2, '0')}`});
                     }
                   }}
-                  className={`absolute w-7 h-7 flex items-center justify-center text-[10px] font-black transition-all rounded-full z-20 ${active ? 'text-white' : 'text-white/60 hover:text-white'}`}
+                  className={`absolute w-7 h-7 flex items-center justify-center text-[11px] font-bold transition-all rounded-full z-20 active:scale-95 ${active ? 'text-white' : 'text-white/60 hover:text-white'}`}
                   style={{ left: `${50 + x}%`, top: `${50 + y}%`, transform: 'translate(-50%, -50%)' }}
                 >
                   {clockMode === 'HOUR' ? val : val.toString().padStart(2, '0')}
                 </button>
               );
             })}
-            <div className="w-1.5 h-1.5 bg-violet-500 rounded-full z-10" />
+            <div className="w-2 h-2 bg-violet-500 rounded-full z-10" />
         </div>
 
-        <div className="flex gap-2">
-             <button 
+        <div className="flex gap-2.5">
+             <button
                type="button"
                onClick={() => {
                  setFormData({...formData, startTime: ''});
                  setShowClock(false);
                }}
-               className="btn-secondary flex-1 py-2"
+               className="btn-secondary flex-1 py-2 rounded-xl text-xs font-semibold"
              >
                Clear
              </button>
-             <button 
+             <button
                type="button"
                onClick={() => setShowClock(false)}
-               className="btn-white flex-1 py-2"
+               className="btn-primary flex-1 py-2 rounded-xl text-xs font-semibold"
              >
-               Finalize
+               Done
              </button>
          </div>
     </div>
@@ -257,7 +257,7 @@ const AdminTestMaker = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // 1. Strict Rule Enforcement
     if (formData.testType === 'PRACTICE' && parseInt(formData.totalQuestions) !== parseInt(formData.duration)) {
       toast.error('SCHEMA VIOLATION: Duration must equal Question Count for Practice tests.');
@@ -299,69 +299,68 @@ const AdminTestMaker = () => {
   return (
     <div className="animate-in fade-in duration-500 overflow-y-auto lg:overflow-visible lg:h-[calc(100vh-100px)] p-4 sm:p-6 lg:px-16 flex flex-col custom-scrollbar">
         {/* HEADER: TITLE + NAVIGATION */}
-        <div className="flex items-center justify-between mb-3 flex-shrink-0">
+        <div className="flex items-center justify-between mb-4 flex-shrink-0">
           <div>
-            <div className="flex items-center gap-3 mb-0.5">
-              <div style={{ width: 4, height: 18, background: '#7c3aed', borderRadius: 4 }} />
-              <h1 className="text-xl font-black text-white uppercase tracking-[0.2em] italic">Create Test</h1>
+            <div className="flex items-center gap-3 mb-1">
+              <div style={{ width: 4, height: 20, background: '#7c3aed', borderRadius: 4 }} />
+              <h1 className="text-2xl font-bold tracking-tight text-white">Create Test</h1>
             </div>
-            <p className="text-[10px] text-white/60 ml-4 uppercase tracking-[0.3em] font-black">Configure test details and settings</p>
+            <p className="text-xs text-white/60 ml-4 font-normal tracking-normal">Configure assessment details, timing, and security rules</p>
           </div>
           <BackToDashboard />
         </div>
 
         {/* CORE CONFIGURATION ZONE */}
-        <form onSubmit={handleSubmit} className="flex-1 flex flex-col lg:grid lg:grid-cols-[1.2fr_1fr] gap-4 mb-3" style={{ minHeight: 0 }}>
-          
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col lg:grid lg:grid-cols-[1.2fr_1fr] gap-5 mb-3" style={{ minHeight: 0 }}>
+
           {/* LEFT TRACK: CONFIGURATION */}
-          <div 
-            className="rounded-2xl border border-white/5 p-5 flex flex-col gap-4 relative"
-            style={{ 
-                background: 'rgba(15,15,20,0.4)',
-                backdropFilter: 'blur(10px)',
-                boxShadow: '0 20px 50px rgba(0,0,0,0.3)'
+          <div
+            className="apple-card rounded-2xl p-5 sm:p-6 flex flex-col gap-4 relative overflow-visible"
+            style={{
+                background: 'rgba(18, 18, 26, 0.72)',
+                boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.08), 0 20px 50px rgba(0,0,0,0.4)'
             }}
           >
-            {/* Subtle background glow */}
-            <div className="absolute top-0 right-0 w-48 h-48 bg-violet-600/5 blur-[100px] pointer-events-none" />
+            {/* Subtle top accent sheen */}
+            <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-violet-500/20 to-transparent pointer-events-none" />
 
             <div className="flex-1 pr-1">
               <div className="space-y-4">
                 <div className="flex items-center gap-2 mb-1">
-                  <Database size={14} className="text-violet-500" />
-                  <h3 className="text-xs font-black text-white uppercase tracking-[0.2em]">Test Details</h3>
+                  <Database size={15} className="text-violet-400" />
+                  <h3 className="text-xs font-semibold text-white/90 uppercase tracking-wider">Test Details</h3>
                 </div>
 
                 <div className="group">
-                  <label className="text-[10px] font-black text-white/70 uppercase tracking-widest mb-1.5 block ml-1 group-hover:text-violet-400/60 transition-colors">Assessment Title</label>
-                  <input 
-                    type="text" 
-                    placeholder="e.g. Java Mock Assessment"
+                  <label className="text-[11px] font-semibold text-white/70 tracking-wide mb-1.5 block ml-1">Assessment Title</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Java Advanced Architecture Mock"
                     value={formData.title}
                     onChange={(e) => setFormData({...formData, title: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-[11px] text-white focus:outline-none focus:border-violet-500/50 placeholder:text-white/50 font-bold tracking-widest transition-all hover:bg-white/[0.07]"
+                    className="w-full px-4 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-xs text-white focus:outline-none focus:border-violet-500/60 focus:ring-2 focus:ring-violet-500/20 placeholder:text-white/40 font-medium tracking-normal transition-all hover:bg-white/[0.06] hover:border-white/[0.12]"
                   />
-                  <p className="text-[8px] text-white/60 mt-1.5 ml-1 uppercase tracking-widest font-black italic">Enter a unique test name</p>
+                  <p className="text-[10px] text-white/40 mt-1.5 ml-1 tracking-normal font-normal">Enter a clear, descriptive title for students</p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="group">
-                    <label className="text-[10px] font-black text-white/70 uppercase tracking-widest mb-1.5 block ml-1 group-hover:text-violet-400/60 transition-colors">Category</label>
+                    <label className="text-[11px] font-semibold text-white/70 tracking-wide mb-1.5 block ml-1">Category</label>
                     <div className="relative w-full">
-                      <button 
+                      <button
                         type="button"
                         onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
-                        className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-[11px] text-white flex items-center justify-between font-bold tracking-widest transition-all hover:bg-white/[0.07] min-w-0"
+                        className="w-full px-4 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-xs text-white flex items-center justify-between font-medium tracking-normal transition-all hover:bg-white/[0.06] hover:border-white/[0.12] active:scale-[0.99] min-w-0"
                       >
                         <span className="truncate">{formData.category}</span>
-                        <ChevronDown size={10} className={`text-white/20 transition-transform duration-300 ${showCategoryDropdown ? 'rotate-180 text-violet-400' : ''}`} />
+                        <ChevronDown size={12} className={`text-white/40 transition-transform duration-200 ${showCategoryDropdown ? 'rotate-180 text-violet-400' : ''}`} />
                       </button>
-                      
+
                       {showCategoryDropdown && (
                         <>
                           <div className="fixed inset-0 z-40" onClick={() => setShowCategoryDropdown(false)} />
-                          <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-[#0f0f14] border border-white/10 rounded-xl shadow-2xl z-50 overflow-visible animate-in zoom-in-95 duration-200">
-                            <div className="max-h-48 overflow-y-auto custom-scrollbar">
+                          <div className="apple-dialog absolute top-[calc(100%+6px)] left-0 right-0 rounded-xl shadow-2xl z-50 overflow-hidden animate-in zoom-in-95 duration-150">
+                            <div className="max-h-48 overflow-y-auto custom-scrollbar p-1">
                               {categories.map(cat => (
                                 <button
                                   key={cat}
@@ -370,7 +369,7 @@ const AdminTestMaker = () => {
                                     setFormData({...formData, category: cat});
                                     setShowCategoryDropdown(false);
                                   }}
-                                  className={`w-full px-4 py-3 text-[10px] font-black uppercase tracking-widest text-left transition-colors hover:bg-violet-500/10 first:rounded-t-xl last:rounded-b-xl ${formData.category === cat ? 'text-violet-400 bg-violet-500/5' : 'text-white/60 hover:text-white'}`}
+                                  className={`w-full px-3 py-2 text-xs font-medium text-left rounded-lg transition-colors hover:bg-white/10 ${formData.category === cat ? 'text-violet-400 bg-violet-500/10' : 'text-white/80 hover:text-white'}`}
                                 >
                                   {cat}
                                 </button>
@@ -382,37 +381,39 @@ const AdminTestMaker = () => {
                     </div>
                   </div>
                   <div className="group">
-                    <label className="text-[10px] font-black text-white/70 uppercase tracking-widest mb-1.5 block ml-1 group-hover:text-violet-400/60 transition-colors">Test Mode</label>
+                    <label className="text-[11px] font-semibold text-white/70 tracking-wide mb-1.5 block ml-1">Test Mode</label>
                     <div className="relative w-full">
-                      <button 
+                      <button
                         type="button"
                         onClick={() => setShowTypeDropdown(!showTypeDropdown)}
-                        className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-[11px] text-white flex items-center justify-between font-bold tracking-widest transition-all hover:bg-white/[0.07] min-w-0"
+                        className="w-full px-4 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-xs text-white flex items-center justify-between font-medium tracking-normal transition-all hover:bg-white/[0.06] hover:border-white/[0.12] active:scale-[0.99] min-w-0"
                       >
                         <span className="truncate">{formData.testType === 'PRACTICE' ? 'Practice Test' : 'Main Test'}</span>
-                        <ChevronDown size={10} className={`text-white/20 transition-transform duration-300 ${showTypeDropdown ? 'rotate-180 text-violet-400' : ''}`} />
+                        <ChevronDown size={12} className={`text-white/40 transition-transform duration-200 ${showTypeDropdown ? 'rotate-180 text-violet-400' : ''}`} />
                       </button>
-                      
+
                       {showTypeDropdown && (
                         <>
                           <div className="fixed inset-0 z-40" onClick={() => setShowTypeDropdown(false)} />
-                          <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-[#0f0f14] border border-white/10 rounded-xl shadow-2xl z-50 overflow-visible animate-in zoom-in-95 duration-200">
-                            {[
-                              { id: 'PRACTICE', label: 'Practice Test' },
-                              { id: 'MAIN', label: 'Main Test' }
-                            ].map(type => (
-                              <button
-                                key={type.id}
-                                type="button"
-                                onClick={() => {
-                                  setFormData({...formData, testType: type.id});
-                                  setShowTypeDropdown(false);
-                                }}
-                                className={`w-full px-4 py-3 text-[10px] font-black uppercase tracking-widest text-left transition-colors hover:bg-violet-500/10 first:rounded-t-xl last:rounded-b-xl ${formData.testType === type.id ? 'text-violet-400 bg-violet-500/5' : 'text-white/60 hover:text-white'}`}
-                              >
-                                {type.label}
-                              </button>
-                            ))}
+                          <div className="apple-dialog absolute top-[calc(100%+6px)] left-0 right-0 rounded-xl shadow-2xl z-50 overflow-hidden animate-in zoom-in-95 duration-150">
+                            <div className="p-1">
+                              {[
+                                { id: 'PRACTICE', label: 'Practice Test' },
+                                { id: 'MAIN', label: 'Main Test' }
+                              ].map(type => (
+                                <button
+                                  key={type.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setFormData({...formData, testType: type.id});
+                                    setShowTypeDropdown(false);
+                                  }}
+                                  className={`w-full px-3 py-2 text-xs font-medium text-left rounded-lg transition-colors hover:bg-white/10 ${formData.testType === type.id ? 'text-violet-400 bg-violet-500/10' : 'text-white/80 hover:text-white'}`}
+                                >
+                                  {type.label}
+                                </button>
+                              ))}
+                            </div>
                           </div>
                         </>
                       )}
@@ -420,49 +421,49 @@ const AdminTestMaker = () => {
                   </div>
                 </div>
 
-                <div className={`p-4 rounded-xl border transition-all duration-500 ${formData.testType === 'MAIN' ? 'bg-orange-500/5 border-orange-500/20' : 'bg-violet-500/5 border-violet-500/20'}`}>
+                <div className={`p-4 rounded-xl border transition-all duration-300 ${formData.testType === 'MAIN' ? 'bg-amber-500/[0.06] border-amber-500/20' : 'bg-violet-500/[0.06] border-violet-500/20'}`}>
                   <div className="flex items-start gap-3">
-                    <div className={`mt-0.5 p-1.5 rounded-lg ${formData.testType === 'MAIN' ? 'bg-orange-500/20' : 'bg-violet-500/20'}`}>
-                      {formData.testType === 'MAIN' ? <Zap size={14} className="text-orange-400" /> : <Database size={14} className="text-violet-400" />}
+                    <div className={`mt-0.5 p-2 rounded-xl ${formData.testType === 'MAIN' ? 'bg-amber-500/20 text-amber-400' : 'bg-violet-500/20 text-violet-400'}`}>
+                      {formData.testType === 'MAIN' ? <Zap size={14} /> : <Database size={14} />}
                     </div>
                     <div>
-                      <h4 className={`text-[9px] font-black uppercase tracking-[0.2em] mb-1 ${formData.testType === 'MAIN' ? 'text-orange-400' : 'text-violet-400'}`}>
-                        {formData.testType === 'MAIN' ? 'Restricted Access' : 'Open Access'}
+                      <h4 className={`text-xs font-semibold mb-0.5 ${formData.testType === 'MAIN' ? 'text-amber-400' : 'text-violet-400'}`}>
+                        {formData.testType === 'MAIN' ? 'Restricted Access' : 'Open Practice'}
                       </h4>
-                      <p className="text-[8px] font-bold text-white/60 uppercase tracking-widest leading-relaxed">
-                        {formData.testType === 'MAIN' 
-                          ? 'Single attempt only. Results locked after submission.' 
-                          : 'Students can attempt this test multiple times.'}
+                      <p className="text-[11px] font-normal text-white/70 leading-relaxed">
+                        {formData.testType === 'MAIN'
+                          ? 'Single attempt only. Time-window enforced and results verified.'
+                          : 'Students can attempt this test multiple times for self-paced learning.'}
                       </p>
                     </div>
                   </div>
                 </div>
 
                 {formData.testType === 'MAIN' && (
-                  <div className="pt-4 border-t border-white/5">
+                  <div className="pt-4 border-t border-white/[0.06]">
                     <div className="flex items-center gap-2 mb-3">
-                      <Calendar size={12} className="text-violet-500" />
-                      <h3 className="text-[10px] font-black text-white/60 uppercase tracking-[0.2em]">Scheduling</h3>
+                      <Calendar size={13} className="text-violet-400" />
+                      <h3 className="text-[11px] font-semibold text-white/70 uppercase tracking-wider">Scheduled Window</h3>
                     </div>
-                  
+
                   <div className="grid grid-cols-2 gap-4">
                       <div className="relative group">
-                        <label className="text-[9px] font-black text-white/60 uppercase tracking-widest mb-1.5 block ml-1">Calendar</label>
-                        <button 
+                        <label className="text-[10px] font-semibold text-white/60 tracking-wide mb-1.5 block ml-1">Start Date</label>
+                        <button
                           type="button"
                           onClick={() => setShowCalendar(!showCalendar)}
-                          className="w-full px-4 py-2.5 bg-[#1a1a24] border border-violet-500/20 rounded-xl text-[11px] text-white flex items-center justify-between hover:border-violet-500/60 transition-all"
+                          className="w-full px-4 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-xs text-white flex items-center justify-between hover:border-violet-500/50 hover:bg-white/[0.06] transition-all active:scale-[0.99]"
                         >
-                          <span className={formData.startTime?.split('T')[0] ? 'text-white' : 'text-white/50'}>
+                          <span className={formData.startTime?.split('T')[0] ? 'text-white font-medium' : 'text-white/40'}>
                             {formData.startTime?.split('T')[0] ? new Date(formData.startTime.split('T')[0]).toLocaleDateString('en-GB') : 'DD / MM / YYYY'}
                           </span>
-                          <Calendar size={12} className="text-violet-400" />
+                          <Calendar size={13} className="text-violet-400" />
                         </button>
-                        
+
                         {showCalendar && createPortal(
                           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                            <div aria-hidden="true" className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowCalendar(false)} />
-                            <div role="dialog" aria-label="Select date" aria-modal="true" className="relative max-h-[90vh] scale-[0.85] sm:scale-100 transition-transform duration-300">
+                            <div aria-hidden="true" className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={() => setShowCalendar(false)} />
+                            <div role="dialog" aria-label="Select date" aria-modal="true" className="relative max-h-[90vh] scale-100 transition-transform duration-200">
                                {renderCalendarContent()}
                             </div>
                           </div>,
@@ -471,13 +472,13 @@ const AdminTestMaker = () => {
                       </div>
 
                       <div className="relative group">
-                          <label className="text-[9px] font-black text-white/60 uppercase tracking-widest mb-1.5 block ml-1">Clock</label>
-                          <button 
+                          <label className="text-[10px] font-semibold text-white/60 tracking-wide mb-1.5 block ml-1">Start Time</label>
+                          <button
                             type="button"
                             onClick={() => setShowClock(!showClock)}
-                            className="w-full px-4 py-2.5 bg-[#1a1a24] border border-violet-500/20 rounded-xl text-[11px] text-white flex items-center justify-between hover:border-violet-500/60 transition-all"
+                            className="w-full px-4 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-xs text-white flex items-center justify-between hover:border-violet-500/50 hover:bg-white/[0.06] transition-all active:scale-[0.99]"
                           >
-                            <span className={formData.startTime?.split('T')[1] ? 'text-white' : 'text-white/50'}>
+                            <span className={formData.startTime?.split('T')[1] ? 'text-white font-medium' : 'text-white/40'}>
                               {formData.startTime?.split('T')[1] ? (() => {
                                 const [h, m] = formData.startTime.split('T')[1].split(':');
                                 const hour = parseInt(h);
@@ -485,13 +486,13 @@ const AdminTestMaker = () => {
                                 return `${h12.toString().padStart(2, '0')} : ${m} ${hour >= 12 ? 'PM' : 'AM'}`;
                               })() : 'HH : MM'}
                             </span>
-                            <Clock size={12} className="text-violet-400" />
+                            <Clock size={13} className="text-violet-400" />
                           </button>
-                        
+
                         {showClock && createPortal(
                           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                            <div aria-hidden="true" className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowClock(false)} />
-                            <div role="dialog" aria-label="Select time" aria-modal="true" className="relative max-h-[90vh] scale-[0.8] sm:scale-100 transition-transform duration-300">
+                            <div aria-hidden="true" className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={() => setShowClock(false)} />
+                            <div role="dialog" aria-label="Select time" aria-modal="true" className="relative max-h-[90vh] scale-100 transition-transform duration-200">
                                {renderClockContent()}
                             </div>
                           </div>,
@@ -506,37 +507,43 @@ const AdminTestMaker = () => {
           </div>
 
           <div className="flex-1 flex flex-col gap-4">
-            <div className="p-5 rounded-3xl border border-white/5 bg-[#0f0f14]/40 backdrop-blur-xl flex-1 flex flex-col overflow-visible">
+            <div
+              className="apple-card rounded-2xl p-5 sm:p-6 flex-1 flex flex-col overflow-visible"
+              style={{
+                  background: 'rgba(18, 18, 26, 0.72)',
+                  boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.08), 0 20px 50px rgba(0,0,0,0.4)'
+              }}
+            >
               <div className="space-y-4 overflow-y-auto pr-1 custom-scrollbar flex-1 flex flex-col">
                 <div className="flex items-center gap-2 mb-1">
-                  <Zap size={14} className="text-violet-500" />
-                  <h3 className="text-xs font-black text-white uppercase tracking-[0.2em]">Test Settings</h3>
+                  <Zap size={15} className="text-violet-400" />
+                  <h3 className="text-xs font-semibold text-white/90 uppercase tracking-wider">Test Settings</h3>
                 </div>
 
                 <div className="group">
-                  <label className="text-[10px] font-black text-white/70 uppercase tracking-widest mb-1.5 block ml-1 group-hover:text-violet-400/60 transition-colors">Number of Questions</label>
+                  <label className="text-[11px] font-semibold text-white/70 tracking-wide mb-1.5 block ml-1">Number of Questions</label>
                   <div className="relative w-full">
-                    <button 
+                    <button
                       type="button"
                       disabled={formData.testType === 'MAIN'}
                       onClick={() => setShowQuestionsDropdown(!showQuestionsDropdown)}
-                      className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-[11px] text-white flex items-center justify-between font-bold tracking-widest transition-all hover:bg-white/[0.07] disabled:opacity-50 min-w-0"
+                      className="w-full px-4 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-xs text-white flex items-center justify-between font-medium tracking-normal transition-all hover:bg-white/[0.06] hover:border-white/[0.12] disabled:opacity-50 active:scale-[0.99] min-w-0"
                     >
-                      <span className="truncate">{formData.totalQuestions} Questions</span>
+                      <span className="truncate tabular-nums">{formData.totalQuestions} Questions</span>
                       {formData.testType === 'MAIN' ? (
                         <div className="flex items-center gap-1.5">
-                          <span className="text-[8px] font-black bg-white/5 px-2 py-0.5 rounded uppercase tracking-[0.2em] border border-white/5 text-white/70">Hard Locked</span>
+                          <span className="text-[9px] font-semibold bg-white/10 px-2 py-0.5 rounded-md uppercase tracking-wider text-white/70">Hard Locked</span>
                         </div>
                       ) : (
-                        <ChevronDown size={10} className={`text-white/20 transition-transform duration-300 ${showQuestionsDropdown ? 'rotate-180 text-violet-400' : ''}`} />
+                        <ChevronDown size={12} className={`text-white/40 transition-transform duration-200 ${showQuestionsDropdown ? 'rotate-180 text-violet-400' : ''}`} />
                       )}
                     </button>
-                    
+
                     {showQuestionsDropdown && formData.testType !== 'MAIN' && (
                       <>
                         <div className="fixed inset-0 z-40" onClick={() => setShowQuestionsDropdown(false)} />
-                        <div className="absolute top-[calc(100%+4px)] left-0 right-0 bg-[#0f0f14] border border-white/10 rounded-xl shadow-2xl z-50 overflow-visible animate-in zoom-in-95 duration-200">
-                          <div className="max-h-48 overflow-y-auto custom-scrollbar">
+                        <div className="apple-dialog absolute top-[calc(100%+6px)] left-0 right-0 rounded-xl shadow-2xl z-50 overflow-hidden animate-in zoom-in-95 duration-150">
+                          <div className="max-h-48 overflow-y-auto custom-scrollbar p-1">
                             {[5, 10, 15, 20, 25, 30, 35, 40, 45, 50].map(n => (
                               <button
                                 key={n}
@@ -545,7 +552,7 @@ const AdminTestMaker = () => {
                                   setFormData({...formData, totalQuestions: n});
                                   setShowQuestionsDropdown(false);
                                 }}
-                                className={`w-full px-4 py-3 text-[10px] font-black uppercase tracking-widest text-left transition-colors hover:bg-violet-500/10 first:rounded-t-xl last:rounded-b-xl ${formData.totalQuestions === n ? 'text-violet-400 bg-violet-500/5' : 'text-white/60 hover:text-white'}`}
+                                className={`w-full px-3 py-2 text-xs font-medium text-left rounded-lg transition-colors hover:bg-white/10 tabular-nums ${formData.totalQuestions === n ? 'text-violet-400 bg-violet-500/10' : 'text-white/80 hover:text-white'}`}
                               >
                                 {n} Questions
                               </button>
@@ -558,12 +565,12 @@ const AdminTestMaker = () => {
                 </div>
 
                 <div className="group">
-                  <label className="text-[10px] font-black text-white/70 uppercase tracking-widest mb-1.5 block ml-1 group-hover:text-violet-400/60 transition-colors">Test Duration</label>
-                  <div className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-[11px] flex items-center justify-between">
-                    <span className="text-white font-bold tracking-widest">{formData.duration} Minutes</span>
+                  <label className="text-[11px] font-semibold text-white/70 tracking-wide mb-1.5 block ml-1">Test Duration</label>
+                  <div className="w-full px-4 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-xs flex items-center justify-between">
+                    <span className="text-white font-medium tracking-normal tabular-nums">{formData.duration} Minutes</span>
                     <div className="flex items-center gap-2">
-                      <Clock size={10} className="text-violet-500/50" />
-                      <span className={`text-[8px] font-black px-2 py-0.5 rounded uppercase tracking-widest border ${formData.testType === 'MAIN' ? 'bg-white/5 text-white/70 border-white/5' : 'bg-violet-500/10 text-violet-400 border-violet-500/20'}`}>
+                      <Clock size={12} className="text-violet-400/70" />
+                      <span className={`text-[9px] font-semibold px-2 py-0.5 rounded-md uppercase tracking-wider border ${formData.testType === 'MAIN' ? 'bg-white/10 text-white/70 border-white/10' : 'bg-violet-500/10 text-violet-400 border-violet-500/20'}`}>
                         {formData.testType === 'MAIN' ? 'Hard Locked' : 'Synced'}
                       </span>
                     </div>
@@ -571,37 +578,37 @@ const AdminTestMaker = () => {
                 </div>
 
                 <div className="mt-auto pt-4 space-y-3">
-                  <div className="p-4 rounded-xl border border-white/5 bg-black/40 relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-                    <p className="text-[8px] font-black text-white/60 uppercase tracking-[0.3em] mb-2.5">
+                  <div className="p-4 rounded-xl border border-white/[0.08] bg-white/[0.02] relative overflow-hidden shadow-sm">
+                    <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+                    <p className="text-[10px] font-semibold text-white/50 uppercase tracking-wider mb-2.5">
                       Test Summary
                     </p>
                     <div className="space-y-2">
-                      <div className="flex justify-between items-center text-[10px] font-bold">
-                        <span className="text-white/60 uppercase tracking-widest">Type</span>
-                        <span className="text-violet-400 tracking-widest uppercase">{formData.testType}</span>
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-white/60">Type</span>
+                        <span className="text-violet-400 font-semibold">{formData.testType === 'MAIN' ? 'Main Assessment' : 'Practice Test'}</span>
                       </div>
-                      <div className="flex justify-between items-center text-[10px] font-bold">
-                        <span className="text-white/60 uppercase tracking-widest">Subject</span>
-                        <span className="text-white/80 tracking-widest uppercase">{formData.category}</span>
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-white/60">Subject</span>
+                        <span className="text-white font-medium">{formData.category}</span>
                       </div>
-                      <div className="flex justify-between items-center text-[10px] font-bold">
-                        <span className="text-white/60 uppercase tracking-widest">Questions</span>
-                        <span className="text-white/80 tracking-widest uppercase">{formData.totalQuestions}</span>
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-white/60">Questions</span>
+                        <span className="text-white font-medium tabular-nums">{formData.totalQuestions}</span>
                       </div>
-                      <div className="flex justify-between items-center text-[10px] font-bold">
-                        <span className="text-white/60 uppercase tracking-widest">Duration</span>
-                        <span className="text-white/80 tracking-widest uppercase">{formData.duration} MIN</span>
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-white/60">Duration</span>
+                        <span className="text-white font-medium tabular-nums">{formData.duration} MIN</span>
                       </div>
                     </div>
                   </div>
 
-                   <button 
-                     type="submit" 
-                     disabled={saving} 
-                     className="btn-white w-full py-4 mt-4"
+                   <button
+                     type="submit"
+                     disabled={saving}
+                     className="w-full py-3.5 rounded-full bg-white text-black font-semibold text-xs tracking-wide shadow-lg hover:bg-white/90 active:scale-[0.98] transition-[transform,background-color] duration-120 disabled:opacity-50 mt-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/60"
                    >
-                     {saving ? 'Creating...' : 'Create Test'}
+                     {saving ? 'Creating Assessment...' : 'Create Test'}
                    </button>
                 </div>
               </div>
