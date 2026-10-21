@@ -267,13 +267,39 @@ public class AuthController {
 
         User user = userOpt.get();
         
+        String storedPassword = user.getPassword();
+        boolean passwordMatch = false;
+
+        if (storedPassword != null && request.password() != null) {
+            if (storedPassword.startsWith("$2a$") || storedPassword.startsWith("$2b$") || storedPassword.startsWith("$2y$")) {
+                passwordMatch = passwordEncoder.matches(request.password(), storedPassword);
+            } else if (storedPassword.startsWith("$")) {
+                // Reject unknown/unsupported modular crypt hash formats (e.g. $argon2id$, $pbkdf2$, $6$, $1$)
+                log.warn("[AUTH] Rejected login for user {}: stored password uses unsupported crypt hash format", user.getEmail());
+                passwordMatch = false;
+            } else if (isPossibleHexHash(storedPassword)) {
+                // Reject unknown hex hash formats (e.g. SHA-256, SHA-1, MD5)
+                log.warn("[AUTH] Rejected login for user {}: stored password appears to be an unhandled hex hash", user.getEmail());
+                passwordMatch = false;
+            } else if (java.security.MessageDigest.isEqual(
+                    storedPassword.getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                    request.password().getBytes(java.nio.charset.StandardCharsets.UTF_8))) {
+                // Safe migration for legacy plaintext admin/student accounts:
+                // Match confirmed using constant-time comparison, immediately upgrade to BCrypt hash in DB without exposing or logging the raw password.
+                passwordMatch = true;
+                user.setPassword(passwordEncoder.encode(request.password()));
+                userRepository.save(user);
+                log.info("[AUTH] Upgraded legacy plaintext password to BCrypt hash for user: {}", user.getEmail());
+            }
+        }
+
         // 🔥 DEBUG LOGS (Updated to SLF4J)
         log.info("[LOGIN-DEBUG] Email: {}", user.getEmail());
         log.info("[LOGIN-DEBUG] Role in DB: {}", user.getRole());
         log.info("[LOGIN-DEBUG] Expected Role: {}", expectedRole);
-        log.info("[LOGIN-DEBUG] Password Match: {}", passwordEncoder.matches(request.password(), user.getPassword()));
+        log.info("[LOGIN-DEBUG] Password Match: {}", passwordMatch);
 
-        if (!passwordEncoder.matches(request.password(), user.getPassword())) {
+        if (!passwordMatch) {
             log.warn("[LOGIN-FAILED] Incorrect password for: {}", user.getEmail());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Invalid email or password"));
         }
@@ -293,18 +319,31 @@ public class AuthController {
         }
 
         String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
-        return ResponseEntity.ok(Map.of(
-                "token", token,
-                "role", user.getRole().name(),
-                "name", user.getName(),
-                "email", user.getEmail(),
-                "id", user.getId()
-        ));
+        Map<String, Object> responseData = new LinkedHashMap<>();
+        responseData.put("token", token);
+        responseData.put("role", user.getRole().name());
+        responseData.put("name", user.getName());
+        responseData.put("email", user.getEmail());
+        responseData.put("id", user.getId() != null ? user.getId() : 0L);
+        return ResponseEntity.ok(responseData);
     }
     
     private String generateOtp() {
         Random random = new Random();
         int otp = 100000 + random.nextInt(900000);
         return String.valueOf(otp);
+    }
+
+    private boolean isPossibleHexHash(String s) {
+        if (s == null) return false;
+        int len = s.length();
+        if (len != 32 && len != 40 && len != 64 && len != 128) return false;
+        for (int i = 0; i < len; i++) {
+            char c = s.charAt(i);
+            if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'))) {
+                return false;
+            }
+        }
+        return true;
     }
 }
