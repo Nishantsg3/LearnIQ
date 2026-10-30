@@ -3,8 +3,8 @@ package learniq_backend.service;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -13,21 +13,55 @@ import org.springframework.stereotype.Service;
 import java.io.UnsupportedEncodingException;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class EmailService {
 
     private final JavaMailSender mailSender;
+    private final String smtpUsername;
+    private final String fromEmail;
+    private final String activeProfile;
 
-    @Value("${spring.mail.username}")
-    private String smtpUsername;
+    @Autowired
+    public EmailService(JavaMailSender mailSender,
+                        @Value("${spring.mail.username}") String smtpUsername,
+                        @Value("${spring.mail.from}") String fromEmail,
+                        @Value("${spring.profiles.active:dev}") String activeProfile) {
+        this.mailSender = mailSender;
+        this.smtpUsername = smtpUsername;
+        this.fromEmail = fromEmail;
+        this.activeProfile = activeProfile;
+    }
 
-    @Value("${spring.mail.from}")
-    private String fromEmail;
+    public EmailService(JavaMailSender mailSender, String smtpUsername, String fromEmail) {
+        this(mailSender, smtpUsername, fromEmail, "dev");
+    }
 
     @jakarta.annotation.PostConstruct
     public void init() {
-        log.info("[EMAIL-SERVICE] Starting. Auth User: {}, Verified Sender: {}", smtpUsername, fromEmail);
+        if (!isSmtpConfigured()) {
+            if (isProductionEnvironment()) {
+                log.error("[EMAIL-SERVICE] CRITICAL: SMTP is unconfigured in production ('spring.mail.username' is missing or 'none'). Real email delivery will fail closed.");
+            } else {
+                log.info("[EMAIL-SERVICE] Dev mode: SMTP unconfigured, mock email delivery enabled.");
+            }
+        } else {
+            log.info("[EMAIL-SERVICE] Initialized with sender: {}, SMTP configured.", fromEmail);
+        }
+    }
+
+    public boolean isSmtpConfigured() {
+        return smtpUsername != null && !smtpUsername.isBlank() && !"none".equalsIgnoreCase(smtpUsername.trim());
+    }
+
+    public boolean isProductionEnvironment() {
+        if (activeProfile == null) return false;
+        for (String p : activeProfile.split(",")) {
+            String trimmed = p.trim().toLowerCase();
+            if ("prod".equals(trimmed) || "production".equals(trimmed)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static final String BRAND_COLOR = "#8b5cf6";
@@ -35,8 +69,11 @@ public class EmailService {
     private static final String CARD_BG = "#16161a";
 
     private void sendHtmlEmail(String toEmail, String subject, String htmlBody) throws Exception {
-        if ("none".equalsIgnoreCase(smtpUsername) || smtpUsername == null || smtpUsername.isBlank()) {
-            log.info("[EMAIL-SERVICE] Mock email sent to {} with subject: '{}' (SMTP unconfigured/disabled)", toEmail, subject);
+        if (!isSmtpConfigured()) {
+            if (isProductionEnvironment()) {
+                throw new IllegalStateException("SMTP credentials are not configured in production environment. Real email delivery is required.");
+            }
+            log.info("[EMAIL-SERVICE] Dev mock email recorded for {} with subject: '{}' (SMTP unconfigured)", toEmail, subject);
             return;
         }
 
@@ -82,7 +119,7 @@ public class EmailService {
             sendHtmlEmail(toEmail, "Verify Your LearnIQ Account", getBaseTemplate(content));
             return true;
         } catch (Exception e) {
-            log.error("[MAIL] Registration email failed to {}: {}", toEmail, e.getMessage(), e);
+            log.error("[MAIL] Registration email failed to {}: {}", toEmail, e.getMessage());
             return false;
         }
     }
@@ -102,7 +139,7 @@ public class EmailService {
             log.info("[EMAIL-SERVICE] SMTP send successful to: {}", toEmail);
             return true;
         } catch (Exception e) {
-            log.error("[EMAIL-SERVICE] SMTP send FAILED to {}: {}", toEmail, e.getMessage(), e);
+            log.error("[EMAIL-SERVICE] SMTP send FAILED to {}: {}", toEmail, e.getMessage());
             return false;
         }
     }
