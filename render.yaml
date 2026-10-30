@@ -33,6 +33,9 @@ services:
       - key: MAIL_PASSWORD
         sync: false
 
+      - key: MAIL_FROM
+        sync: false
+
       - key: APP_SEED_ADMIN_EMAIL
         value: admin@learniq.com
 

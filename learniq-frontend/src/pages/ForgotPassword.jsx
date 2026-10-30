@@ -1,197 +1,126 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { Mail, ArrowRight, ArrowLeft, KeyRound } from 'lucide-react';
+import { Mail, ArrowRight, ArrowLeft, KeyRound, CheckCircle2 } from 'lucide-react';
 import api from '../utils/api';
 import AuthLayout from '../components/AuthLayout';
-import { BRANDING } from '../config/branding';
-
-const THEME_COLOR = '#7c3aed';
-const ACCENT_COLOR = '#a78bfa';
 
 function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
+  const [submitted, setSubmitted] = useState(false);
 
   const handleForgot = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
       await api.post('/auth/forgot-password', { email });
+      setSubmitted(true);
       toast.success('If an account exists, a reset link has been sent.');
-      // No navigation here, user stays on page to see instructions
     } catch (err) {
-      // Still show success to prevent email enumeration
-      toast.success('If an account exists, a reset link has been sent.');
+      const errorMsg = err.response?.data?.message || 'Unable to send reset email. Please try again later.';
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }
   };
 
-  const inputStyle = {
-    width: '100%',
-    background: '#1c1c22',
-    border: '1px solid rgba(255,255,255,0.06)',
-    borderRadius: 12,
-    padding: '18px 20px',
-    color: '#fff',
-    fontSize: 15,
-    outline: 'none',
-    boxSizing: 'border-box',
-    transition: 'all 0.2s',
-  };
-
-  const labelStyle = {
-    display: 'block',
-    color: '#888',
-    fontSize: 11,
-    fontWeight: 700,
-    letterSpacing: '0.12em',
-    textTransform: 'uppercase',
-    marginBottom: 10,
-  };
-
   return (
-    <AuthLayout 
-      panelColor={THEME_COLOR}
-      accentColor={ACCENT_COLOR}
-      showMobileDecorations={true}
-      title={<>RESTORE YOUR<br /><span style={{ color: 'rgba(255,255,255,0.45)' }}>ACCESS.</span></>}
-      description={<>INITIATE SECURE RECOVERY TO REGAIN<br />CONTROL OF YOUR LEARNING<br />AND ASSESSMENT DATA.</>}
+    <AuthLayout
+      title={<>Restore Your<br /><span className="text-violet-300">Account Access.</span></>}
+      description="Initiate a secure password recovery request to regain control of your assessments, results, and learning progress."
+      badgeText="Account Recovery"
     >
-      {/* Minimal Brand Identity */}
-      <div className="flex items-center gap-3 mb-6 sm:mb-8">
-        <img 
-          src={BRANDING.logos.icon} 
-          alt="LearnIQ Symbol" 
-          className="w-6 h-6 sm:w-8 sm:h-8 object-contain" 
-        />
-        <div className="flex flex-col min-w-0 justify-center">
-          <span className="text-[9px] sm:text-[10px] font-bold text-violet-400 tracking-[0.2em] uppercase leading-none mb-1">
-            System Security
-          </span>
-          <span className="text-sm sm:text-base font-black text-white tracking-widest uppercase opacity-90 leading-none">
-            Account Recovery
-          </span>
-        </div>
-      </div>
-
-      {/* Heading */}
-      <h2
-        style={{
-          color: '#fff',
-          fontWeight: 900,
-          fontSize: 'clamp(2rem, 4vw, 2.8rem)',
-          textTransform: 'uppercase',
-          letterSpacing: '-0.02em',
-          lineHeight: 1,
-          margin: 0,
-        }}
-      >
-        RECOVER
-      </h2>
-
-      {/* Subtitle */}
-      <p
-        style={{
-          color: '#666',
-          fontSize: 11,
-          fontWeight: 700,
-          letterSpacing: '0.15em',
-          textTransform: 'uppercase',
-          marginTop: 4,
-          marginBottom: 16,
-        }}
-      >
-        RESET INSTRUCTIONS WILL BE SENT
-      </p>
-
-      <form onSubmit={handleForgot}>
-        {/* Email */}
-        <div style={{ marginBottom: 20 }}>
-          <label style={labelStyle}>Email Address</label>
-          <input
-            type="email"
-            style={{ ...inputStyle, padding: '14px 20px' }}
-            placeholder="Enter your registered email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            onFocus={(e) => (e.target.style.borderColor = `${ACCENT_COLOR}60`)}
-            onBlur={(e) => (e.target.style.borderColor = 'rgba(255,255,255,0.06)')}
-            required
-          />
+      <div className="bg-white dark:bg-[#15181e] border border-slate-200 dark:border-[#262a33] rounded-3xl shadow-xl dark:shadow-2xl shadow-slate-200/60 dark:shadow-black/50 p-6 sm:p-9 transition-all">
+        <div className="flex items-center justify-between mb-6">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-violet-50 dark:bg-violet-950/50 border border-violet-100 dark:border-violet-900/40 text-violet-700 dark:text-violet-300 text-xs font-semibold">
+            <KeyRound size={15} />
+            <span>Account Security</span>
+          </div>
+          <Link
+            to="/login"
+            className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors flex items-center gap-1"
+          >
+            <ArrowLeft size={12} />
+            <span>Back to sign in</span>
+          </Link>
         </div>
 
-        {/* Submit Button */}
-        <button
-          type="submit"
-          disabled={loading}
-          className="btn-accent w-full py-4 mt-4 recovery-btn"
-          style={{ borderRadius: 9999 }}
-        >
-          {loading ? (
-            <div
-              style={{
-                width: 20,
-                height: 20,
-                border: '2px solid rgba(255,255,255,0.3)',
-                borderTopColor: '#fff',
-                borderRadius: '50%',
-                animation: 'spin 0.8s linear infinite',
-              }}
-            />
-          ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span>Send Instructions</span>
-              <ArrowRight size={18} />
+        <div className="mb-6">
+          <h2 className="text-2xl sm:text-[26px] font-extrabold text-slate-900 dark:text-slate-100 tracking-tight leading-snug">
+            Reset password
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-normal">
+            Enter the email associated with your LearnIQ account to receive recovery instructions.
+          </p>
+        </div>
+
+        {submitted ? (
+          <div className="rounded-2xl border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/60 dark:bg-emerald-950/30 p-6 text-center">
+            <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto mb-3">
+              <CheckCircle2 size={22} />
             </div>
-          )}
-        </button>
-      </form>
+            <h3 className="text-sm font-bold text-emerald-950 dark:text-emerald-200">Check your inbox</h3>
+            <p className="text-xs text-emerald-800/90 dark:text-emerald-300/90 mt-1.5 leading-relaxed">
+              If an account with <strong className="font-semibold text-emerald-950 dark:text-emerald-200">{email}</strong> exists, we've dispatched password reset instructions.
+            </p>
+            <Link
+              to="/login"
+              className="mt-5 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-semibold transition shadow-md shadow-emerald-600/20"
+            >
+              Return to Login
+            </Link>
+          </div>
+        ) : (
+          <form onSubmit={handleForgot} className="space-y-4">
+            <div>
+              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                Email Address
+              </label>
+              <div className="relative">
+                <input
+                  type="email"
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50/50 dark:bg-[#111318] focus:bg-white dark:focus:bg-[#1a1d24] border border-slate-300 dark:border-[#2b303c] rounded-xl text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm shadow-2xs outline-none transition-all focus:border-violet-600 dark:focus:border-violet-500 focus:ring-4 focus:ring-violet-500/15 hover:border-slate-400 dark:hover:border-[#3d4454]"
+                  placeholder="student@institution.edu"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={17} />
+              </div>
+            </div>
 
-      {/* Footer */}
-      <div style={{ textAlign: 'center', marginTop: 24 }}>
-        <Link 
-          to="/login" 
-          style={{
-            color: '#555',
-            fontSize: 11,
-            fontWeight: 700,
-            textDecoration: 'none',
-            textTransform: 'uppercase',
-            letterSpacing: '0.1em',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = '#fff')}
-          onMouseLeave={(e) => (e.currentTarget.style.color = '#555')}
-        >
-          <ArrowLeft size={14} /> Back to Login
-        </Link>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3 px-6 rounded-xl bg-violet-600 hover:bg-violet-700 active:bg-violet-800 text-white font-semibold text-xs tracking-wider uppercase shadow-md hover:shadow-violet-500/20 transition-all duration-150 flex items-center justify-center gap-2 mt-4 disabled:opacity-50 cursor-pointer"
+            >
+              {loading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>Sending instructions...</span>
+                </>
+              ) : (
+                <>
+                  <span>Send Reset Instructions</span>
+                  <ArrowRight size={15} />
+                </>
+              )}
+            </button>
+          </form>
+        )}
+
+        <div className="mt-8 pt-6 border-t border-slate-100 dark:border-[#262a33] text-center">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Remembered your credentials?{' '}
+            <Link to="/login" className="font-bold text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 transition-colors">
+              Sign in directly
+            </Link>
+          </p>
+        </div>
       </div>
-
-      <style>{`
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-        .recovery-btn:hover {
-          background: #6d28d9 !important;
-          transform: translateY(-1px);
-          border-color: ${ACCENT_COLOR}80 !important;
-          box-shadow: 0 6px 20px 0 rgba(124,58,237,0.3) !important;
-        }
-        .recovery-btn:active {
-          background: #5b21b6 !important;
-          transform: translateY(0px);
-        }
-        input::placeholder { color: #2a2a30; }
-      `}</style>
     </AuthLayout>
   );
 }
 
 export default ForgotPassword;
-

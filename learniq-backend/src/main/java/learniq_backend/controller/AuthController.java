@@ -43,6 +43,9 @@ public class AuthController {
     @Value("${app.env:dev}")
     private String appEnv;
 
+    @Value("${spring.profiles.active:dev}")
+    private String activeProfile;
+
     @Value("${app.frontend.url}")
     private String frontendUrl;
 
@@ -136,20 +139,17 @@ public class AuthController {
         user.setOtpExpiry(LocalDateTime.now().plusMinutes(5));
         userRepository.save(user);
 
-        System.out.println("\n-------------------------------------------");
-        System.out.println("  OTP RESENT: " + otp);
-        System.out.println("  Email: " + user.getEmail());
-        System.out.println("-------------------------------------------\n");
+        log.info("[AUTH] Verification OTP resent for user: {}", user.getEmail());
 
         try {
             emailService.sendRegistrationOtpEmail(user.getEmail(), otp);
         } catch (Exception e) {
-            // Log error but proceed as we have console fallback
+            log.error("[AUTH] Failed to send registration OTP email to user: {}", user.getEmail());
         }
 
         Map<String, String> response = new LinkedHashMap<>();
         response.put("message", "New OTP has been sent to your email.");
-        if (!"prod".equalsIgnoreCase(appEnv)) {
+        if (!isProductionEnvironment()) {
             response.put("otp", otp);
         }
 
@@ -183,12 +183,11 @@ public class AuthController {
         log.info("[FORGOT-PASSWORD] User found: {} (ID: {}, Role: {})", user.getEmail(), user.getId(), user.getRole());
         
         String token = UUID.randomUUID().toString();
-        log.info("[FORGOT-PASSWORD] Generated reset token: {}", token);
         
         user.setResetToken(token);
         user.setResetTokenExpiry(LocalDateTime.now().plusMinutes(15));
         userRepository.save(user);
-        log.info("[FORGOT-PASSWORD] Token saved to database for user: {}", email);
+        log.info("[FORGOT-PASSWORD] Password reset token generated and saved for user: {}", email);
         
         // Send Reset Link via Email.
         String resetLink = frontendUrl + "/reset-password/" + token;
@@ -196,17 +195,17 @@ public class AuthController {
         
         try {
             boolean sent = emailService.sendResetPasswordEmail(user.getEmail(), resetLink);
-            log.info("[FORGOT-PASSWORD] EmailService.sendResetPasswordEmail returned: {}", sent);
+            log.info("[FORGOT-PASSWORD] Email dispatch status for {}: {}", email, sent ? "SUCCESS" : "FAILED");
             
             if (!sent) {
-                log.error("[FORGOT-PASSWORD] EmailService reported failure (returned false) for: {}", email);
+                log.error("[FORGOT-PASSWORD] Email delivery failed for user: {}", email);
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                         .body(Map.of("message", "Failed to send reset email. Please try again later."));
             }
         } catch (Exception e) {
-            log.error("[FORGOT-PASSWORD] CRITICAL EXCEPTION during EmailService invocation: {}", e.getMessage(), e);
+            log.error("[FORGOT-PASSWORD] Exception during email delivery for user: {}", email);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("message", "Internal error during email dispatch: " + e.getMessage()));
+                    .body(Map.of("message", "Failed to send reset email. Please try again later."));
         }
 
         log.info("[FORGOT-PASSWORD] Success response being sent to client for: {}", email);
@@ -345,5 +344,19 @@ public class AuthController {
             }
         }
         return true;
+    }
+
+    private boolean isProductionEnvironment() {
+        if ("prod".equalsIgnoreCase(appEnv) || "production".equalsIgnoreCase(appEnv)) {
+            return true;
+        }
+        if (activeProfile == null) return false;
+        for (String p : activeProfile.split(",")) {
+            String trimmed = p.trim().toLowerCase();
+            if ("prod".equals(trimmed) || "production".equals(trimmed)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
