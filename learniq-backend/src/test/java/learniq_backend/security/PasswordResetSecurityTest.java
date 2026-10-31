@@ -328,4 +328,43 @@ class PasswordResetSecurityTest {
         assertNotNull(body);
         assertTrue(body.containsKey("otp"), "In development, OTP can be returned for developer convenience");
     }
+
+    // =========================================================================
+    // 5. SEC-01 SecureRandom OTP Generation Tests
+    // =========================================================================
+
+    @Test
+    @DisplayName("SEC-01: generateOtp produces valid 6-digit numeric strings in [100000, 999999] using SecureRandom")
+    void testGenerateOtpProducesValidSixDigitNumbers() {
+        for (int i = 0; i < 1000; i++) {
+            String otp = ReflectionTestUtils.invokeMethod(authController, "generateOtp");
+            assertNotNull(otp);
+            assertEquals(6, otp.length(), "OTP must be exactly 6 characters");
+            assertTrue(otp.matches("^[1-9][0-9]{5}$"), "OTP must be a 6-digit numeric string without leading zero");
+            int val = Integer.parseInt(otp);
+            assertTrue(val >= 100000 && val <= 999999, "OTP value must be in [100000, 999999]");
+        }
+    }
+
+    @Test
+    @DisplayName("SEC-01: Resend OTP flow produces valid 6-digit numeric code in [100000, 999999]")
+    void testResendOtpProducesSixDigitNumericCode() {
+        ReflectionTestUtils.setField(authController, "activeProfile", "dev");
+        ReflectionTestUtils.setField(authController, "appEnv", "dev");
+
+        testUser.setVerified(false);
+        when(userRepository.findByEmail(testUser.getEmail())).thenReturn(Optional.of(testUser));
+
+        ResponseEntity<?> response = authController.resendOtp(new ResendOtpRequest(testUser.getEmail()));
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+
+        @SuppressWarnings("unchecked")
+        Map<String, String> body = (Map<String, String>) response.getBody();
+        assertNotNull(body);
+        String otp = body.get("otp");
+        assertNotNull(otp);
+        assertEquals(6, otp.length());
+        int val = Integer.parseInt(otp);
+        assertTrue(val >= 100000 && val <= 999999);
+    }
 }

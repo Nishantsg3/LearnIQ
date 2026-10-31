@@ -19,6 +19,7 @@ public class TestLifecycleService {
     private final TestRepository testRepository;
     private final TestAttemptRepository testAttemptRepository;
     private final AttemptService attemptService;
+    private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
     /**
      * Centralized logic to sync a test's status based on time.
@@ -123,5 +124,22 @@ public class TestLifecycleService {
         if (count > 0) {
             System.out.println("[AUTO-SUBMIT] Successfully finalized " + count + " expired attempts.");
         }
+    }
+
+    @Transactional
+    public void deleteTestSafely(Long id) {
+        Test test = testRepository.findByIdWithWriteLock(id)
+                .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.NOT_FOUND, "Test not found"));
+
+        long attemptCount = testAttemptRepository.countByTestId(id);
+        if (attemptCount > 0) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST,
+                    "Cannot delete assessment with existing student attempts. Archive the test instead.");
+        }
+
+        jdbcTemplate.update("DELETE FROM test_questions WHERE test_id = ?", id);
+        testRepository.delete(test);
     }
 }

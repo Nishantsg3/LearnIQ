@@ -33,8 +33,11 @@ build/
 .vscode/
 .env
 .env.*
+!.env.example
 *.log
 *.txt
+*.lock.db
+*.trace.db
 !HELP.md
 !seed_*.json
 !seed_restoration_delta.json

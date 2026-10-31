@@ -30,7 +30,6 @@ public class AdminController {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final learniq_backend.repository.TestAttemptRepository testAttemptRepository;
-    private final learniq_backend.repository.AttemptAnswerRepository attemptAnswerRepository;
     private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
     @GetMapping("/stats")
@@ -209,68 +208,10 @@ public class AdminController {
         return ResponseEntity.ok(result);
     }
 
-    @DeleteMapping("/tests/{id}")
-    @org.springframework.transaction.annotation.Transactional
+    @DeleteMapping("/tests/{id:\\d+}")
     public ResponseEntity<?> deleteTest(@PathVariable Long id) {
-        try {
-            System.out.println("[AUDIT] PHYSICAL WIPE INITIATED - Test ID: " + id);
-            
-            // 1. Wipe answers
-            jdbcTemplate.update("DELETE FROM attempt_answers WHERE attempt_id IN (SELECT id FROM test_attempts WHERE test_id = ?)", id);
-            
-            // 2. Wipe attempts
-            jdbcTemplate.update("DELETE FROM test_attempts WHERE test_id = ?", id);
-            
-            // 3. Wipe join table
-            jdbcTemplate.update("DELETE FROM test_questions WHERE test_id = ?", id);
-            
-            // 4. Wipe test
-            int deleted = jdbcTemplate.update("DELETE FROM test WHERE id = ?", id);
-            
-            if (deleted > 0) {
-                System.out.println("[AUDIT] WIPE SUCCESSFUL - Test ID: " + id);
-                return ResponseEntity.ok(Map.of("message", "Test and all associated history permanently removed", "status", "DELETED"));
-            } else {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "Test not found"));
-            }
-        } catch (Exception e) {
-            System.err.println("[CRITICAL] Wipe Failed: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", "Purge failed: " + e.getMessage()));
-        }
-    }
-
-
-    @PostMapping("/attempts/reset")
-    public ResponseEntity<?> resetAttempts() {
-        try {
-            long count = testAttemptRepository.count();
-            testAttemptRepository.deleteAll();
-            System.out.println("[ADMIN] All test attempts reset. Total cleared: " + count);
-            return ResponseEntity.ok(Map.of("message", "All test attempts and answers have been cleared.", "count", count));
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(500).body(Map.of("message", "Failed to reset attempts: " + e.getMessage()));
-        }
-    }
-
-    @org.springframework.transaction.annotation.Transactional
-    @DeleteMapping("/tests/purge-by-name")
-    public ResponseEntity<?> purgeByName(@RequestParam String name) {
-        System.out.println("[AUDIT] SUPER PURGE INITIATED - Name Pattern: " + name);
-        
-        // 1. Wipe answers
-        jdbcTemplate.update("DELETE FROM attempt_answers WHERE attempt_id IN (SELECT id FROM test_attempts WHERE test_id IN (SELECT id FROM test WHERE LOWER(title) = LOWER(?)))", name);
-        
-        // 2. Wipe attempts
-        jdbcTemplate.update("DELETE FROM test_attempts WHERE test_id IN (SELECT id FROM test WHERE LOWER(title) = LOWER(?))", name);
-        
-        // 3. Wipe join table
-        jdbcTemplate.update("DELETE FROM test_questions WHERE test_id IN (SELECT id FROM test WHERE LOWER(title) = LOWER(?))", name);
-        
-        // 4. Wipe tests
-        int deleted = jdbcTemplate.update("DELETE FROM test WHERE LOWER(title) = LOWER(?)", name);
-        
-        return ResponseEntity.ok(Map.of("message", "Purged " + deleted + " records matching '" + name + "'"));
+        testLifecycleService.deleteTestSafely(id);
+        return ResponseEntity.ok(Map.of("message", "Test deleted successfully", "status", "DELETED"));
     }
 
     @DeleteMapping("/students/{id}")
@@ -282,12 +223,19 @@ public class AdminController {
                         return ResponseEntity.badRequest().body(Map.of("message", "Cannot delete admin accounts"));
                     }
                     
-                    // 1. Delete associated attempts to avoid integrity violations
-                    // Since TestAttempt usually has @ManyToOne to User
-                    List<learniq_backend.model.TestAttempt> attempts = testAttemptRepository.findByUserId(id);
-                    testAttemptRepository.deleteAll(attempts);
-                    
-                    // 2. Delete the user
+                    // 1. Delete dependent attempt_answers first
+                    jdbcTemplate.update(
+                        "DELETE FROM attempt_answers WHERE attempt_id IN (SELECT id FROM test_attempts WHERE user_id = ? OR (user_id IS NULL AND LOWER(user_email) = LOWER(?)))",
+                        user.getId(), user.getEmail()
+                    );
+
+                    // 2. Delete associated test_attempts second
+                    jdbcTemplate.update(
+                        "DELETE FROM test_attempts WHERE user_id = ? OR (user_id IS NULL AND LOWER(user_email) = LOWER(?))",
+                        user.getId(), user.getEmail()
+                    );
+
+                    // 3. Delete the user through JPA last
                     userRepository.delete(user);
                     
                     System.out.println("[Admin] Student account deleted: " + id + " (" + user.getEmail() + ")");

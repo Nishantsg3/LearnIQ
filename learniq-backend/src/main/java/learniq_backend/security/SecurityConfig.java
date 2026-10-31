@@ -47,7 +47,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/questions/test/*/attempt", "/api/v1/questions/test/*/time").hasAnyRole("STUDENT", "ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/v1/questions/test/*/start-attempt", "/api/v1/questions/test/*/submit", "/api/v1/questions/test/*/abandon").hasAnyRole("STUDENT", "ADMIN")
 
-                        // QUESTIONS - ADMIN ACCESS (BANK, CREATION, NUCLEAR WIPE, EDIT, DELETE)
+                        // QUESTIONS - ADMIN ACCESS (BANK, CREATION, EDIT, DELETE)
                         .requestMatchers("/api/v1/questions/**").hasRole("ADMIN")
 
                         // PRESETS (TEMPLATES IMPORT - ADMIN ONLY)
