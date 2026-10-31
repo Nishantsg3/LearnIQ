@@ -21,11 +21,11 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Random;
 import java.util.UUID;
 
 @RestController
@@ -34,6 +34,8 @@ import java.util.UUID;
 @CrossOrigin(origins = "*")
 @Slf4j
 public class AuthController {
+
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final UserRepository userRepository;
     private final JwtUtil jwtUtil;
@@ -303,11 +305,9 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Invalid email or password"));
         }
         
-        /* 
         if (!user.isVerified()) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", "Please verify your email before logging in."));
         }
-        */
 
         if (expectedRole == User.Role.STUDENT && user.getRole() == User.Role.ADMIN) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", "Use the admin login portal"));
@@ -328,8 +328,7 @@ public class AuthController {
     }
     
     private String generateOtp() {
-        Random random = new Random();
-        int otp = 100000 + random.nextInt(900000);
+        int otp = 100000 + SECURE_RANDOM.nextInt(900000);
         return String.valueOf(otp);
     }
 

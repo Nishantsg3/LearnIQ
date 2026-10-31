@@ -10,10 +10,10 @@ import learniq_backend.repository.TestRepository;
 import learniq_backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -27,26 +27,11 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class QuestionController {
 
-    @GetMapping("/nuclear-wipe")
-    public String nuclearWipe() {
-        String target = "Java Practice 2";
-        try {
-            jdbcTemplate.update("DELETE FROM attempt_answers WHERE attempt_id IN (SELECT id FROM test_attempts WHERE test_id IN (SELECT id FROM test WHERE LOWER(title) = LOWER(?)))", target);
-            jdbcTemplate.update("DELETE FROM test_attempts WHERE test_id IN (SELECT id FROM test WHERE LOWER(title) = LOWER(?))", target);
-            jdbcTemplate.update("DELETE FROM test_questions WHERE test_id IN (SELECT id FROM test WHERE LOWER(title) = LOWER(?))", target);
-            int deleted = jdbcTemplate.update("DELETE FROM test WHERE LOWER(title) = LOWER(?)", target);
-            return "SUCCESS: Wiped " + deleted + " records for " + target;
-        } catch (Exception e) {
-            return "FAILED: " + e.getMessage();
-        }
-    }
-
     private final QuestionRepository questionRepository;
     private final TestRepository testRepository;
     private final learniq_backend.service.AttemptService attemptService;
     private final UserRepository userRepository;
     private final TestAttemptRepository testAttemptRepository;
-    private final JdbcTemplate jdbcTemplate;
 
     @GetMapping("/bank")
     public List<Question> getAllQuestions() {
@@ -124,7 +109,7 @@ public class QuestionController {
         return ResponseEntity.ok(saved);
     }
 
-    @PutMapping({"/{id}", "/bank/{id}"})
+    @PutMapping({"/{id:[0-9]+}", "/bank/{id:[0-9]+}"})
     public ResponseEntity<?> updateQuestion(@PathVariable Long id, @RequestBody Question details) {
         return questionRepository.findById(id).map(q -> {
             String newText = details.getQuestionText() != null ? details.getQuestionText() : details.getTitle();
@@ -147,7 +132,7 @@ public class QuestionController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{id:[0-9]+}")
     public ResponseEntity<?> deleteQuestion(@PathVariable Long id, @RequestParam(required = false, defaultValue = "true") boolean confirm) {
         if (!questionRepository.existsById(id)) {
             return ResponseEntity.notFound().build();
@@ -155,34 +140,6 @@ public class QuestionController {
         questionRepository.deleteById(id);
         System.out.println("[AUDIT] DELETE SUCCESS - Question ID: " + id);
         return ResponseEntity.ok(Map.of("message", "Question deleted successfully."));
-    }
-
-    @Transactional
-    @DeleteMapping("/bank/purge")
-    public ResponseEntity<?> purgeCategory(@RequestParam(required = false) String category, @RequestParam(required = false) String title) {
-        try {
-            if (title != null && !title.isBlank()) {
-                questionRepository.hardDeleteByTitle(title);
-                return ResponseEntity.ok(Map.of("message", "Purged questions by title."));
-            }
-            
-            if (category != null && !category.isBlank()) {
-                questionRepository.hardDeleteByCategory(category);
-                return ResponseEntity.ok(Map.of("message", "Purged questions in category: " + category));
-            }
-
-            // Global PurGE - High Integrity Wipe
-            System.out.println("[AUDIT] EXECUTION - Physical Wipe of Question Intelligence Sector...");
-            // Use native JDBC to bypass any JPA caching/locking
-            jdbcTemplate.execute("DELETE FROM ATTEMPT_ANSWERS"); 
-            jdbcTemplate.execute("DELETE FROM QUESTION");
-            jdbcTemplate.execute("ALTER TABLE QUESTION ALTER COLUMN ID RESTART WITH 1");
-            
-            return ResponseEntity.ok(Map.of("message", "Global Question Bank purge complete. Database sector is now zero-ed."));
-        } catch (Exception e) {
-            System.err.println("[CRITICAL] Purge Failure: " + e.getMessage());
-            return ResponseEntity.internalServerError().body(Map.of("message", "Purge failed: " + e.getMessage()));
-        }
     }
 
     // ─── QUESTIONS BY TEST ─────────────────────────────────────────────────────
@@ -366,6 +323,8 @@ public class QuestionController {
             TestAttempt attempt = attemptService.startOrResumeAttempt(userEmail, testId);
             String msg = attempt.getSubmittedAt() == null ? "Attempt initialized" : "Attempt resumed";
             return ResponseEntity.ok(Map.of("message", msg, "attemptId", attempt.getId()));
+        } catch (ResponseStatusException e) {
+            throw e;
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
