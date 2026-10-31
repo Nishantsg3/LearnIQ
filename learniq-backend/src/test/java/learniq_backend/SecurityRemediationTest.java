@@ -6,6 +6,7 @@ import learniq_backend.controller.TestAttemptController;
 import learniq_backend.dto.LoginRequest;
 import learniq_backend.dto.RegisterRequest;
 import learniq_backend.dto.TestAttemptResponse;
+import learniq_backend.dto.VerifyOtpRequest;
 import learniq_backend.model.*;
 import learniq_backend.repository.*;
 import learniq_backend.security.JwtUtil;
@@ -25,6 +26,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -99,7 +101,6 @@ public class SecurityRemediationTest {
                 userRepository,
                 passwordEncoder,
                 testAttemptRepository,
-                attemptAnswerRepository,
                 null
         );
 
@@ -675,5 +676,424 @@ public class SecurityRemediationTest {
         mockMvc.perform(get("/api/v1/attempts/501").principal(authAdmin))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(501));
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // PHASE 2 REGRESSION TESTS: CALC-01 & SEC-02
+    // ─────────────────────────────────────────────────────────────────────────────
+
+    private Question createQuestion(Long id, String text, String optA, String optB, String optC, String optD, String correct) {
+        Question q = new Question();
+        q.setId(id);
+        q.setQuestionText(text);
+        q.setOptionA(optA);
+        q.setOptionB(optB);
+        q.setOptionC(optC);
+        q.setOptionD(optD);
+        q.setCorrectAnswer(correct);
+        return q;
+    }
+
+    private TestAttempt createAttempt(Long id, User user, learniq_backend.model.Test test) {
+        TestAttempt attempt = new TestAttempt();
+        attempt.setId(id);
+        attempt.setUser(user);
+        attempt.setUserEmail(user.getEmail());
+        attempt.setUserName(user.getName());
+        attempt.setTest(test);
+        attempt.setStatus(TestAttempt.Status.IN_PROGRESS);
+        attempt.setStartedAt(LocalDateTime.now().minusMinutes(15));
+        attempt.setAnswers(new ArrayList<>());
+        return attempt;
+    }
+
+    @Test
+    @DisplayName("CALC-01: 10 questions with 3 correct, 1 wrong, and 6 skipped preserves invariants")
+    void testScoringTenQuestionsThreeCorrectOneWrongSixSkipped() {
+        learniq_backend.model.Test test = new learniq_backend.model.Test();
+        test.setId(20L);
+        test.setTitle("10-Question Test");
+        test.setTestType("PRACTICE");
+
+        List<Question> questions = new ArrayList<>();
+        for (long i = 1; i <= 10; i++) {
+            questions.add(createQuestion(i, "Question " + i, "Ans A", "Ans B", "Ans C", "Ans D", "A"));
+        }
+
+        TestAttempt attempt = createAttempt(601L, studentA, test);
+        when(testAttemptRepository.findByIdWithLock(601L)).thenReturn(Optional.of(attempt));
+        when(questionRepository.findByTestId(test.getId())).thenReturn(questions);
+        when(testAttemptRepository.save(any(TestAttempt.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        // 3 correct ("A"), 1 wrong ("B"), 1 whitespace ("  "), 1 empty (""), 4 missing entirely
+        Map<String, String> answers = Map.of(
+                "1", "A",
+                "2", "A",
+                "3", "A",
+                "4", "B",
+                "5", "   ",
+                "6", ""
+        );
+
+        TestAttempt finalized = attemptService.submitAttempt(601L, answers);
+
+        assertNotNull(finalized);
+        assertEquals(TestAttempt.Status.SUBMITTED, finalized.getStatus());
+        assertEquals(10, finalized.getTotalQuestions());
+        assertEquals(4, finalized.getAttemptedCount());
+        assertEquals(3, finalized.getCorrectCount());
+        assertEquals(1, finalized.getWrongCount());
+        assertEquals(30, finalized.getScorePercent());
+
+        // Assert core invariant: totalQuestions = correctCount + wrongCount + skippedCount
+        int skippedCount = finalized.getTotalQuestions() - finalized.getAttemptedCount();
+        assertEquals(6, skippedCount);
+        assertEquals(finalized.getTotalQuestions(), finalized.getCorrectCount() + finalized.getWrongCount() + skippedCount);
+        assertEquals(finalized.getAttemptedCount(), finalized.getCorrectCount() + finalized.getWrongCount());
+    }
+
+    @Test
+    @DisplayName("CALC-01: 5 questions with none attempted (all skipped) results in 0 correct, 0 wrong")
+    void testScoringFiveQuestionsNoneAttempted() {
+        learniq_backend.model.Test test = new learniq_backend.model.Test();
+        test.setId(21L);
+        test.setTitle("5-Question Test");
+        test.setTestType("PRACTICE");
+
+        List<Question> questions = new ArrayList<>();
+        for (long i = 1; i <= 5; i++) {
+            questions.add(createQuestion(i, "Question " + i, "Ans A", "Ans B", "Ans C", "Ans D", "A"));
+        }
+
+        TestAttempt attempt = createAttempt(602L, studentA, test);
+        when(testAttemptRepository.findByIdWithLock(602L)).thenReturn(Optional.of(attempt));
+        when(questionRepository.findByTestId(test.getId())).thenReturn(questions);
+        when(testAttemptRepository.save(any(TestAttempt.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        // Empty answers map
+        TestAttempt finalized = attemptService.submitAttempt(602L, Collections.emptyMap());
+
+        assertEquals(5, finalized.getTotalQuestions());
+        assertEquals(0, finalized.getAttemptedCount());
+        assertEquals(0, finalized.getCorrectCount());
+        assertEquals(0, finalized.getWrongCount());
+        assertEquals(0, finalized.getScorePercent());
+
+        int skippedCount = finalized.getTotalQuestions() - finalized.getAttemptedCount();
+        assertEquals(5, skippedCount);
+        assertEquals(5, finalized.getCorrectCount() + finalized.getWrongCount() + skippedCount);
+        assertEquals(finalized.getAttemptedCount(), finalized.getCorrectCount() + finalized.getWrongCount());
+    }
+
+    @Test
+    @DisplayName("CALC-01: All questions correct produces 100% score and 0 wrong")
+    void testScoringAllQuestionsCorrect() {
+        learniq_backend.model.Test test = new learniq_backend.model.Test();
+        test.setId(22L);
+        test.setTitle("All Correct Test");
+        test.setTestType("PRACTICE");
+
+        List<Question> questions = List.of(
+                createQuestion(1L, "Q1", "Ans A", "Ans B", "Ans C", "Ans D", "A"),
+                createQuestion(2L, "Q2", "Ans A", "Ans B", "Ans C", "Ans D", "B"),
+                createQuestion(3L, "Q3", "Ans A", "Ans B", "Ans C", "Ans D", "C"),
+                createQuestion(4L, "Q4", "Ans A", "Ans B", "Ans C", "Ans D", "D")
+        );
+
+        TestAttempt attempt = createAttempt(603L, studentA, test);
+        when(testAttemptRepository.findByIdWithLock(603L)).thenReturn(Optional.of(attempt));
+        when(questionRepository.findByTestId(test.getId())).thenReturn(questions);
+        when(testAttemptRepository.save(any(TestAttempt.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Map<String, String> answers = Map.of("1", "A", "2", "B", "3", "C", "4", "D");
+        TestAttempt finalized = attemptService.submitAttempt(603L, answers);
+
+        assertEquals(4, finalized.getTotalQuestions());
+        assertEquals(4, finalized.getAttemptedCount());
+        assertEquals(4, finalized.getCorrectCount());
+        assertEquals(0, finalized.getWrongCount());
+        assertEquals(100, finalized.getScorePercent());
+
+        int skippedCount = finalized.getTotalQuestions() - finalized.getAttemptedCount();
+        assertEquals(0, skippedCount);
+        assertEquals(4, finalized.getCorrectCount() + finalized.getWrongCount() + skippedCount);
+        assertEquals(finalized.getAttemptedCount(), finalized.getCorrectCount() + finalized.getWrongCount());
+    }
+
+    @Test
+    @DisplayName("CALC-01: All questions wrong produces 0% score and 0 correct")
+    void testScoringAllQuestionsWrong() {
+        learniq_backend.model.Test test = new learniq_backend.model.Test();
+        test.setId(23L);
+        test.setTitle("All Wrong Test");
+        test.setTestType("PRACTICE");
+
+        List<Question> questions = List.of(
+                createQuestion(1L, "Q1", "Ans A", "Ans B", "Ans C", "Ans D", "A"),
+                createQuestion(2L, "Q2", "Ans A", "Ans B", "Ans C", "Ans D", "A"),
+                createQuestion(3L, "Q3", "Ans A", "Ans B", "Ans C", "Ans D", "A"),
+                createQuestion(4L, "Q4", "Ans A", "Ans B", "Ans C", "Ans D", "A")
+        );
+
+        TestAttempt attempt = createAttempt(604L, studentA, test);
+        when(testAttemptRepository.findByIdWithLock(604L)).thenReturn(Optional.of(attempt));
+        when(questionRepository.findByTestId(test.getId())).thenReturn(questions);
+        when(testAttemptRepository.save(any(TestAttempt.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Map<String, String> answers = Map.of("1", "B", "2", "C", "3", "D", "4", "B");
+        TestAttempt finalized = attemptService.submitAttempt(604L, answers);
+
+        assertEquals(4, finalized.getTotalQuestions());
+        assertEquals(4, finalized.getAttemptedCount());
+        assertEquals(0, finalized.getCorrectCount());
+        assertEquals(4, finalized.getWrongCount());
+        assertEquals(0, finalized.getScorePercent());
+
+        int skippedCount = finalized.getTotalQuestions() - finalized.getAttemptedCount();
+        assertEquals(0, skippedCount);
+        assertEquals(4, finalized.getCorrectCount() + finalized.getWrongCount() + skippedCount);
+        assertEquals(finalized.getAttemptedCount(), finalized.getCorrectCount() + finalized.getWrongCount());
+    }
+
+    @Test
+    @DisplayName("CALC-01: 2 correct out of 3 uses Math.round() yielding 67 percent")
+    void testScoringTwoOutOfThreeRoundsToSixtySevenPercent() {
+        learniq_backend.model.Test test = new learniq_backend.model.Test();
+        test.setId(24L);
+        test.setTitle("3-Question Rounding Test");
+        test.setTestType("PRACTICE");
+
+        List<Question> questions = List.of(
+                createQuestion(1L, "Q1", "Ans A", "Ans B", "Ans C", "Ans D", "A"),
+                createQuestion(2L, "Q2", "Ans A", "Ans B", "Ans C", "Ans D", "A"),
+                createQuestion(3L, "Q3", "Ans A", "Ans B", "Ans C", "Ans D", "A")
+        );
+
+        TestAttempt attempt = createAttempt(605L, studentA, test);
+        when(testAttemptRepository.findByIdWithLock(605L)).thenReturn(Optional.of(attempt));
+        when(questionRepository.findByTestId(test.getId())).thenReturn(questions);
+        when(testAttemptRepository.save(any(TestAttempt.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        // 2 correct, 1 wrong
+        Map<String, String> answers = Map.of("1", "A", "2", "A", "3", "B");
+        TestAttempt finalized = attemptService.submitAttempt(605L, answers);
+
+        assertEquals(3, finalized.getTotalQuestions());
+        assertEquals(3, finalized.getAttemptedCount());
+        assertEquals(2, finalized.getCorrectCount());
+        assertEquals(1, finalized.getWrongCount());
+        assertEquals(67, finalized.getScorePercent(), "2 of 3 must round to 67%, not truncate to 66%");
+
+        int skippedCount = finalized.getTotalQuestions() - finalized.getAttemptedCount();
+        assertEquals(0, skippedCount);
+        assertEquals(3, finalized.getCorrectCount() + finalized.getWrongCount() + skippedCount);
+        assertEquals(finalized.getAttemptedCount(), finalized.getCorrectCount() + finalized.getWrongCount());
+    }
+
+    @Test
+    @DisplayName("CALC-01: Zero-question edge case handled safely with 0 score and counts")
+    void testScoringZeroQuestionsSafeHandling() {
+        learniq_backend.model.Test test = new learniq_backend.model.Test();
+        test.setId(25L);
+        test.setTitle("Zero Questions Test");
+        test.setTestType("PRACTICE");
+
+        TestAttempt attempt = createAttempt(606L, studentA, test);
+        when(testAttemptRepository.findByIdWithLock(606L)).thenReturn(Optional.of(attempt));
+        when(questionRepository.findByTestId(test.getId())).thenReturn(Collections.emptyList());
+        when(testAttemptRepository.save(any(TestAttempt.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        TestAttempt finalized = attemptService.submitAttempt(606L, Collections.emptyMap());
+
+        assertEquals(0, finalized.getTotalQuestions());
+        assertEquals(0, finalized.getAttemptedCount());
+        assertEquals(0, finalized.getCorrectCount());
+        assertEquals(0, finalized.getWrongCount());
+        assertEquals(0, finalized.getScorePercent());
+    }
+
+    @Test
+    @DisplayName("SEC-02: Unverified student login is rejected with HTTP 403 and never returns a JWT")
+    void testUnverifiedStudentLoginRejected() {
+        User unverified = new User();
+        unverified.setId(701L);
+        unverified.setName("Unverified Student");
+        unverified.setEmail("unverified.student@learniq.org");
+        unverified.setPassword(passwordEncoder.encode("StudentPass123!"));
+        unverified.setRole(User.Role.STUDENT);
+        unverified.setVerified(false);
+
+        when(userRepository.findByEmail("unverified.student@learniq.org")).thenReturn(Optional.of(unverified));
+
+        LoginRequest req = new LoginRequest("unverified.student@learniq.org", "StudentPass123!");
+        ResponseEntity<?> res = authController.studentLogin(req);
+
+        assertEquals(HttpStatus.FORBIDDEN, res.getStatusCode());
+        assertNotNull(res.getBody());
+        assertTrue(res.getBody() instanceof Map);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) res.getBody();
+        assertEquals("Please verify your email before logging in.", body.get("message"));
+        assertFalse(body.containsKey("token"), "Rejected response must NEVER contain a JWT token");
+    }
+
+    @Test
+    @DisplayName("SEC-02: Unverified admin login is rejected with HTTP 403 and never returns a JWT")
+    void testUnverifiedAdminLoginRejected() {
+        User unverifiedAdmin = new User();
+        unverifiedAdmin.setId(702L);
+        unverifiedAdmin.setName("Unverified Admin");
+        unverifiedAdmin.setEmail("unverified.admin@learniq.org");
+        unverifiedAdmin.setPassword(passwordEncoder.encode("AdminPass123!"));
+        unverifiedAdmin.setRole(User.Role.ADMIN);
+        unverifiedAdmin.setVerified(false);
+
+        when(userRepository.findByEmail("unverified.admin@learniq.org")).thenReturn(Optional.of(unverifiedAdmin));
+
+        LoginRequest req = new LoginRequest("unverified.admin@learniq.org", "AdminPass123!");
+        ResponseEntity<?> res = authController.adminLogin(req);
+
+        assertEquals(HttpStatus.FORBIDDEN, res.getStatusCode());
+        assertNotNull(res.getBody());
+        assertTrue(res.getBody() instanceof Map);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) res.getBody();
+        assertEquals("Please verify your email before logging in.", body.get("message"));
+        assertFalse(body.containsKey("token"), "Rejected response must NEVER contain a JWT token");
+    }
+
+    @Test
+    @DisplayName("SEC-02: Verified student login succeeds with HTTP 200 and valid JWT")
+    void testVerifiedStudentLoginSucceeds() {
+        when(userRepository.findByEmail("alice@learniq.org")).thenReturn(Optional.of(studentA));
+        when(jwtUtil.generateToken("alice@learniq.org", "STUDENT")).thenReturn("jwt-alice-verified");
+
+        LoginRequest req = new LoginRequest("alice@learniq.org", "SecretAlice123!");
+        ResponseEntity<?> res = authController.studentLogin(req);
+
+        assertEquals(HttpStatus.OK, res.getStatusCode());
+        assertNotNull(res.getBody());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) res.getBody();
+        assertEquals("jwt-alice-verified", body.get("token"));
+        assertEquals("STUDENT", body.get("role"));
+        assertEquals("alice@learniq.org", body.get("email"));
+    }
+
+    @Test
+    @DisplayName("SEC-02: Verified admin login succeeds with HTTP 200 and valid JWT")
+    void testVerifiedAdminLoginSucceeds() {
+        when(userRepository.findByEmail("admin@learniq.org")).thenReturn(Optional.of(adminUser));
+        when(jwtUtil.generateToken("admin@learniq.org", "ADMIN")).thenReturn("jwt-admin-verified");
+
+        LoginRequest req = new LoginRequest("admin@learniq.org", "AdminPass123!");
+        ResponseEntity<?> res = authController.adminLogin(req);
+
+        assertEquals(HttpStatus.OK, res.getStatusCode());
+        assertNotNull(res.getBody());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) res.getBody();
+        assertEquals("jwt-admin-verified", body.get("token"));
+        assertEquals("ADMIN", body.get("role"));
+        assertEquals("admin@learniq.org", body.get("email"));
+    }
+
+    @Test
+    @DisplayName("SEC-02: OTP verification transitions user to verified and permits subsequent login")
+    void testOtpVerificationFollowedBySuccessfulLogin() {
+        User pendingUser = new User();
+        pendingUser.setId(703L);
+        pendingUser.setName("Pending Student");
+        pendingUser.setEmail("pending@learniq.org");
+        pendingUser.setPassword(passwordEncoder.encode("PendingPass123!"));
+        pendingUser.setRole(User.Role.STUDENT);
+        pendingUser.setVerified(false);
+        pendingUser.setOtp("456789");
+        pendingUser.setOtpExpiry(LocalDateTime.now().plusMinutes(10));
+
+        when(userRepository.findByEmail("pending@learniq.org")).thenReturn(Optional.of(pendingUser));
+        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        // 1. Initial login attempt fails because user is unverified
+        LoginRequest initialLogin = new LoginRequest("pending@learniq.org", "PendingPass123!");
+        ResponseEntity<?> rejectRes = authController.studentLogin(initialLogin);
+        assertEquals(HttpStatus.FORBIDDEN, rejectRes.getStatusCode());
+
+        // 2. Submit valid OTP to verify
+        VerifyOtpRequest otpReq = new VerifyOtpRequest("pending@learniq.org", "456789");
+        ResponseEntity<?> verifyRes = authController.verifyOtp(otpReq);
+        assertEquals(HttpStatus.OK, verifyRes.getStatusCode());
+        assertTrue(pendingUser.isVerified());
+        assertNull(pendingUser.getOtp());
+        assertNull(pendingUser.getOtpExpiry());
+
+        // 3. Subsequent login succeeds
+        when(jwtUtil.generateToken("pending@learniq.org", "STUDENT")).thenReturn("jwt-pending-now-verified");
+        ResponseEntity<?> loginRes = authController.studentLogin(initialLogin);
+        assertEquals(HttpStatus.OK, loginRes.getStatusCode());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) loginRes.getBody();
+        assertEquals("jwt-pending-now-verified", body.get("token"));
+    }
+
+    @Test
+    @DisplayName("SEC-02: Registration with auto-verify=true allows immediate login without OTP")
+    void testAutoVerifyRegistrationAllowsImmediateLogin() {
+        ReflectionTestUtils.setField(authController, "autoVerify", true);
+
+        when(userRepository.existsByEmail("autoverify@learniq.org")).thenReturn(false);
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        when(userRepository.save(captor.capture())).thenAnswer(inv -> inv.getArgument(0));
+
+        RegisterRequest regReq = new RegisterRequest("Auto Student", "autoverify@learniq.org", "AutoPass123!");
+        ResponseEntity<?> regRes = authController.register(regReq);
+        assertEquals(HttpStatus.OK, regRes.getStatusCode());
+
+        User created = captor.getValue();
+        assertNotNull(created);
+        assertTrue(created.isVerified(), "User must be auto-verified when auto-verify is true");
+
+        when(userRepository.findByEmail("autoverify@learniq.org")).thenReturn(Optional.of(created));
+        when(jwtUtil.generateToken("autoverify@learniq.org", "STUDENT")).thenReturn("jwt-auto-verified");
+
+        LoginRequest loginReq = new LoginRequest("autoverify@learniq.org", "AutoPass123!");
+        ResponseEntity<?> loginRes = authController.studentLogin(loginReq);
+        assertEquals(HttpStatus.OK, loginRes.getStatusCode());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) loginRes.getBody();
+        assertEquals("jwt-auto-verified", body.get("token"));
+    }
+
+    @Test
+    @DisplayName("SEC-02: Ensure all rejected authentication responses never contain a JWT")
+    void testRejectedAuthenticationNeverContainsToken() {
+        // 1. Unverified user
+        User unverified = new User();
+        unverified.setEmail("unverified.check@learniq.org");
+        unverified.setPassword(passwordEncoder.encode("ValidPass123!"));
+        unverified.setRole(User.Role.STUDENT);
+        unverified.setVerified(false);
+        when(userRepository.findByEmail("unverified.check@learniq.org")).thenReturn(Optional.of(unverified));
+
+        ResponseEntity<?> res1 = authController.studentLogin(new LoginRequest("unverified.check@learniq.org", "ValidPass123!"));
+        assertEquals(HttpStatus.FORBIDDEN, res1.getStatusCode());
+        assertFalse(res1.getBody() instanceof Map && ((Map<?, ?>) res1.getBody()).containsKey("token"));
+
+        // 2. Wrong password
+        ResponseEntity<?> res2 = authController.studentLogin(new LoginRequest("unverified.check@learniq.org", "WrongPass123!"));
+        assertEquals(HttpStatus.UNAUTHORIZED, res2.getStatusCode());
+        assertFalse(res2.getBody() instanceof Map && ((Map<?, ?>) res2.getBody()).containsKey("token"));
+
+        // 3. Role mismatch (Student attempting admin portal)
+        when(userRepository.findByEmail("alice@learniq.org")).thenReturn(Optional.of(studentA));
+        ResponseEntity<?> res3 = authController.adminLogin(new LoginRequest("alice@learniq.org", "SecretAlice123!"));
+        assertEquals(HttpStatus.FORBIDDEN, res3.getStatusCode());
+        assertFalse(res3.getBody() instanceof Map && ((Map<?, ?>) res3.getBody()).containsKey("token"));
+
+        // 4. Role mismatch (Admin attempting student portal)
+        when(userRepository.findByEmail("admin@learniq.org")).thenReturn(Optional.of(adminUser));
+        ResponseEntity<?> res4 = authController.studentLogin(new LoginRequest("admin@learniq.org", "AdminPass123!"));
+        assertEquals(HttpStatus.FORBIDDEN, res4.getStatusCode());
+        assertFalse(res4.getBody() instanceof Map && ((Map<?, ?>) res4.getBody()).containsKey("token"));
     }
 }

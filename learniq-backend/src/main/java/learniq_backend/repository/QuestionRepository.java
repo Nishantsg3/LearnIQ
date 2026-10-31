@@ -35,16 +35,6 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
 
     @Modifying
     @Transactional
-    @Query(value = "DELETE FROM question WHERE UPPER(category) = UPPER(:category)", nativeQuery = true)
-    void hardDeleteByCategory(@Param("category") String category);
-
-    @Modifying
-    @Transactional
-    @Query(value = "DELETE FROM question WHERE question_text = :title", nativeQuery = true)
-    void hardDeleteByTitle(@Param("title") String title);
-
-    @Modifying
-    @Transactional
     @Query(value = "DELETE FROM question", nativeQuery = true)
     void hardDeleteAll();
 }
