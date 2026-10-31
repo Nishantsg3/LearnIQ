@@ -5,8 +5,10 @@ import learniq_backend.repository.*;
 import learniq_backend.dto.TestAttemptResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.time.Duration;
@@ -35,8 +37,8 @@ public class AttemptService {
     // =========================================================
     @Transactional
     public TestAttempt startOrResumeAttempt(String userEmail, Long testId) {
-        Test test = testRepository.findById(testId)
-                .orElseThrow(() -> new RuntimeException("Assessment [ID: " + testId + "] not found. Please refresh."));
+        Test test = testRepository.findByIdWithReadLock(testId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Assessment [ID: " + testId + "] not found. Please refresh."));
 
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new RuntimeException("User profile [" + userEmail + "] not found."));
@@ -236,6 +238,7 @@ public class AttemptService {
 
         int correctCount = 0;
         int attemptedCount = 0;
+        int wrongCount = 0;
 
         for (Question q : questions) {
             String selected = null;
@@ -250,7 +253,15 @@ public class AttemptService {
                         .orElse(null);
             }
 
-            if (selected != null && !selected.isEmpty()) attemptedCount++;
+            if (selected != null && selected.trim().isEmpty()) {
+                selected = null;
+            } else if (selected != null) {
+                selected = selected.trim();
+            }
+
+            boolean isAttempted = (selected != null);
+            if (isAttempted) attemptedCount++;
+
             // 🔥 Map LABEL (A, B, C, D) to actual TEXT for comparison
             String selectedText = null;
             if ("A".equalsIgnoreCase(selected)) selectedText = q.getOptionA();
@@ -259,10 +270,16 @@ public class AttemptService {
             else if ("D".equalsIgnoreCase(selected)) selectedText = q.getOptionD();
             else selectedText = selected; // Fallback
 
-            boolean isCorrect = (selected != null && selected.equalsIgnoreCase(q.getCorrectAnswer())) ||
-                                (selectedText != null && selectedText.equalsIgnoreCase(q.getCorrectAnswer()));
+            boolean isCorrect = isAttempted && (
+                    (q.getCorrectAnswer() != null && selected.equalsIgnoreCase(q.getCorrectAnswer().trim())) ||
+                    (selectedText != null && q.getCorrectAnswer() != null && selectedText.trim().equalsIgnoreCase(q.getCorrectAnswer().trim()))
+            );
 
-            if (isCorrect) correctCount++;
+            if (isCorrect) {
+                correctCount++;
+            } else if (isAttempted) {
+                wrongCount++;
+            }
 
             AttemptAnswer ans = new AttemptAnswer();
             ans.setQuestionId(q.getId());
@@ -280,11 +297,11 @@ public class AttemptService {
         }
 
         int total = questions.size();
-        int score = total > 0 ? (int)((correctCount * 100.0) / total) : 0;
+        int score = total > 0 ? (int) Math.round((correctCount * 100.0) / total) : 0;
 
         attempt.setTotalQuestions(total);
         attempt.setCorrectCount(correctCount);
-        attempt.setWrongCount(total - correctCount);
+        attempt.setWrongCount(wrongCount);
         attempt.setAttemptedCount(attemptedCount);
         attempt.setScorePercent(score);
 

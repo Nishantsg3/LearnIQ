@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
 
@@ -61,6 +62,8 @@ public class TestAttemptController {
                 "testId", attempt.getTest().getId(),
                 "status", attempt.getStatus()
             ));
+        } catch (ResponseStatusException e) {
+            throw e;
         } catch (RuntimeException e) {
             System.err.println("[TestAttemptController] Start Failure: " + e.getMessage());
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
