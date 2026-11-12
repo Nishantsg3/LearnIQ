@@ -17,7 +17,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 @RestController
 @RequestMapping("/api/v1/tests")
-@CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 public class TestController {
 
@@ -31,6 +30,7 @@ public class TestController {
     // ─── GET COUNTS (Lightweight summary for Dashboard) ─────────────────────────
 
     @GetMapping("/counts")
+    @Transactional(readOnly = true)
     public ResponseEntity<Map<String, Integer>> getTestCounts() {
         LocalDateTime now = LocalDateTime.now();
         List<Test> tests = testRepository.findAll();
@@ -46,11 +46,11 @@ public class TestController {
             if ("PRACTICE".equals(type) && ("ACTIVE".equals(status) || "LIVE".equals(status))) {
                 practice++;
             } else if ("MAIN".equals(type)) {
-                LocalDateTime start = t.getStartTime();
+                LocalDateTime start = t.getStartTime() != null ? t.getStartTime() : t.getScheduledAt();
                 int duration = t.getDurationMinutes() > 0 ? t.getDurationMinutes() : 60;
-                LocalDateTime end = start != null ? start.plusMinutes(duration) : t.getEndTime();
+                LocalDateTime end = t.getEndTime() != null ? t.getEndTime() : (start != null ? start.plusMinutes(duration) : null);
 
-                if (start != null && now.isBefore(start)) {
+                if ("SCHEDULED".equals(status) || (start != null && now.isBefore(start))) {
                     scheduled++;
                 } else if (start != null && !now.isBefore(start) && (end == null || !now.isAfter(end))) {
                     liveMain++;
@@ -70,11 +70,13 @@ public class TestController {
     // ─── GET ALL ────────────────────────────────────────────────────────────────
 
     @GetMapping
+    @Transactional(readOnly = true)
     public ResponseEntity<List<Test>> getAllTests() {
         try {
             List<Test> tests = testRepository.findAll();
-            return ResponseEntity.ok(tests);
+            return ResponseEntity.ok(tests != null ? tests : Collections.emptyList());
         } catch (Exception e) {
+            System.err.println("[TestController] Error fetching tests: " + e.getMessage());
             return ResponseEntity.ok(Collections.emptyList());
         }
     }
@@ -83,6 +85,7 @@ public class TestController {
     // ─── GET ONE ────────────────────────────────────────────────────────────────
 
     @GetMapping("/{id}")
+    @Transactional
     public ResponseEntity<Test> getTestById(@PathVariable Long id, Authentication authentication) {
         return testRepository.findById(id)
                 .map(test -> {
@@ -96,6 +99,7 @@ public class TestController {
     // ─── GET ACTIVE (Time-controlled MAIN tests) ────────────────────────────────
 
     @GetMapping("/active")
+    @Transactional(readOnly = true)
     public ResponseEntity<List<Test>> getActiveTests() {
         LocalDateTime now = LocalDateTime.now();
         return ResponseEntity.ok(testRepository.findAll().stream()
@@ -106,6 +110,7 @@ public class TestController {
     // ─── CREATE ─────────────────────────────────────────────────────────────────
 
     @PostMapping
+    @Transactional
     public ResponseEntity<?> createTest(@RequestBody learniq_backend.dto.CreateTestRequest request) {
         if (request.title() == null || request.title().isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("message", "Title is required"));
@@ -139,21 +144,24 @@ public class TestController {
             if (request.duration() != null && request.duration() > 0) {
                 test.setDurationMinutes(request.duration());
             } else {
-                test.setDurationMinutes((int) Math.ceil(count * 1.5));
+                test.setDurationMinutes(count > 0 ? (int) Math.ceil(count * 1.5) : 60);
             }
 
             if ("MAIN".equals(testType) && test.getStartTime() != null) {
-                test.setEndTime(test.getStartTime().plusMinutes(test.getDurationMinutes()));
+                int duration = test.getDurationMinutes() > 0 ? test.getDurationMinutes() : 60;
+                test.setEndTime(test.getStartTime().plusMinutes(duration));
             }
 
             test.setStatus("ACTIVE");
             test.setStartedAt(LocalDateTime.now());
             test.setDescription(request.description());
 
-            // 2. RANDOM QUESTION SELECTION (EXACT COUNT)
+            // 2. QUESTION SELECTION
             System.out.println("[AUDIT] ATTEMPTING SELECTION - Category: " + test.getCategory() + " | Requested: " + count);
             List<Question> selectedQs;
-            if ("ALL".equalsIgnoreCase(test.getCategory())) {
+            if (request.questionIds() != null && !request.questionIds().isEmpty()) {
+                selectedQs = questionRepository.findAllById(request.questionIds());
+            } else if ("ALL".equalsIgnoreCase(test.getCategory())) {
                 selectedQs = questionRepository.findRandom(count);
             } else {
                 selectedQs = questionRepository.findRandomByCategory(test.getCategory(), count);
@@ -186,15 +194,18 @@ public class TestController {
             System.out.println("API [POST /create] - Generated Test ID: " + savedTest.getId() + " with " + selectedQs.size() + " questions.");
             System.out.println("[AUDIT] TEST CREATION COMPLETE - Questions After: " + qCountAfter);
             return ResponseEntity.ok(savedTest);
+        } catch (org.springframework.web.server.ResponseStatusException e) {
+            throw e;
         } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(500).body(Map.of("message", "Failed to generate test: " + e.getMessage()));
+            System.err.println("[TestController] Create Test Failure: " + e.getMessage());
+            return ResponseEntity.status(500).body(Map.of("message", sanitizeErrorMessage(e, "Failed to generate test. Please try again.")));
         }
     }
 
     // ─── GO LIVE (admin override) ────────────────────────────────────────────────
 
     @PostMapping("/{id}/live")
+    @Transactional
     public ResponseEntity<?> goLive(@PathVariable Long id) {
         return testRepository.findById(id)
                 .map(test -> {
@@ -208,6 +219,7 @@ public class TestController {
     // ─── LEADERBOARD ────────────────────────────────────────────────────────────
 
     @GetMapping("/{id}/leaderboard")
+    @Transactional(readOnly = true)
     public ResponseEntity<?> getTestLeaderboard(@PathVariable Long id, Authentication authentication) {
         return testRepository.findById(id).map(test -> {
             if (!"MAIN".equalsIgnoreCase(test.getTestType())) {
@@ -263,6 +275,7 @@ public class TestController {
     // ─── TOGGLE ACTIVE ─────────────────────────────────────────────────────────
 
     @PostMapping("/{id}/toggle-active")
+    @Transactional
     public ResponseEntity<?> toggleActive(@PathVariable Long id) {
         Test test = testRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Test not found"));
@@ -285,6 +298,7 @@ public class TestController {
     // ─── UPDATE ─────────────────────────────────────────────────────────────────
 
     @PutMapping("/{id}")
+    @Transactional
     public ResponseEntity<?> updateTest(@PathVariable Long id, @RequestBody learniq_backend.dto.CreateTestRequest request) {
         return testRepository.findById(id)
                 .map(test -> {
@@ -308,9 +322,9 @@ public class TestController {
                     if ("PRACTICE".equalsIgnoreCase(test.getTestType())) {
                         test.setStartTime(null);
                         test.setEndTime(null);
-                    } else if (request.startTime() != null) {
-                        test.setStartTime(request.startTime());
-                        test.setEndTime(test.getStartTime().plusMinutes(test.getDurationMinutes()));
+                    } else if (test.getStartTime() != null) {
+                        int duration = test.getDurationMinutes() > 0 ? test.getDurationMinutes() : 60;
+                        test.setEndTime(test.getStartTime().plusMinutes(duration));
                     }
 
                     return ResponseEntity.ok(testRepository.save(test));
@@ -332,5 +346,18 @@ public class TestController {
     private boolean isAdmin(Authentication authentication) {
         return authentication != null && authentication.getAuthorities().stream()
                 .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+    }
+
+    private String sanitizeErrorMessage(Exception e, String defaultMessage) {
+        if (e instanceof org.springframework.dao.DataAccessException ||
+            e instanceof jakarta.persistence.PersistenceException ||
+            e instanceof java.sql.SQLException) {
+            return "A database error occurred. Please try again later.";
+        }
+        String msg = e.getMessage();
+        if (msg == null || msg.isBlank() || msg.contains("SQL") || msg.contains("table") || msg.contains("hibernate") || msg.contains("jdbc") || msg.contains("database")) {
+            return defaultMessage;
+        }
+        return msg;
     }
 }

@@ -1,12 +1,24 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { useAuth } from '../context/AuthContext';
 import CodeQuestion from '../components/CodeQuestion';
-import { Clock, ChevronLeft, ChevronRight, Trophy, RotateCcw, Bookmark, Send, AlertTriangle } from 'lucide-react';
+import BrandLogo from '../components/BrandLogo';
+import ThemeToggle from '../components/ThemeToggle';
+import { Clock, ChevronLeft, ChevronRight, Trophy, RotateCcw, Bookmark, Send, AlertTriangle, X, Lock } from 'lucide-react';
 import api from '../utils/api';
+import { ExamCockpitSkeleton } from '../components/common/Skeleton';
 
 /* ─── helpers ─────────────────────────────────────────────────────── */
+const formatDateTime = (value) => {
+  if (!value) return 'exam completion';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString('en-IN', {
+    day: '2-digit', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+    hour12: true
+  });
+};
 const getOptionValue = (o) => {
   if (typeof o === 'string') return o;
   if (!o || typeof o !== 'object') return '';
@@ -45,7 +57,6 @@ const StudentTest = () => {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
   const attemptId = searchParams.get('attemptId');
 
   /* state */
@@ -76,26 +87,55 @@ const StudentTest = () => {
   const malpracticeCooldownRef = useRef(false); // Prevents double-counting from mouseleave+blur
 
   /* ── helpers ── */
-  const updateAnswer = (qid, opt) => {
-    const next = { ...answers, [qid]: opt };
-    setAnswers(next);
-    answersRef.current = next;
-  };
+  const updateAnswer = useCallback((qid, opt) => {
+    setAnswers(prev => {
+      const next = { ...prev, [qid]: opt };
+      answersRef.current = next;
+      return next;
+    });
+  }, []);
 
-  const toggleMark = (qid) =>
+  const toggleMark = useCallback((qid) => {
+    if (!qid) return;
     setMarked(prev => ({ ...prev, [qid]: !prev[qid] }));
+  }, []);
 
-  const markVisited = (idx) =>
+  const markVisited = useCallback((idx) => {
     setVisited(prev => { const s = new Set(prev); s.add(idx); return s; });
+  }, []);
 
-  const clearAnswer = () => {
+  const clearAnswer = useCallback(() => {
     const q = questions[currentIndex];
     if (!q) return;
-    const next = { ...answers };
-    delete next[q.id];
-    setAnswers(next);
-    answersRef.current = next;
-  };
+    setAnswers(prev => {
+      const next = { ...prev };
+      delete next[q.id];
+      answersRef.current = next;
+      return next;
+    });
+  }, [questions, currentIndex]);
+
+  const goNext = useCallback(() => {
+    setCurrentIndex(prev => {
+      if (prev < questions.length - 1) {
+        const next = prev + 1;
+        setVisited(v => { const s = new Set(v); s.add(next); return s; });
+        return next;
+      }
+      return prev;
+    });
+  }, [questions.length]);
+
+  const goPrev = useCallback(() => {
+    setCurrentIndex(prev => {
+      if (prev > 0) {
+        const next = prev - 1;
+        setVisited(v => { const s = new Set(v); s.add(next); return s; });
+        return next;
+      }
+      return prev;
+    });
+  }, []);
 
   /* ── fetch ── */
   const fetchTestData = useCallback(async () => {
@@ -135,161 +175,8 @@ const StudentTest = () => {
     }
   }, [id, attemptId, navigate]);
 
-  /* ── auto-save ── */
-  useEffect(() => {
-    if (!attemptId || loading || !test || submitting || isSubmittingRef.current) return;
-    const save = async () => {
-        if (submitting || isSubmittingRef.current) return;
-        try { await api.post(`/attempts/${attemptId}/save-progress`, answers); }
-        catch (err) { console.error("Sync failed"); }
-    };
-    const timer = setTimeout(save, 1500);
-    return () => clearTimeout(timer);
-  }, [answers, attemptId, loading, test, submitting]);
-
-  useEffect(() => {
-    if (attemptId) sessionStorage.setItem(`malpractice_${attemptId}`, malpracticeCount.toString());
-  }, [malpracticeCount, attemptId]);
-
-  useEffect(() => { fetchTestData(); }, [fetchTestData]);
-
-  /* ── prevent unload (Ref-based for silent reload) ── */
-  useEffect(() => {
-    if (result) return;
-    const handler = (e) => { e.returnValue = 'Leave test?'; return e.returnValue; };
-    beforeUnloadRef.current = handler;
-    window.addEventListener('beforeunload', handler);
-    return () => window.removeEventListener('beforeunload', handler);
-  }, [result]);
-
-  /* ── auto-submit watcher ── */
-  useEffect(() => {
-    // If time is up, but we haven't submitted yet
-    if (timeLeft !== null && timeLeft <= 0 && !autoSubmitted && !result && !loading && !submitting) {
-      handleAutoSubmit('time');
-    }
-  }, [timeLeft, autoSubmitted, result, loading, submitting]);
-
-  /* ── countdown (smooth single interval) ── */
-  useEffect(() => {
-    if (timeLeft === null || timeLeft <= 0 || result) return;
-    const interval = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    timerRef.current = interval;
-    return () => clearInterval(interval);
-  }, [result, timeLeft === null]);
-
-  /* ── keyboard reload guard ── */
-  useEffect(() => {
-    if (result) return;
-    const handleKeydown = (e) => {
-      if (e.key === 'F5' || (e.ctrlKey && e.key === 'r') || (e.metaKey && e.key === 'r')) {
-        e.preventDefault();
-        setShowReloadConfirm(true);
-      }
-    };
-    window.addEventListener('keydown', handleKeydown);
-    return () => window.removeEventListener('keydown', handleKeydown);
-  }, [result]);
-
-  /* ── malpractice detection (Anti-Cheat) ── */
-  useEffect(() => {
-    if (result || loading || submitting) return;
-
-    const triggerMalpractice = () => {
-      if (malpracticeCooldownRef.current) return;
-      malpracticeCooldownRef.current = true;
-      setTimeout(() => { malpracticeCooldownRef.current = false; }, 1500);
-
-      setMalpracticeCount(prev => {
-        const next = prev + 1;
-        if (next >= 5) {
-          handleAutoSubmit('malpractice');
-        } else {
-          setShowMalpractice(true);
-        }
-        return next;
-      });
-    };
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden') {
-        triggerMalpractice();
-      }
-    };
-
-    const handleBlur = () => {
-      if (!document.hasFocus() || document.visibilityState === 'hidden') {
-        triggerMalpractice();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('blur', handleBlur);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('blur', handleBlur);
-    };
-  }, [result, loading, submitting]);
-
-  /* ── 🔄 TIMER SYNC (Poll server every 30s to prevent drift) ── */
-  useEffect(() => {
-    if (result || timeLeft === null || timeLeft <= 5 || submitting || isSubmittingRef.current) return;
-
-    const syncInterval = setInterval(async () => {
-      try {
-        const res = await api.get(`/questions/test/${id}/time?attemptId=${searchParams.get('attemptId') || attemptId || ''}`);
-        const serverTime = parseInt(res.data.remainingTime);
-        if (!isNaN(serverTime)) {
-          setTimeLeft(serverTime);
-          if (serverTime <= 0 && !autoSubmitted) handleAutoSubmit('time');
-        }
-      } catch (e) {
-        if (e.response?.status === 400 || e.response?.status === 404) {
-          if (!result && !submitting && !isSubmittingRef.current) {
-            console.warn("[SYNC] Session inactive or already submitted. Redirecting...");
-            navigate('/student/dashboard');
-          }
-        }
-      }
-    }, 30000);
-
-    return () => clearInterval(syncInterval);
-  }, [id, result, timeLeft === null, autoSubmitted, submitting]);
-
   /* ── submit ── */
-  const handleAutoSubmit = async (reason = 'time') => {
-    if (isSubmittingRef.current || autoSubmitted || result) return;
-    isSubmittingRef.current = true;
-    setSubmitting(true);
-    setAutoSubmitted(true);
-    
-    if (reason === 'malpractice') {
-      toast.error("SECURITY VIOLATION! TERMINATING SESSION...", { 
-        duration: 5000, 
-        id: 'malpractice-toast',
-        style: { fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.1em' }
-      });
-    } else {
-      toast.error("TIME'S UP! AUTO-SUBMITTING ASSESSMENT...", { 
-        duration: 5000, 
-        id: 'time-toast',
-        style: { fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.1em' }
-      });
-    }
-    
-    await submitTest(true);
-  };
-
-  const submitTest = async (isAuto = false) => {
+  const submitTest = useCallback(async (isAuto = false) => {
     // Block manual submit if auto-submit already fired or result exists
     if (result) return;
     if (!isAuto && autoSubmitted) return;
@@ -300,7 +187,6 @@ const StudentTest = () => {
     // Hard UI Lock: ensure no background tasks keep running
     if (timerRef.current) clearInterval(timerRef.current);
 
-    
     try {
       const res = await api.post(`/questions/test/${id}/submit${attemptId ? `?attemptId=${attemptId}` : ''}`, { answers: answersRef.current });
       setResult(res.data);
@@ -342,7 +228,242 @@ const StudentTest = () => {
          }
       }
     }
-  };
+  }, [id, attemptId, result, autoSubmitted]);
+
+  const handleAutoSubmit = useCallback(async (reason = 'time') => {
+    if (isSubmittingRef.current || autoSubmitted || result) return;
+    isSubmittingRef.current = true;
+    setSubmitting(true);
+    setAutoSubmitted(true);
+    
+    if (reason === 'malpractice') {
+      toast.error("SECURITY VIOLATION! TERMINATING SESSION...", { 
+        duration: 5000, 
+        id: 'malpractice-toast',
+        style: { fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.1em' }
+      });
+    } else {
+      toast.error("TIME'S UP! AUTO-SUBMITTING ASSESSMENT...", { 
+        duration: 5000, 
+        id: 'time-toast',
+        style: { fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.1em' }
+      });
+    }
+    
+    await submitTest(true);
+  }, [autoSubmitted, result, submitTest]);
+
+  /* ── auto-save ── */
+  useEffect(() => {
+    if (!attemptId || loading || !test || submitting || isSubmittingRef.current) return;
+    const save = async () => {
+        if (submitting || isSubmittingRef.current) return;
+        try { await api.post(`/attempts/${attemptId}/save-progress`, answers); }
+        catch { console.error("Sync failed"); }
+    };
+    const timer = setTimeout(save, 1500);
+    return () => clearTimeout(timer);
+  }, [answers, attemptId, loading, test, submitting]);
+
+  useEffect(() => {
+    if (attemptId) sessionStorage.setItem(`malpractice_${attemptId}`, malpracticeCount.toString());
+  }, [malpracticeCount, attemptId]);
+
+  useEffect(() => { fetchTestData(); }, [fetchTestData]);
+
+  /* ── prevent unload (Ref-based for silent reload) ── */
+  useEffect(() => {
+    if (result) return;
+    const handler = (e) => { e.returnValue = 'Leave test?'; return e.returnValue; };
+    beforeUnloadRef.current = handler;
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [result]);
+
+  /* ── auto-submit watcher ── */
+  useEffect(() => {
+    // If time is up, but we haven't submitted yet
+    if (timeLeft !== null && timeLeft <= 0 && !autoSubmitted && !result && !loading && !submitting) {
+      handleAutoSubmit('time');
+    }
+  }, [timeLeft, autoSubmitted, result, loading, submitting, handleAutoSubmit]);
+
+  const isTimerRunning = timeLeft !== null && timeLeft > 0 && !result;
+
+  /* ── countdown (smooth single interval) ── */
+  useEffect(() => {
+    if (!isTimerRunning) return;
+    const interval = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev === null || prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    timerRef.current = interval;
+    return () => clearInterval(interval);
+  }, [isTimerRunning]);
+
+  /* ── keyboard reload guard ── */
+  useEffect(() => {
+    if (result) return;
+    const handleKeydown = (e) => {
+      if (e.key === 'F5' || (e.ctrlKey && e.key === 'r') || (e.metaKey && e.key === 'r')) {
+        e.preventDefault();
+        setShowReloadConfirm(true);
+      }
+    };
+    window.addEventListener('keydown', handleKeydown);
+    return () => window.removeEventListener('keydown', handleKeydown);
+  }, [result]);
+
+  /* ── keyboard navigation & choice selection ── */
+  useEffect(() => {
+    if (result || loading || submitting) return;
+
+    const handleKeyDown = (e) => {
+      // Safety: Ignore if modifier keys are held (Cmd/Ctrl/Alt)
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+      // ABSOLUTE SAFETY: NEVER submit the exam on Enter or any single keypress.
+      if (e.key === 'Enter') return;
+
+      // Safety: Ignore when any modal dialog is open
+      if (showConfirm || showReloadConfirm || showMalpractice || showAbandon) return;
+
+      // CRUCIAL SAFETY: Ignore if focused on input, textarea, select, or contentEditable
+      const target = e.target;
+      const isInputFocused =
+        target &&
+        (target.isContentEditable ||
+          ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
+      if (isInputFocused) return;
+
+      const q = questions[currentIndex];
+      if (!q) return;
+
+      const key = e.key;
+
+      // Option selection: 1-4 or a-d / A-D
+      if (key === '1' || key === 'a' || key === 'A') {
+        if (q.optionA) {
+          e.preventDefault();
+          updateAnswer(q.id, 'A');
+        }
+      } else if (key === '2' || key === 'b' || key === 'B') {
+        if (q.optionB) {
+          e.preventDefault();
+          updateAnswer(q.id, 'B');
+        }
+      } else if (key === '3' || key === 'c' || key === 'C') {
+        if (q.optionC) {
+          e.preventDefault();
+          updateAnswer(q.id, 'C');
+        }
+      } else if (key === '4' || key === 'd' || key === 'D') {
+        if (q.optionD) {
+          e.preventDefault();
+          updateAnswer(q.id, 'D');
+        }
+      } else if (key === 'ArrowLeft' || key === 'p' || key === 'P') {
+        e.preventDefault();
+        goPrev();
+      } else if (key === 'ArrowRight' || key === 'n' || key === 'N') {
+        e.preventDefault();
+        goNext();
+      } else if (key === 'm' || key === 'M') {
+        e.preventDefault();
+        toggleMark(q.id);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [
+    result,
+    loading,
+    submitting,
+    showConfirm,
+    showReloadConfirm,
+    showMalpractice,
+    showAbandon,
+    questions,
+    currentIndex,
+    updateAnswer,
+    goPrev,
+    goNext,
+    toggleMark,
+  ]);
+
+  /* ── malpractice detection (Anti-Cheat) ── */
+  useEffect(() => {
+    if (result || loading || submitting) return;
+
+    const triggerMalpractice = () => {
+      if (malpracticeCooldownRef.current) return;
+      malpracticeCooldownRef.current = true;
+      setTimeout(() => { malpracticeCooldownRef.current = false; }, 1500);
+
+      setMalpracticeCount(prev => {
+        const next = prev + 1;
+        if (next >= 5) {
+          handleAutoSubmit('malpractice');
+        } else {
+          setShowMalpractice(true);
+        }
+        return next;
+      });
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        triggerMalpractice();
+      }
+    };
+
+    const handleBlur = () => {
+      if (!document.hasFocus() || document.visibilityState === 'hidden') {
+        triggerMalpractice();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('blur', handleBlur);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('blur', handleBlur);
+    };
+  }, [result, loading, submitting, handleAutoSubmit]);
+
+  const canSyncTime = timeLeft !== null && timeLeft > 5 && !result && !submitting;
+
+  /* ── 🔄 TIMER SYNC (Poll server every 30s to prevent drift) ── */
+  useEffect(() => {
+    if (!canSyncTime || isSubmittingRef.current) return;
+
+    const syncInterval = setInterval(async () => {
+      try {
+        const res = await api.get(`/questions/test/${id}/time${attemptId ? `?attemptId=${attemptId}` : ''}`);
+        const serverTime = parseInt(res.data.remainingTime);
+        if (!isNaN(serverTime)) {
+          setTimeLeft(serverTime);
+          if (serverTime <= 0 && !autoSubmitted) handleAutoSubmit('time');
+        }
+      } catch (e) {
+        if (e.response?.status === 400 || e.response?.status === 404) {
+          if (!result && !submitting && !isSubmittingRef.current) {
+            console.warn("[SYNC] Session inactive or already submitted. Redirecting...");
+            navigate('/student/dashboard');
+          }
+        }
+      }
+    }, 30000);
+
+    return () => clearInterval(syncInterval);
+  }, [id, attemptId, canSyncTime, autoSubmitted, handleAutoSubmit, navigate, result, submitting]);
 
   const formatTime = (s) => {
     if (s == null) return '--:--';
@@ -363,7 +484,7 @@ const StudentTest = () => {
     try {
       await api.post(`/questions/test/${id}/abandon`);
       navigate('/student/dashboard');
-    } catch (err) {
+    } catch {
       navigate('/student/dashboard');
     }
   };
@@ -381,202 +502,261 @@ const StudentTest = () => {
   };
 
   const isMain = test?.testType?.toUpperCase() === 'MAIN';
-  const themeText = isMain ? 'text-rose-400' : 'text-emerald-400';
-  const themeBg = isMain ? 'bg-rose-600' : 'bg-emerald-600';
-  const themeHover = isMain ? 'hover:bg-rose-500' : 'hover:bg-emerald-500';
-  const themeBorder = isMain ? 'border-rose-500' : 'border-emerald-500';
-  const themeLightBg = isMain ? 'bg-rose-600/20' : 'bg-emerald-600/20';
-  const themeShadow = isMain ? 'shadow-rose-600/30' : 'shadow-emerald-600/30';
+  const themeText = 'text-brand-700 dark:text-brand-400';
+  const themeBg = 'bg-brand-700 hover:bg-brand-800 dark:bg-brand-600 dark:hover:bg-brand-500';
+  const themeHover = '';
 
   const paletteStyle = (status, isCurrent) => {
-    const tBg = isMain ? 'bg-rose-600' : 'bg-emerald-600';
-    const tRing = isMain ? 'ring-rose-400' : 'ring-emerald-400';
-    const tBorder = isMain ? 'border-rose-900/40' : 'border-emerald-900/40';
+    const tBg = 'bg-brand-700 dark:bg-brand-600';
+    const tRing = 'ring-brand-700 dark:ring-brand-400';
 
-    const base = 'w-10 h-10 rounded-lg text-sm font-bold flex items-center justify-center cursor-pointer transition-all relative';
-    if (isCurrent) return `${base} ring-2 ${tRing} ring-offset-1 ring-offset-[#1a1a2e] ${tBg} text-white shadow-lg`;
+    const base = 'w-9 h-9 rounded-md text-xs font-mono font-bold flex items-center justify-center cursor-pointer transition-all relative border';
+    if (isCurrent) return `${base} ring-2 ${tRing} ring-offset-2 ring-offset-white dark:ring-offset-academy-card ${tBg} text-white shadow-2xs z-10 scale-105 border-transparent`;
     switch (status) {
-      case 'answeredMarked': return `${base} ${tBg} text-white`;
-      case 'answered':       return `${base} ${tBg} text-white`;
-      case 'marked':         return `${base} bg-orange-500 text-white`;
-      case 'visited':        return `${base} bg-slate-900/60 text-slate-300 border border-slate-700/60`;
-      default:               return `${base} bg-[#0e0e1a] text-gray-700 border ${tBorder}`;
+      case 'answeredMarked': return `${base} ${tBg} text-white border-transparent`;
+      case 'answered':       return `${base} ${tBg} text-white border-transparent`;
+      case 'marked':         return `${base} bg-amber-500 text-white border-transparent`;
+      case 'visited':        return `${base} bg-academy-paper-subtle dark:bg-surface-subtle text-academy-ink border-academy-rule hover:bg-academy-rule-subtle`;
+      default:               return `${base} bg-white dark:bg-academy-card text-academy-muted border-academy-rule hover:border-academy-accent/50`;
     }
   };
 
   /* ═══════════════ LOADING ══════════════════════════════════════════ */
   if (loading) {
-    const modeParam = searchParams.get('mode') || 'PRACTICE';
-    const isMainMode = modeParam.toUpperCase() === 'MAIN';
-    const spinnerClass = isMainMode 
-      ? "w-10 h-10 border-4 border-red-600/30 border-t-red-500 rounded-full animate-spin"
-      : "w-10 h-10 border-4 border-emerald-600/30 border-t-emerald-500 rounded-full animate-spin";
-    const textClass = isMainMode
-      ? "text-rose-400 text-xs font-bold uppercase tracking-widest animate-pulse"
-      : "text-emerald-400 text-xs font-bold uppercase tracking-widest animate-pulse";
-
-    return (
-      <div className="h-screen bg-[#0e0e1a] flex flex-col items-center justify-center gap-4">
-        <div className={spinnerClass}/>
-        <p className={textClass}>Loading Assessment...</p>
-      </div>
-    );
+    return <ExamCockpitSkeleton />;
   }
 
 
   /* ═══════════════ RESULT ═══════════════════════════════════════════ */
-  if (result) return (
-    <div className="fixed inset-0 w-screen h-screen bg-[#0a0a12] flex items-center justify-center p-4 z-[100] overflow-y-auto custom-scrollbar">
-      {/* Background Radial Glow */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,#1a1a3a_0%,#0a0a12_70%)] opacity-50" />
-      
-      <div className="relative w-full max-w-xl animate-in zoom-in duration-700">
-        <div className={`relative bg-[#1a1a2e]/95 border-2 ${themeBorder}/30 backdrop-blur-3xl rounded-[40px] p-10 shadow-[0_50px_100px_rgba(0,0,0,0.8)] overflow-hidden`}>
-           {/* Solid Bold Top Bar */}
-           <div className={`absolute top-0 left-0 right-0 h-2 ${isMain ? 'bg-rose-500' : 'bg-emerald-500'} shadow-[0_0_40px_rgba(${isMain ? '244,63,94' : '16,185,129'},0.6)]`} />
+  if (result) {
+    const isOfficialExam = (test?.testType || result.testType || '').toUpperCase() === 'MAIN';
+    const testEndTime = test?.endTime || result.endTime;
+    const isSolutionsSequestered = Boolean(isOfficialExam && testEndTime && new Date(testEndTime) > new Date());
+    const formattedEnd = testEndTime ? formatDateTime(testEndTime) : '';
 
-           <div className="text-center mb-6">
-              <div className={`w-20 h-20 ${themeLightBg} rounded-3xl flex items-center justify-center mx-auto mb-4 border ${themeBorder}/20 shadow-2xl relative`}>
-                <Trophy size={40} className={themeText}/>
-              </div>
-              <h1 className="text-2xl font-black text-white uppercase tracking-tighter mb-1">Assessment Complete</h1>
-              <p className="text-gray-500 text-[9px] font-black uppercase tracking-[0.4em]">{test?.title}</p>
-           </div>
+    const displayTotal = result.totalQuestions ?? (Array.isArray(result.analysis) ? result.analysis.length : questions.length);
+    const displayAttempted = result.attemptedCount ?? (Array.isArray(result.analysis) ? result.analysis.filter(a => a.selectedAnswer).length : Object.keys(answers).length);
 
-           {/* Score Gauge Section */}
-           <div className="flex justify-center mb-6">
-              <div className="relative w-32 h-32 flex items-center justify-center">
-                 <svg className="w-full h-full -rotate-90">
-                    <circle cx="64" cy="64" r="56" stroke="currentColor" strokeWidth="10" fill="transparent" className="text-white/5" />
-                    <circle cx="64" cy="64" r="56" stroke="currentColor" strokeWidth="10" fill="transparent" 
-                            strokeDasharray={352} 
-                            strokeDashoffset={352 - (352 * (result.scorePercent || 0)) / 100}
-                            className={`${themeText} transition-all duration-1000 ease-out`} />
-                 </svg>
-                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-3xl font-black text-white leading-none">{result.scorePercent}%</span>
-                    <span className="text-[7px] font-black text-gray-500 uppercase tracking-widest mt-1">Accuracy</span>
-                 </div>
-              </div>
-           </div>
+    // Authoritative score computation
+    const displayScore = (result.scorePercent !== undefined && result.scorePercent !== null)
+      ? Math.round(result.scorePercent)
+      : (displayTotal > 0 && result.correctCount !== undefined && result.correctCount !== null
+          ? Math.round((result.correctCount / displayTotal) * 100)
+          : (Array.isArray(result.analysis) && displayTotal > 0
+              ? Math.round((result.analysis.filter(a => a.correct).length / displayTotal) * 100)
+              : 0));
 
-           {/* Quick Stats Grid */}
-           <div className="grid grid-cols-4 gap-3 mb-8">
-              {[
-                { label: 'Total', value: result.totalQuestions, color: 'text-white' },
-                { label: 'Attempted', value: result.attemptedCount || Object.keys(answers).length, color: themeText },
-                { label: 'Correct', color: 'text-emerald-400', value: result.correctCount },
-                { label: 'Wrong', color: 'text-rose-400', value: result.wrongCount },
-              ].map((stat) => (
-                <div key={stat.label} className="bg-white/5 border border-white/5 rounded-2xl p-3 text-center">
-                  <p className="text-[7px] font-black text-gray-500 uppercase tracking-widest mb-1">{stat.label}</p>
-                  <p className={`text-lg font-black ${stat.color}`}>{stat.value}</p>
+    const displayCorrect = (result.correctCount !== undefined && result.correctCount !== null)
+      ? result.correctCount
+      : (Array.isArray(result.analysis)
+          ? result.analysis.filter(a => a.correct).length
+          : Math.round((displayScore / 100) * displayTotal));
+
+    const displayWrong = (result.wrongCount !== undefined && result.wrongCount !== null)
+      ? result.wrongCount
+      : Math.max(0, displayAttempted - displayCorrect);
+
+    const targetAttemptId = result.id || attemptId;
+
+    return (
+      <div className="fixed inset-0 w-screen h-screen bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100] overflow-y-auto custom-scrollbar">
+        <div className="relative w-full max-w-lg animate-in zoom-in-95 duration-200">
+          <div className="bg-white dark:bg-[#15181e] rounded-3xl p-8 sm:p-10 shadow-2xl border border-slate-200 dark:border-[#262a33] relative overflow-hidden">
+             <div className={`absolute top-0 left-0 right-0 h-1.5 ${isMain ? 'bg-rose-500' : 'bg-violet-600'}`} />
+
+             <div className="text-center mb-6">
+                <div className="w-16 h-16 bg-violet-50 dark:bg-violet-950/60 border border-violet-100 dark:border-violet-900/50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-violet-600 dark:text-violet-400 shadow-sm">
+                  <Trophy size={32} />
                 </div>
-              ))}
-           </div>
+                <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight mb-1">Assessment Complete</h1>
+                <p className="text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider">{test?.title || result.testTitle || 'Diagnostic Assessment'}</p>
+             </div>
 
-           {/* Actions */}
-           <div className="flex flex-col gap-2.5">
-              <button
-                onClick={() => navigate('/results/' + result.id)}
-                className={`w-full py-4 ${themeBg} ${themeHover} text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] transition-all shadow-xl ${themeShadow} hover:scale-[1.02] active:scale-95`}
-              >
-                View Detailed Analysis
-              </button>
-              <button
-                onClick={() => navigate('/student-dashboard')}
-                className="w-full py-4 bg-white/5 hover:bg-white/10 text-gray-400 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all border border-white/5"
-              >
-                Return to Dashboard
-              </button>
-           </div>
+             {/* Score Gauge Section */}
+             <div className="flex justify-center mb-6">
+                <div className="relative w-32 h-32 flex items-center justify-center">
+                   <svg className="w-full h-full -rotate-90">
+                      <circle cx="64" cy="64" r="54" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-slate-100 dark:text-[#1e222b]" />
+                      <circle cx="64" cy="64" r="54" stroke="currentColor" strokeWidth="8" fill="transparent" 
+                              strokeDasharray={340} 
+                              strokeDashoffset={340 - (340 * Math.min(100, Math.max(0, displayScore))) / 100}
+                              className={`${themeText} transition-all duration-700 ease-out`} />
+                   </svg>
+                   <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <span className="text-3xl font-extrabold text-slate-900 dark:text-slate-100 leading-none tabular-nums">{displayScore}%</span>
+                      <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-1">Accuracy</span>
+                   </div>
+                </div>
+             </div>
+
+             {/* Quick Stats Grid */}
+             <div className="grid grid-cols-4 gap-2.5 mb-6 text-center">
+                {[
+                  { label: 'Total', value: displayTotal, color: 'text-slate-900 dark:text-slate-100' },
+                  { label: 'Attempted', value: displayAttempted, color: themeText },
+                  { label: 'Correct', color: 'text-emerald-600 dark:text-emerald-400', value: displayCorrect },
+                  { label: 'Wrong', color: 'text-rose-600 dark:text-rose-400', value: displayWrong },
+                ].map((stat) => (
+                  <div key={stat.label} className="bg-slate-50 dark:bg-[#1a1d24] border border-slate-200/80 dark:border-[#262a33] rounded-xl p-2.5">
+                    <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-0.5">{stat.label}</p>
+                    <p className={`text-base font-extrabold ${stat.color} tabular-nums`}>{stat.value}</p>
+                  </div>
+                ))}
+             </div>
+
+             {/* Sequestered Notice for Active Official Exams */}
+             {isSolutionsSequestered && (
+                <div className="mb-6 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-left flex items-start gap-2.5">
+                  <Lock size={16} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                  <p className="text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed">
+                    Official assessment active: Detailed answer keys and solutions will unlock on {formattedEnd}.
+                  </p>
+                </div>
+             )}
+
+             {/* Actions */}
+             <div className="flex flex-col gap-2">
+                <button
+                  onClick={() => {
+                    if (targetAttemptId) {
+                      navigate('/results/' + targetAttemptId);
+                    } else {
+                      navigate('/student/dashboard');
+                    }
+                  }}
+                  className={`w-full py-3 ${themeBg} ${themeHover} text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-all shadow-sm cursor-pointer`}
+                >
+                  View Detailed Scorecard
+                </button>
+                <button
+                  onClick={() => navigate('/student/dashboard')}
+                  className="w-full py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-xs uppercase tracking-wider transition-all cursor-pointer"
+                >
+                  Return to Dashboard
+                </button>
+             </div>
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  }
 
   /* ═══════════════ EXAM UI ══════════════════════════════════════════ */
   const currentQ = questions[currentIndex];
   const answeredCount = Object.keys(answers).length;
-  const isExpiring = timeLeft !== null && timeLeft < 120;
-
-  const goNext = () => {
-    if (currentIndex < questions.length - 1) {
-      const next = currentIndex + 1;
-      markVisited(next);
-      setCurrentIndex(next);
-    }
-  };
-  const goPrev = () => {
-    if (currentIndex > 0) {
-      const prev = currentIndex - 1;
-      markVisited(prev);
-      setCurrentIndex(prev);
-    }
-  };
+  const isUrgent = timeLeft !== null && timeLeft > 0 && timeLeft < 60;
+  const isWarning = timeLeft !== null && timeLeft >= 60 && timeLeft < 300;
 
   return (
-    <div className="h-screen bg-[#0e0e1a] text-white flex flex-col overflow-hidden" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="h-screen bg-[#f9f9f7] dark:bg-[#0e1015] text-[#090d16] dark:text-slate-100 flex flex-col overflow-hidden transition-colors duration-200" style={{ fontFamily: "'Inter', sans-serif" }}>
       {/* ── TOP BAR ─────────────────────────────────────────────────── */}
-      <header className="flex items-center justify-between px-3 md:px-6 py-2 md:py-3 bg-[#12122a] border-b border-[#2a2a4a] flex-shrink-0 gap-2 z-[60]">
-        <div className="flex items-center gap-1.5 md:gap-4 min-w-0">
+      <header className="flex items-center justify-between px-3 md:px-6 py-2.5 md:py-3 bg-white dark:bg-academy-card border-b border-academy-rule flex-shrink-0 gap-2 z-[60] shadow-2xs">
+        <div className="flex items-center gap-2 md:gap-4 min-w-0">
           <button
+            type="button"
             onClick={handleExit}
-            className="flex items-center gap-1.5 px-2 md:px-2.5 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all group shrink-0"
+            className="min-h-[40px] px-3 py-1.5 text-xs rounded-lg border border-academy-rule bg-white dark:bg-academy-card text-academy-ink hover:bg-academy-paper-subtle dark:hover:bg-surface-subtle flex items-center gap-1.5 cursor-pointer font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
           >
-            <ChevronLeft size={14} className="text-gray-400 group-hover:text-white transition-colors"/>
-            <span className="hidden sm:inline text-[10px] font-black text-gray-500 group-hover:text-white uppercase tracking-widest transition-colors">Exit</span>
+            <ChevronLeft size={14} className="text-academy-muted" />
+            <span className="hidden sm:inline">Exit</span>
           </button>
           
-          <div className="hidden md:flex flex-col">
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] mb-0.5">
-              <span className="text-white/40">LEARN</span>
-              <span className="text-violet-500">IQ</span>
-            </span>
-            <span className={`${themeText} font-black text-sm tracking-widest uppercase`}>
-              EXAM <span className="text-white">CENTER</span>
-            </span>
+          <div className="hidden md:flex items-center gap-3">
+            <BrandLogo size="sm" variant="wordmark" subtitle="Examination session" />
           </div>
 
           {/* Compact Branding for Mobile */}
-          <div className="md:hidden flex items-center bg-violet-500/10 px-2 py-1 rounded-lg border border-violet-500/20">
-             <span className="text-[10px] font-black text-violet-500 tracking-tighter">IQ</span>
+          <div className="md:hidden flex items-center">
+            <BrandLogo size="sm" variant="mark" />
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 md:gap-4 shrink-0">
+        <div className="flex items-center gap-2 md:gap-3 shrink-0">
+          {/* Live Proctoring & Security Status Badge */}
+          <div
+            className="hidden sm:flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-[11px] text-emerald-800 dark:text-emerald-300 shadow-2xs"
+            title="Active Proctoring & Realtime Sync Active. Focus is monitored."
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span className="font-semibold tracking-wide flex items-center gap-1">
+              <span>Proctored</span>
+              <span className="hidden lg:inline text-emerald-600 dark:text-emerald-400 font-mono text-[10px]">
+                {malpracticeCount === 0 ? '· Secure' : `· ${malpracticeCount}/5 warnings`}
+              </span>
+            </span>
+          </div>
+
+          <ThemeToggle size="sm" />
+
           <button
+            type="button"
             onClick={() => setShowReloadConfirm(true)}
-            className="hidden sm:flex p-2 md:p-2.5 bg-white/5 border border-white/10 rounded-xl text-slate-400 hover:text-amber-400 hover:bg-amber-400/10 transition-all group"
+            className="hidden sm:flex min-h-[40px] min-w-[40px] items-center justify-center p-2 bg-academy-paper-subtle dark:bg-surface-subtle border border-academy-rule rounded-lg text-academy-muted hover:text-academy-accent hover:bg-academy-paper-subtle dark:hover:bg-surface-subtle active:scale-[0.95] transition-all cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
             title="Sync & Refresh Session"
           >
             <RotateCcw size={14} className="group-hover:rotate-[-180deg] transition-transform duration-500" />
           </button>
 
-          <div className={`flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1.5 rounded-lg border font-black text-xs md:text-sm tabular-nums transition-all ${
-            isExpiring
-              ? 'bg-red-600/20 border-red-500/40 text-red-400 animate-pulse'
-              : 'bg-[#1a1a2e] border-[#2a2a4a] text-white'
-          }`}>
-            <Clock size={12} className={isExpiring ? 'text-red-400' : themeText}/>
-            <span className="text-xs md:text-sm">{formatTime(timeLeft)}</span>
+          {/* High-visibility Timer HUD */}
+          <div
+            role="timer"
+            aria-label={`Time remaining: ${formatTime(timeLeft)}`}
+            aria-live="polite"
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border font-mono font-bold text-xs md:text-sm tabular-nums transition-all duration-200 shadow-2xs ${
+              isUrgent
+                ? 'bg-rose-50 dark:bg-rose-950/60 border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-300 animate-pulse ring-1 ring-rose-400/40'
+                : isWarning
+                ? 'bg-amber-50 dark:bg-amber-950/50 border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300 ring-1 ring-amber-400/30'
+                : 'bg-slate-50 dark:bg-academy-card border-slate-200 dark:border-academy-rule text-slate-800 dark:text-slate-100'
+            }`}
+          >
+            <Clock
+              size={14}
+              className={`shrink-0 ${
+                isUrgent
+                  ? 'text-rose-600 dark:text-rose-400'
+                  : isWarning
+                  ? 'text-amber-600 dark:text-amber-400'
+                  : 'text-violet-600 dark:text-violet-400'
+              }`}
+            />
+            <span className="tracking-tight">{formatTime(timeLeft)}</span>
+            {isUrgent && (
+              <span className="hidden xl:inline text-[9px] uppercase font-sans font-bold tracking-wider text-rose-600 dark:text-rose-400">
+                &lt; 1m
+              </span>
+            )}
+            {isWarning && (
+              <span className="hidden xl:inline text-[9px] uppercase font-sans font-bold tracking-wider text-amber-600 dark:text-amber-400">
+                &lt; 5m
+              </span>
+            )}
           </div>
 
+          {/* Responsive Question Palette / Drawer Toggle */}
           <button
+            type="button"
             onClick={() => setShowPalette(prev => !prev)}
-            className={`lg:hidden p-2 md:p-2.5 rounded-xl border text-[10px] md:text-xs font-black transition-all bg-white/5 border-white/10 text-white active:scale-95 flex items-center gap-1 md:gap-2`}
+            aria-label={`Toggle question palette. Question ${currentIndex + 1} of ${questions.length}`}
+            aria-expanded={showPalette}
+            aria-controls="question-palette-drawer"
+            className="lg:hidden min-h-[44px] px-3 py-2 text-xs rounded-lg border border-academy-rule bg-white dark:bg-academy-card text-academy-ink flex items-center gap-1.5 font-mono font-medium active:scale-[0.98] shadow-2xs hover:bg-academy-paper-subtle dark:hover:bg-surface-subtle cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
           >
-            <span className={themeText}>Q{currentIndex + 1}</span>
-            <span className="text-white/20">/</span>
+            <span className="text-violet-600 dark:text-violet-400 font-bold">Q{currentIndex + 1}</span>
+            <span className="text-academy-muted">/</span>
             <span>{questions.length}</span>
           </button>
 
           <button
+            type="button"
             onClick={() => setShowConfirm(true)}
             disabled={submitting}
-            className={`px-3 md:px-6 py-2 ${themeBg} ${themeHover} disabled:opacity-50 text-white rounded-lg font-black text-[10px] md:text-sm uppercase tracking-widest transition-all shadow-lg ${themeShadow}`}
+            className="min-h-[40px] px-4 py-1.5 bg-academy-accent hover:bg-academy-accent-hover disabled:opacity-50 text-white rounded-lg font-semibold text-xs active:scale-[0.98] transition-all shadow-2xs cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-academy-accent"
           >
-            {submitting ? '...' : 'FINISH'}
+            {submitting ? 'Submitting...' : 'Finish Test'}
           </button>
         </div>
       </header>
@@ -584,15 +764,29 @@ const StudentTest = () => {
       {/* ── BODY ────────────────────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden relative">
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-          <div className="flex-1 overflow-y-auto px-4 md:px-8 pt-4 md:pt-6 pb-40 md:pb-12 custom-scrollbar">
-            <p className={`text-[10px] font-black ${themeText}/70 uppercase tracking-[0.3em] mb-3`}>
-              Question {currentIndex + 1} of {questions.length}
-            </p>
-            <div className="text-[15px] font-semibold text-gray-100 leading-relaxed mb-6">
-              <CodeQuestion text={currentQ?.questionText} category={test?.category || 'Code'}/>
+          <div className="flex-1 overflow-y-auto px-6 sm:px-12 py-8 pb-32 md:pb-8 custom-scrollbar max-w-5xl mx-auto w-full">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-mono font-medium text-academy-accent dark:text-academy-accent-deep">
+                Question {currentIndex + 1} of {questions.length}
+              </span>
+              <span className="text-xs font-serif italic text-academy-muted">
+                {test?.category || 'General Aptitude'}
+              </span>
             </div>
 
-            <div className="space-y-3">
+            {/* Question Card */}
+            <div className="bg-white dark:bg-academy-card rounded-xl border border-academy-rule p-6 md:p-8 shadow-2xs mb-6">
+              <div className="text-base sm:text-lg font-serif font-normal text-academy-ink leading-relaxed">
+                <CodeQuestion text={currentQ?.questionText} category={test?.category || 'Code'}/>
+              </div>
+            </div>
+
+            {/* Options */}
+            <div
+              className="space-y-3"
+              role="radiogroup"
+              aria-label={`Options for Question ${currentIndex + 1}`}
+            >
               {['A','B','C','D'].map((opt) => {
                 const text = currentQ?.[`option${opt}`];
                 if (!text) return null;
@@ -600,74 +794,118 @@ const StudentTest = () => {
                 return (
                   <button
                     key={opt}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    tabIndex={0}
                     onClick={() => updateAnswer(currentQ.id, opt)}
-                    className={`w-full flex items-center gap-4 px-5 py-4 rounded-xl border text-left transition-all group ${
+                    className={`w-full flex items-center gap-4 px-5 py-4 rounded-xl border text-left active:scale-[0.99] transition-all duration-150 group cursor-pointer min-h-[58px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0e1015] select-none ${
                       selected
-                        ? `${themeLightBg} ${themeBorder} text-white shadow-lg shadow-black/20`
-                        : 'bg-[#14142a] border-[#2a2a4a] text-gray-300 hover:border-white/20 hover:bg-white/5'
+                        ? 'border-2 border-violet-600 bg-violet-50/80 dark:bg-violet-950/50 text-slate-900 dark:text-white shadow-sm ring-1 ring-violet-500/20 font-medium'
+                        : 'bg-white dark:bg-academy-card border-academy-rule text-academy-ink-secondary hover:border-violet-400/60 hover:bg-slate-50 dark:hover:bg-surface-subtle'
                     }`}
                   >
-                    <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black flex-shrink-0 transition-all ${
+                    <span className={`w-9 h-9 rounded-lg flex items-center justify-center text-xs font-mono font-bold shrink-0 transition-all ${
                       selected
-                        ? `${themeBg} text-white`
-                        : 'bg-[#252545] text-gray-400 group-hover:bg-slate-700/50 group-hover:text-slate-200'
+                        ? 'bg-violet-600 text-white shadow-sm ring-2 ring-violet-400/30'
+                        : 'bg-academy-paper-subtle dark:bg-surface-subtle text-academy-muted border border-academy-rule group-hover:text-academy-ink group-hover:border-violet-300 dark:group-hover:border-violet-700'
                     }`}>
                       {opt}
                     </span>
-                    <span className="text-sm font-medium">{text}</span>
+                    <span className="text-sm sm:text-base font-normal leading-relaxed text-academy-ink flex-1">{text}</span>
+                    <span
+                      className={`hidden sm:inline-flex text-[11px] font-mono px-2 py-0.5 rounded border transition-all ${
+                        selected
+                          ? 'bg-violet-100 dark:bg-violet-900/60 border-violet-300 dark:border-violet-700 text-violet-700 dark:text-violet-300 font-semibold'
+                          : 'bg-slate-100 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-400 opacity-0 group-hover:opacity-100'
+                      }`}
+                    >
+                      Key {opt}
+                    </span>
                   </button>
                 );
               })}
             </div>
+
+            {/* Keyboard shortcut hint strip */}
+            <div className="mt-5 pt-3 border-t border-academy-rule/60 flex flex-wrap items-center justify-between gap-2 text-[11px] text-academy-muted font-mono">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                <span className="flex items-center gap-1">
+                  <kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold">1-4</kbd>
+                  <span>or</span>
+                  <kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold">A-D</kbd>
+                  <span className="text-slate-600 dark:text-slate-400">Select</span>
+                </span>
+                <span className="hidden sm:inline text-slate-300 dark:text-slate-700">·</span>
+                <span className="hidden sm:flex items-center gap-1">
+                  <kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold">←</kbd>
+                  <kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold">→</kbd>
+                  <span className="text-slate-600 dark:text-slate-400">Navigate</span>
+                </span>
+                <span className="hidden md:inline text-slate-300 dark:text-slate-700">·</span>
+                <span className="hidden md:flex items-center gap-1">
+                  <kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold">M</kbd>
+                  <span className="text-slate-600 dark:text-slate-400">Review</span>
+                </span>
+              </div>
+              <div className="text-[10px] text-academy-muted italic font-serif">
+                Auto-saved continuously
+              </div>
+            </div>
           </div>
 
           {/* ── BOTTOM ACTION BAR ─────────────────────────────────────── */}
-          <div className="fixed md:relative bottom-0 left-0 right-0 z-[70] md:z-auto md:flex-shrink-0 border-t border-[#2a2a4a] bg-[#12122a]/95 backdrop-blur-md md:backdrop-blur-none px-3 md:px-8 pt-3 pb-[calc(env(safe-area-inset-bottom)+20px)] md:pb-6 shadow-[0_-10px_40px_rgba(0,0,0,0.8)] md:shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
-            <div className="flex items-center justify-between gap-2 md:gap-4 max-w-full">
+          <div className="fixed md:relative bottom-0 left-0 right-0 z-30 md:flex-shrink-0 border-t border-academy-rule bg-white dark:bg-academy-card px-4 md:px-8 py-3 pb-[calc(env(safe-area-inset-bottom)+12px)] md:pb-3 shadow-md md:shadow-none">
+            <div className="flex items-center justify-between gap-2 max-w-5xl mx-auto w-full">
               
-              {/* Left Group: Action Toggles */}
-              <div className="flex items-center gap-1.5 md:gap-2">
+              {/* Left Group */}
+              <div className="flex items-center gap-2">
                 <button
+                  type="button"
                   onClick={() => toggleMark(currentQ?.id)}
-                  className={`flex items-center justify-center gap-2 px-3 md:px-4 py-2.5 md:py-3 rounded-xl border text-[10px] md:text-xs font-bold transition-all ${
+                  className={`min-h-[44px] flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-lg border text-xs font-medium transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 ${
                     marked[currentQ?.id]
-                      ? 'bg-orange-500/20 border-orange-500/60 text-orange-400'
-                      : 'bg-[#1a1a2e] border-[#2a2a4a] text-gray-400 hover:border-orange-500/40 hover:text-orange-400'
+                      ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300 font-semibold'
+                      : 'bg-white dark:bg-academy-card border-academy-rule text-academy-muted hover:text-amber-700 hover:bg-amber-50/50'
                   }`}
-                  title="Mark for Review"
+                  title="Mark for Review (Shortcut: M)"
                 >
-                  <Bookmark size={16} className="shrink-0"/>
-                  <span className="hidden md:inline">Mark for Review</span>
+                  <Bookmark size={15} className="shrink-0"/>
+                  <span className="hidden sm:inline">Mark for review</span>
+                  <span className="sm:hidden">Mark</span>
                 </button>
 
                 <button
+                  type="button"
                   onClick={clearAnswer}
-                  className="flex items-center justify-center gap-2 px-3 md:px-4 py-2.5 md:py-3 rounded-xl border border-[#2a2a4a] bg-[#1a1a2e] text-rose-400 text-[10px] md:text-xs font-bold hover:border-rose-500/40 hover:bg-rose-900/10 transition-all"
-                  title="Clear Response"
+                  className="min-h-[44px] flex items-center gap-1.5 px-3 sm:px-3.5 py-2 rounded-lg border border-academy-rule bg-white dark:bg-academy-card text-academy-muted hover:text-rose-600 hover:bg-rose-50/50 text-xs font-medium active:scale-[0.98] transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
+                  title="Clear response"
                 >
-                  <RotateCcw size={16} className="shrink-0"/>
-                  <span className="hidden md:inline">Clear Response</span>
+                  <RotateCcw size={14} className="shrink-0"/>
+                  <span className="hidden sm:inline">Clear</span>
                 </button>
               </div>
 
               {/* Right Group: Navigation */}
-              <div className="flex items-center gap-1.5 md:gap-2 ml-auto">
+              <div className="flex items-center gap-2 ml-auto">
                 <button
+                  type="button"
                   onClick={goPrev}
                   disabled={currentIndex === 0}
-                  className={`flex items-center justify-center gap-2 px-4 md:px-5 py-2.5 md:py-3 rounded-xl border border-[#2a2a4a] bg-[#1a1a2e] text-gray-300 text-[10px] md:text-xs font-bold hover:${themeBorder}/40 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all`}
+                  className="min-h-[44px] px-3.5 sm:px-4 py-2 rounded-lg border border-academy-rule bg-white dark:bg-academy-card text-academy-ink hover:bg-academy-paper-subtle dark:hover:bg-surface-subtle text-xs font-medium flex items-center gap-1.5 disabled:opacity-30 cursor-pointer transition-all shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
                 >
-                  <ChevronLeft size={18} className="shrink-0"/> 
-                  <span className="hidden md:inline">Prev</span>
+                  <ChevronLeft size={16} className="shrink-0"/> 
+                  <span>Previous</span>
                 </button>
 
                 <button
+                  type="button"
                   onClick={goNext}
                   disabled={currentIndex === questions.length - 1}
-                  className={`flex items-center justify-center gap-2 px-5 md:px-8 py-2.5 md:py-3 rounded-xl ${themeBg} ${themeHover} text-white text-[10px] md:text-xs font-black uppercase tracking-widest disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-lg ${themeShadow}`}
+                  className="min-h-[44px] px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 disabled:opacity-30 cursor-pointer bg-academy-accent hover:bg-academy-accent-hover text-white transition-all shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
                 >
-                  <span className="hidden md:inline whitespace-nowrap">Save & Next</span>
-                  <ChevronRight size={18} className="shrink-0"/>
+                  <span>Save & Next</span>
+                  <ChevronRight size={16} className="shrink-0"/>
                 </button>
               </div>
             </div>
@@ -677,141 +915,161 @@ const StudentTest = () => {
         {/* Mobile overlay backdrop */}
         {showPalette && (
           <div
-            className="fixed inset-0 bg-black/60 z-[40] lg:hidden"
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 lg:hidden"
             onClick={() => setShowPalette(false)}
+            aria-hidden="true"
           />
         )}
-        <div className={`
-          w-64 flex-shrink-0 border-l border-[#2a2a4a] bg-[#12122a] flex flex-col overflow-hidden
-          lg:relative lg:translate-x-0 lg:z-auto
-          fixed right-0 top-0 bottom-0 z-50 transition-transform duration-300
-          ${showPalette ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
-        `}>
-          <div className="px-5 pt-5 pb-3 flex-shrink-0">
-            <p className="text-[9px] font-black text-gray-500 uppercase tracking-[0.3em] mb-4">Question Palette</p>
-            <div className="space-y-1.5 mb-4">
-              <div className="flex items-center justify-between text-[10px]">
+        <aside
+          id="question-palette-drawer"
+          aria-label="Question Navigator"
+          className={`
+            w-72 sm:w-80 flex-shrink-0 border-l border-academy-rule bg-white dark:bg-academy-card flex flex-col overflow-hidden
+            lg:relative lg:translate-x-0 lg:z-auto
+            fixed right-0 top-0 bottom-0 z-50 transition-transform duration-200 ease-out shadow-xl lg:shadow-none
+            ${showPalette ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
+          `}
+        >
+          <div className="p-4 sm:p-5 border-b border-academy-rule flex-shrink-0 flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-serif italic text-academy-muted uppercase tracking-wider">Question overview</p>
+              <p className="text-xs font-semibold text-academy-ink mt-0.5">
+                {answeredCount} of {questions.length} answered
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowPalette(false)}
+              className="lg:hidden min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg border border-academy-rule bg-slate-50 dark:bg-surface-subtle text-academy-muted hover:text-academy-ink cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
+              aria-label="Close question palette"
+            >
+              <X size={18} />
+            </button>
+          </div>
+          <div className="px-4 sm:px-5 py-3 border-b border-academy-rule/60 flex-shrink-0 bg-slate-50/50 dark:bg-[#15181e]/50">
+            <div className="space-y-1.5 text-xs font-sans">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className={`w-4 h-4 rounded ${themeBg}`}/>
-                  <span className="text-gray-400 font-medium">Answered</span>
+                  <div className={`w-3.5 h-3.5 rounded-sm ${themeBg}`}/>
+                  <span className="text-academy-muted">Answered</span>
                 </div>
-                <span className="text-gray-500 font-bold">{questions.filter(q => answers[q.id] && !marked[q.id]).length}</span>
+                <span className="font-mono text-academy-ink font-bold">{questions.filter(q => answers[q.id] && !marked[q.id]).length}</span>
               </div>
-              <div className="flex items-center justify-between text-[10px]">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className={`relative w-4 h-4 rounded ${themeBg} flex-shrink-0`}>
-                    <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-orange-500 border border-[#12122a]"/>
+                  <div className={`relative w-3.5 h-3.5 rounded-sm ${themeBg} flex-shrink-0`}>
+                    <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-amber-500 border border-white dark:border-slate-900"/>
                   </div>
-                  <span className="text-gray-400 font-medium">Ans + Marked</span>
+                  <span className="text-academy-muted">Ans + Marked</span>
                 </div>
-                <span className="text-gray-500 font-bold">{questions.filter(q => answers[q.id] && marked[q.id]).length}</span>
+                <span className="font-mono text-academy-ink font-bold">{questions.filter(q => answers[q.id] && marked[q.id]).length}</span>
               </div>
-              <div className="flex items-center justify-between text-[10px]">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded bg-orange-500"/>
-                  <span className="text-gray-400 font-medium">Marked</span>
+                  <div className="w-3.5 h-3.5 rounded-sm bg-amber-500"/>
+                  <span className="text-academy-muted">Marked</span>
                 </div>
-                <span className="text-gray-500 font-bold">{questions.filter(q => !answers[q.id] && marked[q.id]).length}</span>
+                <span className="font-mono text-academy-ink font-bold">{questions.filter(q => !answers[q.id] && marked[q.id]).length}</span>
               </div>
-              <div className="flex items-center justify-between text-[10px]">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded bg-slate-900/60 border border-slate-700/60"/>
-                  <span className="text-gray-400 font-medium">Visited</span>
+                  <div className="w-3.5 h-3.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700"/>
+                  <span className="text-slate-600 dark:text-slate-400">Visited</span>
                 </div>
-                <span className="text-gray-500 font-bold">{questions.filter((q,i) => !answers[q.id] && !marked[q.id] && visited.has(i)).length}</span>
+                <span className="text-slate-800 dark:text-slate-200 font-bold">{questions.filter((q,i) => !answers[q.id] && !marked[q.id] && visited.has(i)).length}</span>
               </div>
-              <div className="flex items-center justify-between text-[10px]">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className={`w-4 h-4 rounded bg-[#0e0e1a] border ${themeBorder}/20`}/>
-                  <span className="text-gray-400 font-medium">Not Visited</span>
+                  <div className="w-3.5 h-3.5 rounded bg-white dark:bg-[#15181e] border border-slate-200 dark:border-[#262a33]"/>
+                  <span className="text-slate-600 dark:text-slate-400">Not Visited</span>
                 </div>
-                <span className="text-gray-500 font-bold">{questions.filter((q,i) => !answers[q.id] && !marked[q.id] && !visited.has(i)).length}</span>
+                <span className="text-slate-800 dark:text-slate-200 font-bold">{questions.filter((q,i) => !answers[q.id] && !marked[q.id] && !visited.has(i)).length}</span>
               </div>
             </div>
-            <div className="h-px bg-[#2a2a4a] mb-4"/>
           </div>
-          <div className="flex-1 overflow-y-auto px-5 pb-4 pt-2">
-            <div className="grid grid-cols-4 gap-2">
+          <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+            <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
               {questions.map((q, idx) => {
                 const status = getQStatus(q, idx);
                 const isCurrent = idx === currentIndex;
                 return (
                   <button
                     key={q.id}
-                    onClick={() => { markVisited(idx); setCurrentIndex(idx); }}
+                    onClick={() => {
+                      markVisited(idx);
+                      setCurrentIndex(idx);
+                      setShowPalette(false);
+                    }}
                     className={paletteStyle(status, isCurrent)}
                     title={`Question ${idx + 1}`}
+                    aria-label={`Go to Question ${idx + 1}, status: ${status}`}
                   >
                     {idx + 1}
                     {status === 'answeredMarked' && (
-                      <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-orange-500 border border-[#12122a]"/>
+                      <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-500 border border-white dark:border-slate-900"/>
                     )}
                   </button>
                 );
               })}
             </div>
           </div>
-          <div className="flex-shrink-0 px-5 pb-5 pt-3 border-t border-[#2a2a4a]">
-            <p className="text-[10px] text-gray-500 text-center mb-2 font-medium">
-              Answered: <span className={`${themeText} font-bold`}>{answeredCount}</span> / {questions.length}
+          <div className="flex-shrink-0 p-4 border-t border-slate-200 dark:border-[#262a33] bg-slate-50 dark:bg-[#1a1d24]">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 text-center mb-2 font-semibold">
+              Answered: <strong className="text-violet-600 dark:text-violet-400">{answeredCount}</strong> / {questions.length}
             </p>
             <button
+              type="button"
               onClick={() => setShowConfirm(true)}
-              disabled={submitting || currentIndex < questions.length - 1}
-              className={`w-full py-3 ${themeBg} ${themeHover} disabled:opacity-30 disabled:cursor-not-allowed text-white rounded-xl font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-lg shadow-black/40`}
+              disabled={submitting}
+              className={`w-full min-h-[44px] py-2.5 ${themeBg} ${themeHover} disabled:opacity-30 disabled:cursor-not-allowed text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500`}
             >
-              <Send size={13}/> Submit Test →
+              <Send size={14}/> <span>Finish Test</span>
             </button>
           </div>
-        </div>
+        </aside>
       </div>
 
       {/* ── CONFIRMATION MODAL ────────────────────────────────────── */}
       {showConfirm && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 pointer-events-auto">
-          <div className="relative bg-[#1a1a2e]/80 border-2 border-white/10 backdrop-blur-xl rounded-3xl max-w-sm w-full shadow-[0_50px_100px_rgba(0,0,0,0.6)] overflow-hidden animate-in zoom-in duration-300">
-            <div className={`h-1.5 w-full bg-gradient-to-r ${isMain ? 'from-rose-600 via-pink-400 to-rose-600' : 'from-emerald-600 via-teal-400 to-emerald-600'}`}/>
-            <div className="p-8">
-              <div className="text-center mb-6">
-                <div className={`w-20 h-20 ${themeLightBg} rounded-2xl flex items-center justify-center mx-auto mb-4 border ${themeBorder}/20`}>
-                  <Send size={32} className={themeText}/>
-                </div>
-                <h3 className="text-2xl font-black text-white uppercase tracking-tight">Finalize Assessment</h3>
-                <p className="text-gray-400 text-[9px] font-black uppercase tracking-[0.2em] mt-2 mb-6 text-center">
-                  Review your responses before final submission.
-                </p>
-              </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-[#15181e] rounded-2xl border border-slate-200 dark:border-[#262a33] p-6 sm:p-8 max-w-sm w-full shadow-2xl text-center animate-in zoom-in-95 duration-150">
+            <div className="w-14 h-14 bg-violet-50 dark:bg-violet-950/60 border border-violet-100 dark:border-violet-900/50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-violet-600 dark:text-violet-400">
+              <Send size={24} />
+            </div>
+            <h3 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight mb-1">Finalize Exam?</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-6">
+              Review your responses carefully before finalizing your submission.
+            </p>
 
-              <div className="grid grid-cols-3 gap-3 mb-6">
-                <div className={`${themeLightBg} border ${themeBorder}/20 rounded-xl p-3 text-center`}>
-                  <p className={`${themeText} text-xl font-black`}>{answeredCount}</p>
-                  <p className="text-[8px] text-gray-500 uppercase tracking-widest mt-1 font-black">Answers</p>
-                </div>
-                <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-3 text-center">
-                  <p className="text-orange-400 text-xl font-black">{Object.keys(marked).filter(k => marked[k]).length}</p>
-                  <p className="text-[8px] text-gray-500 uppercase tracking-widest mt-1 font-black">Marked</p>
-                </div>
-                <div className="bg-gray-900/50 border border-white/5 rounded-xl p-3 text-center">
-                  <p className="text-gray-300 text-xl font-black">{questions.length - answeredCount}</p>
-                  <p className="text-[8px] text-gray-500 uppercase tracking-widest mt-1 font-black">Skipped</p>
-                </div>
+            <div className="grid grid-cols-3 gap-2 mb-6">
+              <div className="bg-violet-50 dark:bg-violet-950/60 border border-violet-100 dark:border-violet-900/50 rounded-xl p-2.5">
+                <p className="text-lg font-extrabold text-violet-700 dark:text-violet-300">{answeredCount}</p>
+                <p className="text-[9px] font-bold text-violet-600 dark:text-violet-400 uppercase">Answered</p>
               </div>
+              <div className="bg-amber-50 dark:bg-amber-950/60 border border-amber-100 dark:border-amber-900/50 rounded-xl p-2.5">
+                <p className="text-lg font-extrabold text-amber-700 dark:text-amber-300">{Object.keys(marked).filter(k => marked[k]).length}</p>
+                <p className="text-[9px] font-bold text-amber-600 dark:text-amber-400 uppercase">Marked</p>
+              </div>
+              <div className="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5">
+                <p className="text-lg font-extrabold text-slate-700 dark:text-slate-300">{questions.length - answeredCount}</p>
+                <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase">Skipped</p>
+              </div>
+            </div>
 
-              <div className="flex flex-col gap-2">
-                <button
-                  onClick={() => submitTest()}
-                  disabled={submitting}
-                  className={`w-full py-4 ${themeBg} ${themeHover} disabled:opacity-50 text-white rounded-xl font-black text-[11px] uppercase tracking-[0.2em] transition-all`}
-                >
-                  {submitting ? 'Processing...' : 'Complete Submission'}
-                </button>
-                <button
-                  onClick={() => setShowConfirm(false)}
-                  className="w-full py-4 bg-white/5 hover:bg-white/10 text-gray-400 rounded-xl font-black text-[11px] uppercase tracking-widest transition-all border border-white/5"
-                >
-                  Return to Review
-                </button>
-              </div>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => submitTest()}
+                disabled={submitting}
+                className="btn-primary w-full py-2.5 text-xs"
+              >
+                {submitting ? 'Submitting...' : 'Confirm Submission'}
+              </button>
+              <button
+                onClick={() => setShowConfirm(false)}
+                className="btn-secondary w-full py-2.5 text-xs"
+              >
+                Return to Exam
+              </button>
             </div>
           </div>
         </div>
@@ -819,45 +1077,41 @@ const StudentTest = () => {
 
       {/* ── RELOAD CONFIRMATION MODAL ──────────────────────────────── */}
       {showReloadConfirm && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 pointer-events-auto">
-          <div className="relative bg-[#1a1a2e]/80 border-2 border-white/10 backdrop-blur-xl rounded-3xl max-w-sm w-full shadow-[0_50px_100px_rgba(0,0,0,0.6)] overflow-hidden animate-in zoom-in duration-300">
-            <div className="h-1.5 w-full bg-amber-500/50 animate-pulse"/>
-            <div className="p-8">
-              <div className="w-20 h-20 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-amber-500/20">
-                <RotateCcw size={32} className="text-amber-500"/>
-              </div>
-              <h3 className="text-2xl font-black text-white uppercase tracking-tight mb-2 text-center">Sync & Refresh?</h3>
-              <p className="text-gray-400 text-[10px] font-black uppercase tracking-[0.2em] leading-relaxed mb-8 text-center">
-                Your current progress will be saved before the page reloads.
-              </p>
-              
-              <div className="flex flex-col gap-3">
-                <button
-                  onClick={async () => {
-                    try {
-                      // Proactively remove the native prompt by reference before manual reload
-                      if (beforeUnloadRef.current) {
-                        window.removeEventListener('beforeunload', beforeUnloadRef.current);
-                      }
-                      if (!isSubmittingRef.current && !submitting) {
-                        await api.post(`/attempts/${attemptId}/save-progress`, answers);
-                      }
-                      window.location.reload();
-                    } catch (err) {
-                      window.location.reload();
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-[#15181e] rounded-2xl border border-slate-200 dark:border-[#262a33] p-6 sm:p-8 max-w-sm w-full shadow-2xl text-center animate-in zoom-in-95 duration-150">
+            <div className="w-14 h-14 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/40 rounded-2xl flex items-center justify-center mx-auto mb-4 text-amber-600 dark:text-amber-400">
+              <RotateCcw size={24} />
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight mb-1">Sync & Reload?</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-6">
+              Your current progress will be safely autosaved to the server before reloading.
+            </p>
+            
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={async () => {
+                  try {
+                    if (beforeUnloadRef.current) {
+                      window.removeEventListener('beforeunload', beforeUnloadRef.current);
                     }
-                  }}
-                  className="w-full py-4 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-black uppercase text-[11px] tracking-[0.2em] transition-all shadow-lg shadow-amber-600/20"
-                >
-                  Yes, Sync & Reload
-                </button>
-                <button
-                  onClick={() => setShowReloadConfirm(false)}
-                  className="w-full py-4 bg-white/5 hover:bg-white/10 text-gray-400 rounded-xl font-black uppercase text-[11px] tracking-widest transition-all border border-white/5"
-                >
-                  Cancel
-                </button>
-              </div>
+                    if (!isSubmittingRef.current && !submitting) {
+                      await api.post(`/attempts/${attemptId}/save-progress`, answers);
+                    }
+                    window.location.reload();
+                  } catch {
+                    window.location.reload();
+                  }
+                }}
+                className="btn-primary w-full py-2.5 text-xs"
+              >
+                Yes, Save & Reload
+              </button>
+              <button
+                onClick={() => setShowReloadConfirm(false)}
+                className="btn-secondary w-full py-2.5 text-xs"
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </div>
@@ -865,68 +1119,62 @@ const StudentTest = () => {
 
       {/* ── MALPRACTICE WARNING MODAL ──────────────────────────────── */}
       {showMalpractice && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 pointer-events-auto">
-          <div className="relative bg-[#1a1a2e]/90 border-2 border-amber-500/30 backdrop-blur-2xl rounded-3xl max-w-sm w-full shadow-[0_50px_100px_rgba(0,0,0,0.8)] overflow-hidden animate-in zoom-in duration-300">
-            <div className="h-1.5 w-full bg-amber-600 animate-pulse"/>
-            <div className="p-8 text-center">
-              <div className="w-20 h-20 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-amber-500/20">
-                <AlertTriangle size={32} className="text-amber-500"/>
-              </div>
-              <h3 className="text-2xl font-black text-white uppercase tracking-tight mb-2">Security Alert</h3>
-              <p className="text-gray-400 text-[9px] font-black uppercase tracking-[0.2em] leading-relaxed mb-6">
-                Leaving the assessment environment is prohibited. Your session will auto-submit after 5 attempts.
-              </p>
-              
-              <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl py-4 mb-8">
-                <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-1">Current Violation Count</p>
-                <p className="text-3xl font-black text-white tracking-tighter">
-                  {malpracticeCount} <span className="text-amber-500/30">/ 5</span>
-                </p>
-              </div>
-
-              <button
-                onClick={() => setShowMalpractice(false)}
-                className="w-full py-4 bg-white/5 hover:bg-white/10 text-white rounded-xl font-black uppercase text-[11px] tracking-widest transition-all border border-white/10"
-              >
-                I Understand & Return
-              </button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white dark:bg-[#15181e] rounded-2xl border-2 border-rose-400 dark:border-rose-500/80 p-6 sm:p-8 max-w-sm w-full shadow-2xl text-center animate-in zoom-in-95 duration-150">
+            <div className="w-14 h-14 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-rose-600 dark:text-rose-400">
+              <AlertTriangle size={26} />
             </div>
+            <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight mb-1">Proctoring Warning</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-4 leading-relaxed">
+              Navigating away or blurring the exam window is monitored. Your assessment will automatically submit after 5 infractions.
+            </p>
+            
+            <div className="bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 rounded-xl py-3 mb-6">
+              <p className="text-[10px] font-bold text-rose-700 dark:text-rose-300 uppercase tracking-wider mb-0.5">Recorded Infractions</p>
+              <p className="text-2xl font-extrabold text-rose-700 dark:text-rose-300 tabular-nums">
+                {malpracticeCount} <span className="text-xs font-normal text-rose-500 dark:text-rose-400">/ 5</span>
+              </p>
+            </div>
+
+            <button
+              onClick={() => setShowMalpractice(false)}
+              className="btn-primary w-full py-2.5 text-xs"
+            >
+              I Understand & Resume Exam
+            </button>
           </div>
         </div>
       )}
 
       {/* ── ABANDON MODAL ────────────────────────────────────────── */}
       {showAbandon && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 pointer-events-auto">
-          <div className="relative bg-[#1a1a2e]/80 border-2 border-white/10 backdrop-blur-xl rounded-3xl max-w-sm w-full shadow-[0_50px_100px_rgba(0,0,0,0.6)] overflow-hidden animate-in zoom-in duration-300">
-            <div className="h-1.5 w-full bg-rose-600"/>
-            <div className="p-8 text-center">
-            <div className="w-20 h-20 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-rose-500/20">
-              <RotateCcw size={32} className="text-rose-500"/>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-[#15181e] rounded-2xl border border-slate-200 dark:border-[#262a33] p-6 sm:p-8 max-w-sm w-full shadow-2xl text-center animate-in zoom-in-95 duration-150">
+            <div className="w-14 h-14 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-rose-600 dark:text-rose-400">
+              <RotateCcw size={24} />
             </div>
-            <h3 className="text-2xl font-black text-white uppercase tracking-tight mb-2">Abandon Test?</h3>
-            <p className="text-gray-400 text-[10px] font-black uppercase tracking-[0.2em] leading-relaxed mb-8">
-              Progress will not be saved to history.
+            <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight mb-1">Abandon Examination?</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
+              Exiting will terminate this session. Any unsaved progress will be permanently lost.
             </p>
             
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2">
               <button
                 onClick={abandonTest}
-                className="w-full py-4 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-black uppercase text-[11px] tracking-[0.2em] transition-all shadow-lg shadow-rose-600/20"
+                className="btn-danger w-full py-2.5 text-xs"
               >
-                Yes, Abandon Test
+                Yes, Abandon Session
               </button>
               <button
                 onClick={() => setShowAbandon(false)}
-                className="w-full py-4 bg-white/5 hover:bg-white/10 text-gray-400 rounded-xl font-black uppercase text-[11px] tracking-widest transition-all border border-white/5"
+                className="btn-secondary w-full py-2.5 text-xs"
               >
-                No, Stay in Test
+                No, Continue Exam
               </button>
             </div>
           </div>
         </div>
-      </div>
-    )}
+      )}
     </div>
   );
 };

@@ -31,7 +31,6 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 @Slf4j
 public class AuthController {
 

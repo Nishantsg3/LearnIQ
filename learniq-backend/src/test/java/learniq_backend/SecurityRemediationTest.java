@@ -145,6 +145,7 @@ public class SecurityRemediationTest {
         sampleTest.setCategory("Java");
         sampleTest.setTestType("MAIN");
         sampleTest.setDurationMinutes(30);
+        sampleTest.setStatus("COMPLETED");
 
         question1 = new Question();
         question1.setId(101L);

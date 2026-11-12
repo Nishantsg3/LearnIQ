@@ -8,7 +8,6 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/presets")
-@CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 public class PresetTemplateController {
 

@@ -7,11 +7,13 @@ import learniq_backend.repository.QuestionRepository;
 import learniq_backend.repository.TestRepository;
 import learniq_backend.repository.UserRepository;
 import learniq_backend.dto.RegisterRequest;
+import learniq_backend.dto.StudentSummaryDTO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -21,7 +23,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/admin")
-@CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 public class AdminController {
     private final learniq_backend.service.TestLifecycleService testLifecycleService;
@@ -33,6 +34,7 @@ public class AdminController {
     private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
     @GetMapping("/stats")
+    @Transactional(readOnly = true)
     public ResponseEntity<Map<String, Long>> getDashboardStats() {
         LocalDateTime now = LocalDateTime.now();
         List<Test> allTests = testRepository.findAll();
@@ -65,17 +67,23 @@ public class AdminController {
     }
 
     @GetMapping("/students")
-    public ResponseEntity<List<User>> getStudents() {
-        List<User> students = userRepository.findByRole(User.Role.STUDENT);
+    @Transactional(readOnly = true)
+    public ResponseEntity<List<StudentSummaryDTO>> getStudents() {
+        List<StudentSummaryDTO> students = userRepository.findByRole(User.Role.STUDENT)
+                .stream()
+                .map(StudentSummaryDTO::fromEntity)
+                .toList();
         return ResponseEntity.ok(students);
     }
 
     @GetMapping("/tests")
+    @Transactional(readOnly = true)
     public ResponseEntity<List<Test>> getAllTests() {
         return ResponseEntity.ok(testRepository.findAll());
     }
 
     @PutMapping("/tests/{id}/status")
+    @Transactional
     public ResponseEntity<?> updateTestStatus(
             @PathVariable Long id,
             @RequestBody Map<String, String> body) {
@@ -113,6 +121,7 @@ public class AdminController {
     }
 
     @PostMapping("/create-admin")
+    @Transactional
     public ResponseEntity<?> createAdmin(@Valid @RequestBody RegisterRequest request) {
         if (userRepository.existsByEmail(request.email())) {
             return ResponseEntity.badRequest().body(Map.of("message", "Email already exists"));
@@ -130,6 +139,7 @@ public class AdminController {
     }
 
     @GetMapping("/tests/{testId}/analytics")
+    @Transactional(readOnly = true)
     public ResponseEntity<?> getTestAnalytics(@PathVariable Long testId) {
         Test test = testRepository.findById(testId).orElse(null);
         if (test == null) {
@@ -143,9 +153,13 @@ public class AdminController {
         long totalStudents = userRepository.countByRole(User.Role.STUDENT);
         
         long totalAttempts = attempts.size();
+        String safeTitle = test.getTitle() != null ? test.getTitle() : "Assessment";
+        String safeCategory = test.getCategory() != null ? test.getCategory() : "GENERAL";
+        int safeDuration = test.getDurationMinutes() > 0 ? test.getDurationMinutes() : 60;
+
         if (totalAttempts == 0) {
             return ResponseEntity.ok(new learniq_backend.dto.TestAnalyticsResponse(
-                test.getId(), test.getTitle(), test.getCategory(), test.getDurationMinutes(),
+                test.getId(), safeTitle, safeCategory, safeDuration,
                 0, 0.0, 0.0, 0.0, 0, 0.0, 0.0
             ));
         }
@@ -173,7 +187,7 @@ public class AdminController {
         double participationRate = totalStudents > 0 ? (double) uniqueStudents.size() / totalStudents * 100.0 : 0.0;
 
         return ResponseEntity.ok(new learniq_backend.dto.TestAnalyticsResponse(
-            test.getId(), test.getTitle(), test.getCategory(), test.getDurationMinutes(),
+            test.getId(), safeTitle, safeCategory, safeDuration,
             totalAttempts, 
             Math.round(avg * 100.0) / 100.0, 
             max, 
@@ -185,13 +199,14 @@ public class AdminController {
     }
 
     @GetMapping("/tests/archived")
+    @Transactional(readOnly = true)
     public ResponseEntity<?> getArchivedTests() {
         LocalDateTime now = LocalDateTime.now();
         List<Test> all = testRepository.findAll();
         
         // Archived tests are those EXPLICITLY archived OR technically expired
         List<Test> archived = all.stream()
-                .filter(t -> "ARCHIVED".equalsIgnoreCase(t.getStatus()) || !testLifecycleService.isActuallyActive(t, now))
+                .filter(t -> testLifecycleService.isExpired(t, now))
                 .toList();
 
         List<Map<String, Object>> result = archived.stream().map(t -> {

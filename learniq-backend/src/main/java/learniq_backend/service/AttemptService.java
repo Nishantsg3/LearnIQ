@@ -3,11 +3,18 @@ package learniq_backend.service;
 import learniq_backend.model.*;
 import learniq_backend.repository.*;
 import learniq_backend.dto.TestAttemptResponse;
-import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.task.SyncTaskExecutor;
+import org.springframework.core.task.TaskExecutor;
+import org.springframework.core.task.TaskRejectedException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
@@ -18,8 +25,8 @@ import java.time.ZoneOffset;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
-@RequiredArgsConstructor
 public class AttemptService {
 
     private final TestAttemptRepository testAttemptRepository;
@@ -28,9 +35,37 @@ public class AttemptService {
     private final UserRepository userRepository;
     private final QuestionRepository questionRepository;
     private final EmailService emailService;
+    private final TaskExecutor emailTaskExecutor;
 
     @Value("${app.frontend.url}")
     private String frontendUrl;
+
+    @Autowired
+    public AttemptService(TestAttemptRepository testAttemptRepository,
+                          AttemptAnswerRepository attemptAnswerRepository,
+                          TestRepository testRepository,
+                          UserRepository userRepository,
+                          QuestionRepository questionRepository,
+                          EmailService emailService,
+                          @Qualifier("emailTaskExecutor") TaskExecutor emailTaskExecutor) {
+        this.testAttemptRepository = testAttemptRepository;
+        this.attemptAnswerRepository = attemptAnswerRepository;
+        this.testRepository = testRepository;
+        this.userRepository = userRepository;
+        this.questionRepository = questionRepository;
+        this.emailService = emailService;
+        this.emailTaskExecutor = emailTaskExecutor;
+    }
+
+    // Backward-compatible constructor for isolated unit tests
+    public AttemptService(TestAttemptRepository testAttemptRepository,
+                          AttemptAnswerRepository attemptAnswerRepository,
+                          TestRepository testRepository,
+                          UserRepository userRepository,
+                          QuestionRepository questionRepository,
+                          EmailService emailService) {
+        this(testAttemptRepository, attemptAnswerRepository, testRepository, userRepository, questionRepository, emailService, new SyncTaskExecutor());
+    }
 
     // =========================================================
     // 🚀 START / RESUME ATTEMPT (FINAL FIXED)
@@ -90,36 +125,40 @@ public class AttemptService {
 
         // 3. New Attempt Validation logic
         if ("MAIN".equalsIgnoreCase(test.getTestType())) {
+            // Check if already submitted for MAIN: Return existing submitted attempt so that
+            // controller can return proper 409 CONFLICT payload with attemptId
+            Optional<TestAttempt> submittedOpt = testAttemptRepository
+                    .findFirstByUserIdAndTestIdAndStatus(user.getId(), testId, TestAttempt.Status.SUBMITTED);
+            if (submittedOpt.isEmpty()) {
+                submittedOpt = testAttemptRepository
+                        .findFirstByUserEmailAndTestIdAndStatusOrderByStartedAtDesc(userEmail, testId, TestAttempt.Status.SUBMITTED);
+            }
+            if (submittedOpt.isPresent()) {
+                return submittedOpt.get();
+            }
+
             // Use Instant for deterministic comparison
             Instant now = Instant.now();
             ZoneId istZone = ZoneId.of("Asia/Kolkata");
             
             // Start Window Logic: Treat rawStart as IST local time
-            LocalDateTime rawStart = test.getStartTime() != null ? test.getStartTime() : test.getCreatedAt();
-            Instant startInstant = rawStart.atZone(istZone).toInstant();
+            LocalDateTime rawStart = test.getStartTime() != null ? test.getStartTime() : (test.getScheduledAt() != null ? test.getScheduledAt() : test.getCreatedAt());
+            Instant startInstant = rawStart != null ? rawStart.atZone(istZone).toInstant() : now;
             
             // End Window Logic: Treat rawEnd as IST local time
             LocalDateTime rawEnd = test.getEndTime();
             if (rawEnd == null && rawStart != null) {
-                rawEnd = rawStart.plusMinutes(test.getDurationMinutes());
+                int duration = test.getDurationMinutes() > 0 ? test.getDurationMinutes() : 60;
+                rawEnd = rawStart.plusMinutes(duration);
             }
             Instant endInstant = rawEnd != null ? rawEnd.atZone(istZone).toInstant() : null;
 
             // Logic: DENY if early OR late
             if (now.isBefore(startInstant)) {
-                throw new RuntimeException("Access Denied: This assessment is scheduled to start at " + rawStart + " (Server Time: " + now + ")");
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access Denied: This assessment is scheduled to start at " + rawStart + " (Server Time: " + now + ")");
             }
             if (endInstant != null && now.isAfter(endInstant)) {
-                throw new RuntimeException("Access Denied: The window to participate in this assessment has closed.");
-            }
-            
-            // One-attempt rule for MAIN
-            boolean alreadySubmitted = testAttemptRepository.existsByUserEmailAndTestIdAndSubmitted(userEmail, testId, true);
-            if (!alreadySubmitted) {
-                alreadySubmitted = testAttemptRepository.findFirstByUserIdAndTestIdAndStatus(user.getId(), testId, TestAttempt.Status.SUBMITTED).isPresent();
-            }
-            if (alreadySubmitted) {
-                throw new RuntimeException("Assessment Policy: You have already submitted an attempt for this main evaluation.");
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access Denied: The window to participate in this assessment has closed.");
             }
         }
 
@@ -133,7 +172,8 @@ public class AttemptService {
         attempt.setStartedAt(nowLocal);
         
         // Individual duration
-        attempt.setEndTime(nowLocal.plusMinutes(test.getDurationMinutes()));
+        int duration = test.getDurationMinutes() > 0 ? test.getDurationMinutes() : 60;
+        attempt.setEndTime(nowLocal.plusMinutes(duration));
         attempt.setStatus(TestAttempt.Status.IN_PROGRESS);
         attempt.setScorePercent(-1);
         attempt.setTotalQuestions(questions.size());
@@ -219,6 +259,14 @@ public class AttemptService {
         if (attempt.isSubmitted() || attempt.getStatus() == TestAttempt.Status.SUBMITTED) {
             System.out.println("[IDEMPOTENCY] Attempt " + attempt.getId() + " already finalized. Skipping duplicate logic.");
             return attempt;
+        }
+
+        if (attempt.getTest() == null) {
+            System.err.println("[CRITICAL] Attempt " + attempt.getId() + " has null test! Finalizing without test scoring.");
+            attempt.setStatus(TestAttempt.Status.SUBMITTED);
+            attempt.setSubmitted(true);
+            attempt.setSubmittedAt(LocalDateTime.now());
+            return testAttemptRepository.save(attempt);
         }
 
         if (attempt.getAnswers() == null) {
@@ -343,9 +391,12 @@ public class AttemptService {
                 String analysisLink = frontendUrl + "/results/" + attempt.getId();
 
                 // Extract fields to local variables to safely pass to background thread
-                String emailRecipient = attempt.getUserEmail();
-                String studentName = attempt.getUserName();
-                String testTitle = attempt.getTest().getTitle();
+                String emailRecipient = attempt.getUserEmail() != null ? attempt.getUserEmail()
+                        : (attempt.getUser() != null ? attempt.getUser().getEmail() : null);
+                String studentName = attempt.getUserName() != null ? attempt.getUserName()
+                        : (attempt.getUser() != null && attempt.getUser().getName() != null ? attempt.getUser().getName() : "Candidate");
+                String testTitle = (attempt.getTest() != null && attempt.getTest().getTitle() != null)
+                        ? attempt.getTest().getTitle() : "Assessment";
                 int scoreVal = attempt.getScorePercent();
                 int correctVal = attempt.getCorrectCount();
                 int wrongVal = attempt.getWrongCount();
@@ -353,25 +404,46 @@ public class AttemptService {
                 String finalTimeString = timeString;
                 String finalAnalysisLink = analysisLink;
 
-                new Thread(() -> {
+                Runnable emailTask = () -> {
                     try {
-                        emailService.sendTestResultEmail(
-                                emailRecipient,
-                                studentName,
-                                testTitle,
-                                scoreVal,
-                                correctVal,
-                                wrongVal,
-                                finalRank,
-                                finalTimeString,
-                                finalAnalysisLink
-                        );
+                        emailTaskExecutor.execute(() -> {
+                            try {
+                                emailService.sendTestResultEmail(
+                                        emailRecipient,
+                                        studentName,
+                                        testTitle,
+                                        scoreVal,
+                                        correctVal,
+                                        wrongVal,
+                                        finalRank,
+                                        finalTimeString,
+                                        finalAnalysisLink
+                                );
+                            } catch (Exception e) {
+                                log.error("[Email Thread] Failed to send auto-result email to {}: {}", emailRecipient, e.getMessage(), e);
+                            }
+                        });
+                    } catch (TaskRejectedException e) {
+                        log.error("[EmailService] Email task rejected by executor for {}: {}", emailRecipient, e.getMessage());
                     } catch (Exception e) {
-                        System.err.println("[Email Thread] Failed to send auto-result email: " + e.getMessage());
+                        log.error("[EmailService] Failed to schedule email task for {}: {}", emailRecipient, e.getMessage(), e);
                     }
-                }).start();
+                };
+
+                // Transaction-safe execution: Ensure email dispatch happens strictly AFTER transaction commits,
+                // releasing database locks and Hikari connections before potential SMTP network delays or CallerRuns execution.
+                if (TransactionSynchronizationManager.isActualTransactionActive()) {
+                    TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                        @Override
+                        public void afterCommit() {
+                            emailTask.run();
+                        }
+                    });
+                } else {
+                    emailTask.run();
+                }
             } catch (Exception e) {
-                System.err.println("[EmailService] Failed to initialize email thread: " + e.getMessage());
+                log.error("[EmailService] Failed to initialize email preparation: {}", e.getMessage(), e);
             }
         }
 
@@ -383,11 +455,19 @@ public class AttemptService {
     // =========================================================
     @Transactional
     public List<TestAttemptResponse> getUserAttempts(String email) {
+        if (email == null || email.isBlank()) {
+            return Collections.emptyList();
+        }
+
         System.out.println("[DIAGNOSTIC] History fetch: userEmail=" + email + ", timestamp=" + java.time.LocalDateTime.now());
 
         // 🔥 CRITICAL: Cleanup expired attempts before returning data
         // This ensures the dashboard doesn't show "Resume" for tests that are already over.
-        cleanupExpiredAttempts(email);
+        try {
+            cleanupExpiredAttempts(email);
+        } catch (Exception e) {
+            log.warn("[AttemptService] Cleanup expired attempts encountered error for {}: {}", email, e.getMessage());
+        }
 
         Optional<User> userOpt = userRepository.findByEmail(email);
         List<TestAttempt> attempts;
@@ -397,14 +477,26 @@ public class AttemptService {
             attempts = testAttemptRepository.findByUserEmail(email);
         }
 
-        // Sort by date (latest first)
-        attempts.sort((a, b) -> {
+        if (attempts == null || attempts.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // Sort by date (latest first), safely handling null dates
+        List<TestAttempt> sortedAttempts = new ArrayList<>(attempts);
+        sortedAttempts.sort((a, b) -> {
+            if (a == null && b == null) return 0;
+            if (a == null) return 1;
+            if (b == null) return -1;
             LocalDateTime t1 = a.getSubmittedAt() != null ? a.getSubmittedAt() : a.getStartedAt();
             LocalDateTime t2 = b.getSubmittedAt() != null ? b.getSubmittedAt() : b.getStartedAt();
+            if (t1 == null && t2 == null) return 0;
+            if (t1 == null) return 1;
+            if (t2 == null) return -1;
             return t2.compareTo(t1);
         });
 
-        return attempts.stream()
+        return sortedAttempts.stream()
+                .filter(Objects::nonNull)
                 .map(this::mapToSummaryResponse)
                 .collect(Collectors.toList());
     }
@@ -431,7 +523,8 @@ public class AttemptService {
             }
 
             boolean isExpired = locked.getEndTime() != null && now.isAfter(locked.getEndTime());
-            boolean isPractice = locked.getTest() != null && "PRACTICE".equalsIgnoreCase(locked.getTest().getTestType());
+            boolean isPractice = locked.getTest() != null ? "PRACTICE".equalsIgnoreCase(locked.getTest().getTestType())
+                    : "PRACTICE".equalsIgnoreCase(locked.getTestType());
             // An attempt is only considered abandoned if it is expired AND has no answers
             boolean isAbandoned = isPractice && isExpired && (locked.getAnswers() == null || locked.getAnswers().isEmpty());
 
@@ -442,9 +535,11 @@ public class AttemptService {
                     // Delete empty or stale abandoned practice attempts to allow fresh START
                     System.out.println("[CLEANUP] Removing stale/empty practice attempt: " + locked.getId());
                     // Clear the relationship first to avoid constraint issues
-                    locked.getAnswers().clear();
+                    if (locked.getAnswers() != null) {
+                        locked.getAnswers().clear();
+                    }
                     testAttemptRepository.delete(locked);
-                } else {
+                } else if (locked.getTest() != null) {
                     // Auto-submit expired attempts (all Main tests, and Practice tests with answers)
                     System.out.println("[CLEANUP] Auto-submitting expired attempt: " + locked.getId());
                     finalizeAndSubmit(locked, null);
@@ -461,46 +556,88 @@ public class AttemptService {
     // ⚡ LIGHTWEIGHT SUMMARY (No question joins or rank subqueries)
     // =========================================================
     public TestAttemptResponse mapToSummaryResponse(TestAttempt attempt) {
+        if (attempt == null) return null;
         TestAttemptResponse res = new TestAttemptResponse();
 
         res.setId(attempt.getId());
         if (attempt.getTest() != null) {
             res.setTestId(attempt.getTest().getId());
-            res.setTestTitle(attempt.getTest().getTitle());
-            res.setCategory(attempt.getTest().getCategory());
-            res.setTestType(attempt.getTest().getTestType());
+            res.setTestTitle(attempt.getTest().getTitle() != null ? attempt.getTest().getTitle() : "Assessment");
+            res.setCategory(attempt.getTest().getCategory() != null ? attempt.getTest().getCategory() : "GENERAL");
+            res.setTestType(attempt.getTest().getTestType() != null ? attempt.getTest().getTestType() : (attempt.getTestType() != null ? attempt.getTestType() : "PRACTICE"));
         } else {
-            res.setTestType(attempt.getTestType());
+            res.setTestTitle("Assessment");
+            res.setCategory("GENERAL");
+            res.setTestType(attempt.getTestType() != null ? attempt.getTestType() : "PRACTICE");
         }
         res.setUserId(attempt.getUser() != null ? attempt.getUser().getId() : null);
-        res.setScorePercent(attempt.getScorePercent());
-        res.setCorrectCount(attempt.getCorrectCount());
-        res.setWrongCount(attempt.getWrongCount());
+
+        boolean isSubmitted = attempt.getStatus() == TestAttempt.Status.SUBMITTED && attempt.isSubmitted();
+        if (isSubmitted) {
+            res.setScorePercent(attempt.getScorePercent());
+            res.setCorrectCount(attempt.getCorrectCount());
+            res.setWrongCount(attempt.getWrongCount());
+        } else {
+            res.setScorePercent(-1);
+            res.setCorrectCount(0);
+            res.setWrongCount(0);
+        }
+
         res.setTotalQuestions(attempt.getTotalQuestions());
         res.setAttemptedCount(attempt.getAttemptedCount());
         res.setStartedAt(attempt.getStartedAt());
         res.setSubmittedAt(attempt.getSubmittedAt());
         res.setStatus(attempt.getStatus() != null ? attempt.getStatus().name() : "IN_PROGRESS");
-        res.setSubmitted(attempt.isSubmitted());
+        res.setSubmitted(isSubmitted);
 
         return res;
     }
 
     // =========================================================
-    public TestAttemptResponse mapToResponse(TestAttempt attempt) {
+    // 🔒 ANSWER-KEY DISCLOSURE SECURITY GATE
+    // MAIN test answers/explanations visible only when: now >= test.endTime OR test.status == "COMPLETED"
+    // PRACTICE test answers/explanations visible immediately upon submission
+    // =========================================================
+    public boolean canDiscloseAnswers(Test test, String testTypeFallback, LocalDateTime now) {
+        String testType = (test != null && test.getTestType() != null) ? test.getTestType() : testTypeFallback;
+        if (!"MAIN".equalsIgnoreCase(testType)) {
+            return true;
+        }
+        if (test == null) {
+            return false;
+        }
+        boolean isCompleted = test.getStatus() != null &&
+                (test.getStatus().equalsIgnoreCase("COMPLETED") || test.getStatus().equalsIgnoreCase("ARCHIVED"));
+        LocalDateTime current = now != null ? now : LocalDateTime.now();
+        boolean windowClosed = test.getEndTime() != null && !current.isBefore(test.getEndTime());
+        return isCompleted || windowClosed;
+    }
 
+    public boolean canDiscloseAnswers(Test test, String testTypeFallback) {
+        return canDiscloseAnswers(test, testTypeFallback, LocalDateTime.now());
+    }
+
+    public boolean canDiscloseAnswers(Test test) {
+        return canDiscloseAnswers(test, test != null ? test.getTestType() : null, LocalDateTime.now());
+    }
+
+    // =========================================================
+    public TestAttemptResponse mapToResponse(TestAttempt attempt) {
+        if (attempt == null) return null;
         TestAttemptResponse res = new TestAttemptResponse();
 
         res.setId(attempt.getId());
         if (attempt.getTest() != null) {
             res.setTestId(attempt.getTest().getId());
-            res.setTestTitle(attempt.getTest().getTitle());
-            res.setCategory(attempt.getTest().getCategory());
+            res.setTestTitle(attempt.getTest().getTitle() != null ? attempt.getTest().getTitle() : "Assessment");
+            res.setCategory(attempt.getTest().getCategory() != null ? attempt.getTest().getCategory() : "GENERAL");
             // Use live value from Test entity
-            res.setTestType(attempt.getTest().getTestType());
+            res.setTestType(attempt.getTest().getTestType() != null ? attempt.getTest().getTestType() : (attempt.getTestType() != null ? attempt.getTestType() : "PRACTICE"));
         } else {
             // Fallback to denormalized copy stored on the attempt itself
-            res.setTestType(attempt.getTestType());
+            res.setTestTitle("Assessment");
+            res.setCategory("GENERAL");
+            res.setTestType(attempt.getTestType() != null ? attempt.getTestType() : "PRACTICE");
         }
         res.setUserId(attempt.getUser() != null ? attempt.getUser().getId() : null);
         res.setScorePercent(attempt.getScorePercent());
@@ -530,7 +667,9 @@ public class AttemptService {
         // 🔥 POPULATE ANSWER KEY / REVIEWS
         // SECURITY GATE: In-progress attempts must NEVER expose correct answers or correctness indicators.
         // Answer reviews and answer keys are strictly restricted to SUBMITTED attempts.
+        // For MAIN tests: Answer reviews and correctness remain masked until test completion (now >= endTime OR status == COMPLETED).
         boolean isSubmitted = attempt.getStatus() == TestAttempt.Status.SUBMITTED && attempt.isSubmitted();
+        boolean answersDisclosed = isSubmitted && canDiscloseAnswers(attempt.getTest(), attempt.getTestType());
 
         if (isSubmitted) {
             res.setScorePercent(attempt.getScorePercent());
@@ -556,15 +695,17 @@ public class AttemptService {
                 ar.setOptionD(q.getOptionD());
 
                 // Find user's specific answer for this question (preserves student selections on resume)
-                attempt.getAnswers().stream()
-                        .filter(a -> a.getQuestionId().equals(q.getId()))
-                        .findFirst()
-                        .ifPresent(userAns -> {
-                            ar.setSelectedOption(userAns.getSelectedOption());
-                            ar.setCorrect(isSubmitted && userAns.isCorrect());
-                        });
+                if (attempt.getAnswers() != null) {
+                    attempt.getAnswers().stream()
+                            .filter(a -> a.getQuestionId() != null && a.getQuestionId().equals(q.getId()))
+                            .findFirst()
+                            .ifPresent(userAns -> {
+                                ar.setSelectedOption(userAns.getSelectedOption());
+                                ar.setCorrect(answersDisclosed && userAns.isCorrect());
+                            });
+                }
 
-                if (isSubmitted) {
+                if (answersDisclosed) {
                     ar.setCorrectAnswer(q.getCorrectAnswer());
                 } else {
                     ar.setCorrectAnswer(null);

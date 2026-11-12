@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -17,7 +18,6 @@ import java.util.*;
 
 @RestController
 @RequestMapping("/api/v1/attempts")
-@CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 public class TestAttemptController {
 
@@ -45,12 +45,16 @@ public class TestAttemptController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Unauthorized"));
         }
 
+        if (request == null || request.getTestId() == null) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Test ID is required"));
+        }
+
         try {
             String userEmail = authentication.getName();
             TestAttempt attempt = attemptService.startOrResumeAttempt(userEmail, request.getTestId());
             
-            // If already submitted, block re-attempt and return existing attempt ID
-            if (attempt.getStatus() == TestAttempt.Status.SUBMITTED) {
+            // If already submitted, block re-attempt and return existing attempt ID with 409 CONFLICT
+            if (attempt.getStatus() == TestAttempt.Status.SUBMITTED || attempt.isSubmitted()) {
                 return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
                     "message", "You have already completed this test.",
                     "attemptId", attempt.getId()
@@ -59,21 +63,22 @@ public class TestAttemptController {
 
             return ResponseEntity.ok(Map.of(
                 "attemptId", attempt.getId(),
-                "testId", attempt.getTest().getId(),
-                "status", attempt.getStatus()
+                "testId", attempt.getTest() != null ? attempt.getTest().getId() : request.getTestId(),
+                "status", attempt.getStatus() != null ? attempt.getStatus().name() : "IN_PROGRESS"
             ));
         } catch (ResponseStatusException e) {
             throw e;
         } catch (RuntimeException e) {
             System.err.println("[TestAttemptController] Start Failure: " + e.getMessage());
-            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of("message", sanitizeErrorMessage(e, "Failed to start assessment")));
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("[TestAttemptController] Internal Error during start: " + e.getMessage());
             return ResponseEntity.internalServerError().body(Map.of("message", "Internal server error during initialization"));
         }
     }
 
     @GetMapping("/me")
+    @Transactional(readOnly = true)
     public ResponseEntity<?> getMyAttempts(Authentication auth) {
         if (auth == null || auth.getName() == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Collections.emptyList());
@@ -82,14 +87,19 @@ public class TestAttemptController {
 
         System.out.println("CONTROLLER: routing to service layer");
 
-        return ResponseEntity.ok(
-            attemptService.getUserAttempts(email)
-        );
+        try {
+            List<TestAttemptResponse> attempts = attemptService.getUserAttempts(email);
+            return ResponseEntity.ok(attempts != null ? attempts : Collections.emptyList());
+        } catch (Exception e) {
+            System.err.println("[TestAttemptController] Failed to fetch attempts for " + email + ": " + e.getMessage());
+            return ResponseEntity.ok(Collections.emptyList());
+        }
     }
 
 
     // ✅ GET SINGLE ATTEMPT
     @GetMapping("/{id}")
+    @Transactional(readOnly = true)
     public ResponseEntity<?> getAttemptById(@PathVariable Long id,
                                            Authentication authentication) {
 
@@ -113,12 +123,14 @@ public class TestAttemptController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+            System.err.println("[TestAttemptController] Fetch Attempt Failure: " + e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("message", sanitizeErrorMessage(e, "Failed to retrieve attempt results.")));
         }
     }
 
     // ✅ SUBMIT
     @PostMapping("/{id}/submit")
+    @Transactional
     public ResponseEntity<?> submitAttempt(@PathVariable Long id,
                                            @RequestBody(required = false) Map<String, String> answers,
                                            Authentication authentication) {
@@ -148,22 +160,21 @@ public class TestAttemptController {
                     attemptService.mapToResponse(submitted)
             );
 
+        } catch (ResponseStatusException e) {
+            throw e;
         } catch (Exception e) {
-            e.printStackTrace();
-
+            System.err.println("[TestAttemptController] Submit Failure: " + e.getMessage());
             return ResponseEntity.badRequest().body(
-                    Map.of(
-                            "message", e.getMessage(),
-                            "type", e.getClass().getSimpleName()
-                    )
+                    Map.of("message", sanitizeErrorMessage(e, "Failed to submit attempt. Please try again."))
             );
         }
     }
 
     // ✅ SAVE PROGRESS (FOR RESUME)
     @PostMapping("/{id}/save-progress")
+    @Transactional
     public ResponseEntity<?> saveProgress(@PathVariable Long id,
-                                          @RequestBody Map<String, String> answers,
+                                          @RequestBody(required = false) Map<String, String> answers,
                                           Authentication authentication) {
         if (authentication == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Unauthorized"));
         
@@ -178,15 +189,19 @@ public class TestAttemptController {
         }
 
         try {
-            TestAttempt updated = attemptService.saveProgress(id, answers);
+            TestAttempt updated = attemptService.saveProgress(id, answers != null ? answers : Collections.emptyMap());
             return ResponseEntity.ok(Map.of("message", "Progress saved", "attemptId", updated.getId()));
+        } catch (ResponseStatusException e) {
+            throw e;
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+            System.err.println("[TestAttemptController] Save Progress Failure: " + e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("message", sanitizeErrorMessage(e, "Failed to save progress.")));
         }
     }
 
     // ✅ DELETE ATTEMPT
     @DeleteMapping("/{id}")
+    @Transactional
     public ResponseEntity<?> deleteAttempt(@PathVariable Long id, Authentication auth) {
         if (auth == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Unauthorized"));
         try {
@@ -210,8 +225,27 @@ public class TestAttemptController {
 
             testAttemptRepository.delete(attempt);
             return ResponseEntity.ok(Map.of("message", "Attempt deleted"));
+        } catch (ResponseStatusException e) {
+            throw e;
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+            System.err.println("[TestAttemptController] Delete Attempt Failure: " + e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("message", sanitizeErrorMessage(e, "Failed to delete attempt.")));
         }
+    }
+
+    private String sanitizeErrorMessage(Exception e, String defaultMessage) {
+        if (e instanceof ResponseStatusException rse) {
+            return rse.getReason() != null ? rse.getReason() : defaultMessage;
+        }
+        if (e instanceof org.springframework.dao.DataAccessException ||
+            e instanceof jakarta.persistence.PersistenceException ||
+            e instanceof java.sql.SQLException) {
+            return "A database error occurred. Please try again later.";
+        }
+        String msg = e.getMessage();
+        if (msg == null || msg.isBlank() || msg.contains("SQL") || msg.contains("table") || msg.contains("hibernate") || msg.contains("jdbc") || msg.contains("database")) {
+            return defaultMessage;
+        }
+        return msg;
     }
 }

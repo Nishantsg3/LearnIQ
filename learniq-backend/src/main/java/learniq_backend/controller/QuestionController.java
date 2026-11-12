@@ -23,7 +23,6 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/questions")
-@CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 public class QuestionController {
 
@@ -147,7 +146,27 @@ public class QuestionController {
     @GetMapping("/test/{testId}")
     public ResponseEntity<List<Question>> getQuestionsByTest(@PathVariable Long testId) {
         return testRepository.findById(testId)
-                .map(test -> ResponseEntity.ok(questionRepository.findByTestId(testId)))
+                .map(test -> {
+                    List<Question> questions = questionRepository.findByTestId(testId);
+                    boolean canDisclose = attemptService.canDiscloseAnswers(test);
+                    if (!canDisclose) {
+                        List<Question> sanitized = questions.stream().map(q -> {
+                            Question copy = new Question();
+                            copy.setId(q.getId());
+                            copy.setQuestionText(q.getQuestionText());
+                            copy.setOptionA(q.getOptionA());
+                            copy.setOptionB(q.getOptionB());
+                            copy.setOptionC(q.getOptionC());
+                            copy.setOptionD(q.getOptionD());
+                            copy.setCategory(q.getCategory());
+                            copy.setDifficultyLevel(q.getDifficultyLevel());
+                            copy.setCorrectAnswer(null);
+                            return copy;
+                        }).toList();
+                        return ResponseEntity.ok(sanitized);
+                    }
+                    return ResponseEntity.ok(questions);
+                })
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -362,14 +381,20 @@ public class QuestionController {
                 if (alreadySubmitted.isPresent()) {
                     System.out.println("[IDEMPOTENCY] Attempt already submitted for test " + testId + ". Returning existing result.");
                     TestAttempt existing = alreadySubmitted.get();
+                    Test test = testRepository.findById(testId).orElse(existing.getTest());
+                    boolean canDisclose = attemptService.canDiscloseAnswers(test);
                     List<Question> testQuestions = questionRepository.findByTestId(testId);
                     Map<Long, Question> questionMap = testQuestions.stream()
                             .collect(Collectors.toMap(Question::getId, q -> q, (a, b) -> a));
                     List<AnalysisItem> analysis = existing.getAnswers().stream()
                             .map(ans -> {
                                 Question q = questionMap.get(ans.getQuestionId());
-                                return new AnalysisItem(ans.getQuestionId(), q != null ? q.getQuestionText() : "Unknown",
-                                        ans.getSelectedOption(), q != null ? q.getCorrectAnswer() : "Unknown", ans.isCorrect());
+                                String qText = q != null ? q.getQuestionText() : "Unknown";
+                                String correctAns = canDisclose ? (q != null ? q.getCorrectAnswer() : "Unknown") : null;
+                                boolean isCorrect = canDisclose && ans.isCorrect();
+                                String explanation = canDisclose ? (q != null ? "Detailed solution explanation for " + qText : "Explanation available") : null;
+                                return new AnalysisItem(ans.getQuestionId(), qText,
+                                        ans.getSelectedOption(), correctAns, isCorrect, explanation);
                             }).toList();
                     String title = (existing.getTest() != null && existing.getTest().getTitle() != null)
                             ? existing.getTest().getTitle() : "Assessment";
@@ -385,6 +410,9 @@ public class QuestionController {
             TestAttempt attempt = attemptOpt.get();
             TestAttempt submitted = attemptService.submitAttempt(attempt.getId(), request.answers());
 
+            Test test = testRepository.findById(testId).orElse(submitted.getTest());
+            boolean canDisclose = attemptService.canDiscloseAnswers(test);
+
             List<Question> testQuestions = questionRepository.findByTestId(testId);
             Map<Long, Question> questionMap = testQuestions.stream()
                     .collect(Collectors.toMap(Question::getId, q -> q, (a, b) -> a));
@@ -392,8 +420,12 @@ public class QuestionController {
             List<AnalysisItem> analysis = submitted.getAnswers().stream()
                     .map(ans -> {
                         Question q = questionMap.get(ans.getQuestionId());
-                        return new AnalysisItem(ans.getQuestionId(), q != null ? q.getQuestionText() : "Unknown",
-                                ans.getSelectedOption(), q != null ? q.getCorrectAnswer() : "Unknown", ans.isCorrect());
+                        String qText = q != null ? q.getQuestionText() : "Unknown";
+                        String correctAns = canDisclose ? (q != null ? q.getCorrectAnswer() : "Unknown") : null;
+                        boolean isCorrect = canDisclose && ans.isCorrect();
+                        String explanation = canDisclose ? (q != null ? "Detailed solution explanation for " + qText : "Explanation available") : null;
+                        return new AnalysisItem(ans.getQuestionId(), qText,
+                                ans.getSelectedOption(), correctAns, isCorrect, explanation);
                     }).toList();
 
             String title = (submitted.getTest() != null && submitted.getTest().getTitle() != null)
@@ -420,10 +452,19 @@ public class QuestionController {
                 .orElse(ResponseEntity.ok(Map.of("message", "No active session to abandon.")));
     }
 
+    // ─── ALIAS / PROGRAMMATIC SUBMISSION ────────────────────────────────────
+    public ResponseEntity<?> submitAnswers(Long testId, Long attemptId, SubmissionRequest request, Authentication authentication) {
+        return submitTest(testId, attemptId, request, authentication);
+    }
+
     // ─── RECORDS ──────────────────────────────────────────────────────────────
 
     public record QuestionAttemptView(Long id, String title, String optionA, String optionB, String optionC, String optionD) {}
     public record SubmissionRequest(Map<String, String> answers) {}
-    public record AnalysisItem(Long questionId, String title, String selectedAnswer, String correctAnswer, boolean correct) {}
+    public record AnalysisItem(Long questionId, String title, String selectedAnswer, String correctAnswer, boolean correct, String explanation) {
+        public AnalysisItem(Long questionId, String title, String selectedAnswer, String correctAnswer, boolean correct) {
+            this(questionId, title, selectedAnswer, correctAnswer, correct, null);
+        }
+    }
     public record SubmissionResult(Long id, Long testId, String testTitle, int totalQuestions, int correctCount, int wrongCount, int scorePercent, LocalDateTime submittedAt, List<AnalysisItem> analysis) {}
 }

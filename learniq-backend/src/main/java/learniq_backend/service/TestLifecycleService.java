@@ -28,18 +28,49 @@ public class TestLifecycleService {
      * 3. Move to History: When status is COMPLETED, set archived=true and active=false
      */
     public boolean isActuallyActive(Test test, LocalDateTime now) {
-        if (!"ACTIVE".equalsIgnoreCase(test.getStatus())) return false;
-        
-        // For MAIN tests, also check the window
+        if (test == null) return false;
+        if ("ARCHIVED".equalsIgnoreCase(test.getStatus())) return false;
+
+        boolean hasActiveStatus = "ACTIVE".equalsIgnoreCase(test.getStatus()) || "LIVE".equalsIgnoreCase(test.getStatus());
+        boolean isPromotableScheduled = "SCHEDULED".equalsIgnoreCase(test.getStatus())
+                && test.getScheduledAt() != null
+                && !now.isBefore(test.getScheduledAt());
+
+        if (!hasActiveStatus && !isPromotableScheduled) {
+            return false;
+        }
+
+        // For MAIN tests, check window: upcoming tests are NOT active; expired tests are NOT active
         if ("MAIN".equalsIgnoreCase(test.getTestType())) {
+            LocalDateTime startAt = test.getStartTime() != null ? test.getStartTime() : test.getScheduledAt();
+            if (startAt != null && now.isBefore(startAt)) {
+                return false;
+            }
+
             LocalDateTime endAt = test.getEndTime();
-            if (endAt == null && test.getStartTime() != null) {
-                endAt = test.getStartTime().plusMinutes(test.getDurationMinutes());
+            if (endAt == null && startAt != null) {
+                int duration = test.getDurationMinutes() > 0 ? test.getDurationMinutes() : 60;
+                endAt = startAt.plusMinutes(duration);
             }
             if (endAt != null && now.isAfter(endAt)) return false;
         }
-        
+
         return true;
+    }
+
+    public boolean isExpired(Test test, LocalDateTime now) {
+        if (test == null) return false;
+        if ("ARCHIVED".equalsIgnoreCase(test.getStatus())) return true;
+        if ("MAIN".equalsIgnoreCase(test.getTestType())) {
+            LocalDateTime endAt = test.getEndTime();
+            LocalDateTime startAt = test.getStartTime() != null ? test.getStartTime() : test.getScheduledAt();
+            if (endAt == null && startAt != null) {
+                int duration = test.getDurationMinutes() > 0 ? test.getDurationMinutes() : 60;
+                endAt = startAt.plusMinutes(duration);
+            }
+            if (endAt != null && now.isAfter(endAt)) return true;
+        }
+        return false;
     }
 
     @Transactional
@@ -59,9 +90,11 @@ public class TestLifecycleService {
         // 2. Auto-close ACTIVE -> ARCHIVED (ONLY for MAIN tests)
         if ("MAIN".equalsIgnoreCase(test.getTestType()) && !"ARCHIVED".equalsIgnoreCase(test.getStatus())) {
             LocalDateTime endAt = test.getEndTime();
+            LocalDateTime startAt = test.getStartTime() != null ? test.getStartTime() : test.getScheduledAt();
             
-            if (endAt == null && test.getStartTime() != null) {
-                endAt = test.getStartTime().plusMinutes(test.getDurationMinutes());
+            if (endAt == null && startAt != null) {
+                int duration = test.getDurationMinutes() > 0 ? test.getDurationMinutes() : 60;
+                endAt = startAt.plusMinutes(duration);
             }
 
             if (endAt != null && !now.isBefore(endAt)) {
@@ -75,10 +108,8 @@ public class TestLifecycleService {
     }
 
     /**
-     * Syncs ALL tests every 5 minutes via background scheduler
-     * Added initialDelay to prevent startup bottlenecks on Render
+     * Syncs ALL tests. Can be invoked on-demand or via LifecycleScheduler.
      */
-    @org.springframework.scheduling.annotation.Scheduled(fixedRate = 300000, initialDelay = 120000)
     @Transactional
     public void syncAllTests() {
         // Only scan assessments that aren't already archived
