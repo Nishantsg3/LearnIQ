@@ -18,6 +18,7 @@ target/
 .env.test.local
 .env.production.local
 .env.*
+!.env.example
 
 # Logs
 *.log
@@ -50,3 +51,25 @@ cypress/screenshots/
 .eslintcache
 *.bat
 *.py
+
+# Generated Audit and Agent Artifacts
+redesign_screenshots/
+.agents/
+
+# Database Runtime & Local Binaries
+learniq-backend/data/
+*.mv.db
+*.trace.db
+*.lock.db
+
+# Local Tooling Config
+.neon
+
+# graft's local graph cache — regenerable, not committed (run `graft build`).
+/graft/
+
+# Local Agent & Instruction Files
+.ignore
+skills-lock.json
+AGENTS.md
+GEMINI.md
