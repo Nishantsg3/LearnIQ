@@ -52,9 +52,12 @@ cypress/screenshots/
 *.bat
 *.py
 
-# Generated Audit and Agent Artifacts
+# Internal Audit & Screenshots
 redesign_screenshots/
 .agents/
+REDESIGN_*.md
+PORTFOLIO_CASE_STUDY.md
+DESIGN.md
 
 # Database Runtime & Local Binaries
 learniq-backend/data/

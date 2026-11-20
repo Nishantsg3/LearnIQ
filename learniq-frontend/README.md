@@ -1,7 +1,7 @@
 # LearnIQ Frontend
 ## Precision Assessment & Learning Intelligence SPA
 
-The LearnIQ frontend is a high-performance single-page application built with React 19, Vite 8 (featuring Rolldown chunking), and Tailwind CSS. It delivers an Apple-grade, distraction-free examination environment for students and an operations center for academic administrators.
+The LearnIQ frontend is a single-page application built with React 18, Vite 8, and Tailwind CSS. It delivers a clean, distraction-free examination environment for students and a management dashboard for administrators.
 
 ---
 
@@ -17,7 +17,7 @@ The LearnIQ frontend is a high-performance single-page application built with Re
 
 ### Tech Stack
 
-- **Runtime & Bundler**: React 19 + Vite 8 (Rolldown optimizer)
+- **Runtime & Bundler**: React 18 + Vite 8
 - **Styling**: Tailwind CSS with custom design tokens (`canvas.dark: #0e1015`, `surface.card: #15181e`, brand violet palette)
 - **Icons**: Lucide React
 - **Code & Syntax**: PrismJS syntax highlighting for technical items
