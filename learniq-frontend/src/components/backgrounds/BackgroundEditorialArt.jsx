@@ -1,13 +1,12 @@
 import React from 'react';
 
 /**
- * Direction 4: Editorial Art & Spatial Geometry (Apple Vision Pro / Modern Museum)
+ * BackgroundEditorialArt — Ambient Architectural & Geometric Canvas
  *
- * Invokes Arsenal Design Directives:
- * - `apple-design`: Physical depth, translucent glass materials (backdrop-filter), specular edge lighting, optical spatial hierarchy.
- * - `impeccable`: Out-of-distribution craft, architectural linework, tangible geometry, high-contrast readability.
- * - `unslop`: Zero cartoon doodles, zero generic blurred blobs. Tangible vector forms, deliberate mathematical curves.
- * - `apple-motion`: Organic, hardware-accelerated ambient drift (GPU composited transforms).
+ * Renders an ambient background canvas using:
+ * - Dual-theme radial foundation gradients (warm silver in light mode, obsidian slate in dark mode).
+ * - Layered SVG architectural geometry, linear gradient ribbons, and hairline vector paths.
+ * - Hardware-accelerated CSS opacity transitions for smooth theme switching.
  */
 const BackgroundEditorialArt = () => {
   return (

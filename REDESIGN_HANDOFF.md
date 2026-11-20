@@ -165,11 +165,10 @@ Captures all student discovery pages (`/student/section1`, `/student/section2`, 
 
 ---
 
-## 6. Impeccable Design Quality & Apple-Grade Refinements
+## 6. Design System Quality & Apple-Grade Refinements
 
-1. **Skill Integration**:
-   - Impeccable installed at [`.agents/skills/impeccable`](./.agents/skills/impeccable).
-   - Applied [craft-floor.md](./.agents/skills/impeccable/reference/craft-floor.md) quality rules and established [`DESIGN.md`](./DESIGN.md).
+1. **Design System Standards**:
+   - Applied craft floor quality rules and established [`DESIGN.md`](./DESIGN.md).
    - Stripped screaming uppercase text and artificial kicker/eyebrow labels (e.g. `• ACADEMIC COCKPIT • SESSION 2026`, `SECTION 01`, `DIRECTORY`).
    - Standardized tactile feedback: `active:scale-[0.98]` applied to interactive buttons and cards across student and admin views.
    - Enforced tabular numerals (`tabular-nums`) for timers, metrics, drill counts, and scorecard figures.
@@ -193,25 +192,21 @@ Captures all student discovery pages (`/student/section1`, `/student/section2`, 
   - Re-architected [`BrandLogo.jsx`](./learniq-frontend/src/components/BrandLogo.jsx) to embed the authentic raster mark within a dark jewel squircle container (`bg-[#090b10] border border-violet-500/25`).
   - Guarantees authentic presentation: spiral luminous swirl, 2 o'clock starburst flare, and beveled chevron tail rendered crisp with zero edge clipping across both light and dark themes.
 
-### 7.2 UI/UX Pro Max Skill Installation
-- Installed and verified the official UI/UX Pro Max skill in [`.agents/skills/ui-ux-pro-max/`](./.agents/skills/ui-ux-pro-max/).
-- Verified Python search script (`python3 .agents/skills/ui-ux-pro-max/scripts/search.py`) runs self-contained with 0 external dependencies.
-
-### 7.3 Admin Test History (`AdminTestHistory.jsx`) Overhaul
+### 7.2 Admin Test History (`AdminTestHistory.jsx`) Overhaul
 - **Typography & Heading Contrast**: Fixed black-on-black invisible title in dark mode by applying `text-slate-900 dark:text-slate-100`.
 - **Surfaces & Borders**: Replaced hardcoded white table slab with neutral charcoal canvas (`dark:bg-[#15181e]`) and hairline borders (`dark:border-[#262a33]`).
 - **Interactive Controls**: Filter tabs and search inputs themed with neutral dark inputs (`dark:bg-[#15181e]`, `dark:border-[#262a33]`, `dark:text-slate-100`, `dark:placeholder:text-slate-500`).
 - **Modal Contrast**: Confirmation and detail dialogs elevated with dark cards and readable status chips.
 - **Copy**: Removed robotic uppercase kickers and replaced with clean, professional SaaS labels.
 
-### 7.4 Question Bank (`QuestionBank.jsx`) Overhaul
+### 7.3 Question Bank (`QuestionBank.jsx`) Overhaul
 - **Header & Badges**: Cleaned title to `text-slate-900 dark:text-slate-100`, removed artificial bullet kickers, and updated repository badge to brand violet tokens (`text-violet-700 dark:text-violet-300 bg-violet-50 dark:bg-violet-950/40 border-violet-200 dark:border-violet-800/40`).
 - **Search & Filters**: Dark-mode enabled input and dropdown popover (`dark:bg-[#15181e] dark:border-[#262a33]`) with focus rings in brand violet (`focus:border-violet-600 focus:ring-violet-500/20`).
 - **Question Cards**: Scannable list with `#001` monospace index badge, category badge in violet, and subtle option chips with emerald indicators for correct answer keys. Cards render on elevated `#15181E` surface with hairline `#262A33` borders in dark mode.
 - **Create/Edit Form**: Full dark mode support on textareas, inputs, category selectors, and answer key designation buttons.
 - **Color Cleansing**: Replaced all remaining legacy `indigo-*` utility classes with brand `violet-*`.
 
-### 7.5 Verification Suite
+### 7.4 Verification Suite
 - **Vite Production Build**: `npm run build` completed cleanly in 567ms with 0 compilation errors.
 - **Automated CDP Screenshots Captured & Inspected**:
   - `redesign_screenshots/audit_01_history_light_desktop_1440x900.png`

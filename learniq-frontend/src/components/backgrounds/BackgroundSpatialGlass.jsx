@@ -1,15 +1,12 @@
 import React from 'react';
 
 /**
- * Direction 5: Spatial Glass & Prismatic Architectural Room (Vision Pro Grade)
+ * BackgroundSpatialGlass — Translucent Layered Glass Background Canvas
  *
- * Strict Implementation of Arsenal Directives:
- * - `apple-design`: Physical glass slabs with real optical depth, multi-stop offset box-shadows,
- *   specular light-catching hairlines (inset highlights), backdrop-filter refraction.
- * - `impeccable`: True corner framing (center stage left empty for UI), saturated color foundations
- *   (indigo, cyan/teal, rose/coral) visible in light mode, obsidian ambient glow in dark mode.
- * - `unslop`: Zero basic SVG curves, zero PowerPoint swooshes, zero fake coordinates. Real interlocking
- *   translucent geometric architecture and optical interference.
+ * Renders an ambient backdrop using:
+ * - Corner-anchored translucent panels with CSS backdrop-filter blur and specular border highlights.
+ * - Blurred chromatic conic gradients producing soft ambient backlighting.
+ * - Dual-theme radial gradient room base with smooth CSS opacity transitions.
  */
 const BackgroundSpatialGlass = () => {
   return (
