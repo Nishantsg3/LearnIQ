@@ -1,14 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { User, Mail, Lock, ArrowRight, Eye, EyeOff, GraduationCap } from 'lucide-react';
+import { User, Mail, Lock, ArrowRight, Eye, EyeOff, GraduationCap, AlertCircle } from 'lucide-react';
 import AuthLayout from '../components/AuthLayout';
+import ThemeToggle from '../components/ThemeToggle';
+import AuthServerWakingState from '../components/AuthServerWakingState';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
-import { BRANDING } from '../config/branding';
-
-const STUDENT_COLOR = '#7c3aed';
-const STUDENT_ACCENT = '#a78bfa';
 
 function Register() {
   const [formData, setFormData] = useState({
@@ -22,7 +20,21 @@ function Register() {
   const [fieldErrors, setFieldErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Dedicated Server Cold-Start Waking State
+  const [isServerWaking, setIsServerWaking] = useState(false);
+  const [wakingElapsed, setWakingElapsed] = useState(0);
+  const wakingTimerRef = useRef(null);
+  const healthPollRef = useRef(null);
+
   const navigate = useNavigate();
+
+  useEffect(() => {
+    return () => {
+      if (wakingTimerRef.current) clearInterval(wakingTimerRef.current);
+      if (healthPollRef.current) clearInterval(healthPollRef.current);
+    };
+  }, []);
 
   const validateField = (name, value) => {
     let err = "";
@@ -30,7 +42,7 @@ function Register() {
       err = "Invalid email format";
     }
     if (name === "password" && value && value.length < 6) {
-      err = "Minimum 6 characters required";
+      err = "Min 6 chars";
     }
     if (name === "confirmPassword" && value && value !== formData.password) {
       err = "Passwords do not match";
@@ -45,10 +57,69 @@ function Register() {
     if (error) setError("");
   };
 
-  const handleRegister = async (e) => {
+  const executeRegister = async () => {
+    setIsLoggingIn(true);
+    try {
+      await api.post("/auth/register", {
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+      });
+
+      if (wakingTimerRef.current) clearInterval(wakingTimerRef.current);
+      if (healthPollRef.current) clearInterval(healthPollRef.current);
+      setIsServerWaking(false);
+
+      toast.success("Account created successfully!");
+      navigate("/login");
+    } catch (err) {
+      const isNetworkError = !err.response;
+      const isTimeout = err.code === 'ECONNABORTED';
+      const isSleepStatus = err.response && [500, 502, 503, 504].includes(err.response.status);
+      const isColdStart = isNetworkError || isTimeout || isSleepStatus;
+
+      setIsServerWaking(false);
+      if (isColdStart) {
+        const msg = "Enrollment servers are connecting. Please try again in a moment.";
+        setError(msg);
+        toast(msg, { icon: '⏳' });
+      } else {
+        const msg = err.response?.data?.message || err.message || "Registration failed";
+        setError(msg);
+        toast.error(msg);
+      }
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  const _startWakingLoop = () => {
+    if (wakingTimerRef.current) clearInterval(wakingTimerRef.current);
+    if (healthPollRef.current) clearInterval(healthPollRef.current);
+
+    setWakingElapsed(0);
+    wakingTimerRef.current = setInterval(() => {
+      setWakingElapsed(prev => Math.min(prev + 1, 25));
+    }, 1000);
+
+    const baseURL = api.defaults.baseURL || 'http://localhost:8080';
+    healthPollRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`${baseURL}/health`);
+        if (res.ok) {
+          clearInterval(healthPollRef.current);
+          clearInterval(wakingTimerRef.current);
+          toast.success('Server connection established! Completing registration...');
+          executeRegister();
+        }
+      } catch {
+        // Still waking up
+      }
+    }, 3000);
+  };
+
+  const handleRegister = (e) => {
     e.preventDefault();
-    
-    // Final validation check before submit
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match");
       return;
@@ -57,267 +128,229 @@ function Register() {
       setError("Password must be at least 6 characters");
       return;
     }
-
-    setIsLoggingIn(true);
-
-    try {
-      const res = await api.post("/auth/register", {
-        name: formData.name,
-        email: formData.email,
-        password: formData.password,
-      });
-
-      toast.success("Account created successfully!");
-      navigate("/login");
-    } catch (err) {
-      const msg = err.response?.data?.message || err.message || "Registration failed";
-      setError(msg);
-      toast.error(msg);
-    } finally {
-      setIsLoggingIn(false);
-    }
+    executeRegister();
   };
 
-  const inputStyle = {
-    width: '100%',
-    background: '#1c1c22',
-    border: '1px solid rgba(255,255,255,0.06)',
-    borderRadius: 12,
-    padding: '14px 20px',
-    color: '#fff',
-    fontSize: 15,
-    outline: 'none',
-    boxSizing: 'border-box',
-    transition: 'all 0.2s',
+  const handleCancelWaking = () => {
+    if (wakingTimerRef.current) clearInterval(wakingTimerRef.current);
+    if (healthPollRef.current) clearInterval(healthPollRef.current);
+    setIsServerWaking(false);
+    setIsLoggingIn(false);
   };
 
-  const labelStyle = {
-    display: 'block',
-    color: '#888',
-    fontSize: 11,
-    fontWeight: 700,
-    letterSpacing: '0.12em',
-    textTransform: 'uppercase',
-    marginBottom: 10,
+  const handleSimulateAwake = () => {
+    if (wakingTimerRef.current) clearInterval(wakingTimerRef.current);
+    if (healthPollRef.current) clearInterval(healthPollRef.current);
+    setIsServerWaking(false);
+    toast.success("Simulation bypassed! Redirecting to login...");
+    navigate("/login");
   };
 
   return (
-    <AuthLayout
-      panelColor={STUDENT_COLOR}
-      accentColor={STUDENT_ACCENT}
-      showMobileDecorations={true}
-      title={<>JOIN THE<br /><span style={{ color: 'rgba(255,255,255,0.45)' }}>REVOLUTION.</span></>}
-      description={<>BECOME PART OF A GROWING ECOSYSTEM<br />OF PROFESSIONALS DRIVEN BY<br />PRECISION AND EXCELLENCE.</>}
-    >
-      {/* Minimal Brand Identity */}
-      <div className="flex items-center gap-3 mb-6 sm:mb-8">
-        <img 
-          src={BRANDING.logos.icon} 
-          alt="LearnIQ Symbol" 
-          className="w-6 h-6 sm:w-8 sm:h-8 object-contain" 
-        />
-        <div className="flex flex-col min-w-0 justify-center">
-          <span className="text-[9px] sm:text-[10px] font-bold text-violet-400 tracking-[0.2em] uppercase leading-none mb-1">
-            Unified Identity
-          </span>
-          <span className="text-sm sm:text-base font-black text-white tracking-widest uppercase opacity-90 leading-none">
-            Student Portal
-          </span>
+    <AuthLayout variant="onboarding" maxWidth="max-w-[450px]">
+      <div className="w-full backdrop-blur-3xl bg-white/90 dark:bg-[#0c0f18]/90 border border-[#EAE4DC] dark:border-white/10 rounded-2xl sm:rounded-3xl p-4 sm:p-5 relative overflow-hidden transition-all duration-300 shadow-[0_16px_50px_-12px_rgba(109,40,217,0.12),0_1px_3px_rgba(0,0,0,0.05)] dark:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7),0_0_40px_rgba(167,139,250,0.08)] ring-1 ring-inset ring-black/[0.03] dark:ring-white/[0.08]">
+
+        {/* Specular highlight border sheen (Royal Amethyst) */}
+        <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#A78BFA]/70 to-transparent pointer-events-none" />
+        <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-44 h-20 bg-[#A78BFA]/10 dark:bg-[#7C3AED]/20 rounded-full blur-2xl pointer-events-none" />
+
+        {/* ── CARD TOP UTILITY BAR (COMPACT 100VH) ─────────────────────────── */}
+        <div className="flex items-center justify-between pb-2 mb-2 sm:pb-2.5 sm:mb-2.5 border-b border-[#EAE4DC]/80 dark:border-white/5">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#F5F3FF] dark:bg-[#2E1065] border border-[#DDD6FE] dark:border-[#5B21B6] text-[#6D28D9] dark:text-[#C4B5FD] text-[10px] font-semibold shadow-2xs">
+            <GraduationCap size={12} className="text-[#6D28D9] dark:text-[#A78BFA]" />
+            <span className="font-mono tracking-wide">CANDIDATE ENROLLMENT</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <ThemeToggle size="xs" variant="segmented" />
+            <Link
+              to="/login"
+              className="text-[10px] font-medium text-[#7E6B8F] dark:text-[#94A3B8] hover:text-[#6D28D9] dark:hover:text-[#C4B5FD] px-1.5 py-0.5 rounded hover:bg-[#F5F3FF] dark:hover:bg-[#2E1065] transition-colors flex items-center gap-1 outline-none focus-visible:ring-2 focus-visible:ring-[#6D28D9]"
+            >
+              <span>Sign in</span>
+              <ArrowRight size={10} />
+            </Link>
+          </div>
         </div>
+
+        {isServerWaking ? (
+          <AuthServerWakingState
+            variant="onboarding"
+            elapsed={wakingElapsed}
+            onCancel={handleCancelWaking}
+            onSimulateAwake={handleSimulateAwake}
+          />
+        ) : (
+          <>
+            {/* Heading (Compact) */}
+            <div className="mb-2.5 sm:mb-3">
+              <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-[#F43F5E] dark:text-[#FB7185] block mb-0.5">
+                Candidate Registration Gate
+              </span>
+              <h1 className="font-serif text-lg sm:text-xl font-bold text-[#1E293B] dark:text-[#F8FAFC] tracking-tight leading-snug">
+                Create Candidate Account
+              </h1>
+              <p className="text-[10px] sm:text-[11px] text-[#64748B] dark:text-[#94A3B8] mt-0.5 font-sans leading-relaxed">
+                Enroll to access standardized testing, adaptive drills, and analytics.
+              </p>
+            </div>
+
+            {error && (
+              <div className="mb-2.5 p-2 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 rounded-xl flex items-start gap-1.5 animate-in fade-in duration-150">
+                <AlertCircle size={14} className="text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0 font-sans">
+                  <p className="text-[10px] font-bold text-rose-800 dark:text-rose-200 leading-tight">Registration Error</p>
+                  <p className="text-[9px] text-rose-700 dark:text-rose-300 leading-relaxed font-normal">{error}</p>
+                </div>
+              </div>
+            )}
+
+            <form onSubmit={handleRegister} className="space-y-2 sm:space-y-2.5">
+              {/* Row 1: Legal Name + Email in 2 Columns */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {/* Full Name */}
+                <div className="group">
+                  <label className="block text-[10px] font-semibold text-[#334155] dark:text-[#CBD5E1] mb-0.5 font-sans">
+                    Legal Name
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      name="name"
+                      className="w-full min-h-[38px] pl-8 pr-2.5 py-1.5 bg-[#FAF7F2]/90 dark:bg-[#07090f]/70 focus:bg-white dark:focus:bg-[#0e121d] border border-[#EAE4DC] dark:border-white/10 rounded-xl text-[#1E293B] dark:text-[#F8FAFC] placeholder:text-[#94A3B8] text-xs font-medium shadow-2xs outline-none transition-all duration-200 focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15 dark:focus:ring-emerald-400/20 font-sans"
+                      placeholder="Jane Doe"
+                      value={formData.name}
+                      onChange={handleChange}
+                      required
+                    />
+                    <User size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#8DA399] group-focus-within:text-emerald-600 dark:group-focus-within:text-emerald-400 transition-colors pointer-events-none" />
+                  </div>
+                </div>
+
+                {/* Email */}
+                <div className="group">
+                  <div className="flex justify-between items-center mb-0.5 font-sans">
+                    <label className="block text-[10px] font-semibold text-[#334155] dark:text-[#CBD5E1]">
+                      Email Address
+                    </label>
+                    {fieldErrors.email && (
+                      <span className="text-[9px] text-rose-500 font-medium">{fieldErrors.email}</span>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="email"
+                      name="email"
+                      className="w-full min-h-[38px] pl-8 pr-2.5 py-1.5 bg-[#FAF7F2]/90 dark:bg-[#07090f]/70 focus:bg-white dark:focus:bg-[#0e121d] border border-[#EAE4DC] dark:border-white/10 rounded-xl text-[#1E293B] dark:text-[#F8FAFC] placeholder:text-[#94A3B8] text-xs font-medium shadow-2xs outline-none transition-all duration-200 focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15 dark:focus:ring-emerald-400/20 font-sans"
+                      placeholder="jane@example.com"
+                      value={formData.email}
+                      onChange={handleChange}
+                      required
+                    />
+                    <Mail size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#8DA399] group-focus-within:text-emerald-600 dark:group-focus-within:text-emerald-400 transition-colors pointer-events-none" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Password */}
+              <div className="group">
+                <div className="flex justify-between items-center mb-0.5 font-sans">
+                  <label className="block text-[10px] font-semibold text-[#334155] dark:text-[#CBD5E1]">
+                    Create Password
+                  </label>
+                  {fieldErrors.password && (
+                    <span className="text-[9px] text-rose-500 font-medium">{fieldErrors.password}</span>
+                  )}
+                </div>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    className="w-full min-h-[38px] pl-8 pr-9 py-1.5 bg-[#FAF7F2]/90 dark:bg-[#07090f]/70 focus:bg-white dark:focus:bg-[#0e121d] border border-[#EAE4DC] dark:border-white/10 rounded-xl text-[#1E293B] dark:text-[#F8FAFC] placeholder:text-[#94A3B8] text-xs font-medium shadow-2xs outline-none transition-all duration-200 focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15 dark:focus:ring-emerald-400/20 font-sans"
+                    placeholder="Min 6 characters"
+                    value={formData.password}
+                    onChange={handleChange}
+                    required
+                  />
+                  <Lock size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#8DA399] group-focus-within:text-emerald-600 dark:group-focus-within:text-emerald-400 transition-colors pointer-events-none" />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    className="absolute right-1 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center text-[#94A3B8] hover:text-[#334155] dark:hover:text-[#F1F5F9] transition-colors rounded outline-none"
+                  >
+                    {showPassword ? <EyeOff size={13} /> : <Eye size={13} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Confirm Password */}
+              <div className="group">
+                <div className="flex justify-between items-center mb-0.5 font-sans">
+                  <label className="block text-[10px] font-semibold text-[#334155] dark:text-[#CBD5E1]">
+                    Confirm Password
+                  </label>
+                  {fieldErrors.confirmPassword && (
+                    <span className="text-[9px] text-rose-500 font-medium">{fieldErrors.confirmPassword}</span>
+                  )}
+                </div>
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    name="confirmPassword"
+                    className="w-full min-h-[38px] pl-8 pr-9 py-1.5 bg-[#FAF7F2]/90 dark:bg-[#07090f]/70 focus:bg-white dark:focus:bg-[#0e121d] border border-[#EAE4DC] dark:border-white/10 rounded-xl text-[#1E293B] dark:text-[#F8FAFC] placeholder:text-[#94A3B8] text-xs font-medium shadow-2xs outline-none transition-all duration-200 focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/15 dark:focus:ring-emerald-400/20 font-sans"
+                    placeholder="Repeat password"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    required
+                  />
+                  <Lock size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#8DA399] group-focus-within:text-emerald-600 dark:group-focus-within:text-emerald-400 transition-colors pointer-events-none" />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                    className="absolute right-1 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center text-[#94A3B8] hover:text-[#334155] dark:hover:text-[#F1F5F9] transition-colors rounded outline-none"
+                  >
+                    {showConfirmPassword ? <EyeOff size={13} /> : <Eye size={13} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Submit CTA */}
+              <button
+                type="submit"
+                disabled={isLoggingIn}
+                className="w-full min-h-[38px] py-1.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-700 hover:to-cyan-700 active:scale-[0.99] text-white font-sans font-bold text-xs shadow-md hover:shadow-emerald-600/25 transition-all duration-150 flex items-center justify-center gap-1.5 mt-1 disabled:opacity-60 cursor-pointer focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-emerald-500 outline-none"
+              >
+                {isLoggingIn ? (
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span>Enrolling...</span>
+                  </div>
+                ) : (
+                  <>
+                    <span>Complete Enrollment</span>
+                    <ArrowRight size={13} />
+                  </>
+                )}
+              </button>
+            </form>
+
+            {/* Footer Sign In */}
+            <div className="mt-2 pt-2 border-t border-[#EAE4DC]/80 dark:border-white/5 text-center font-sans">
+              <p className="text-[10px] text-[#64748B] dark:text-[#94A3B8] font-medium">
+                Already registered?{' '}
+                <Link
+                  to="/login"
+                  className="text-emerald-600 dark:text-emerald-400 font-bold hover:underline ml-1 focus-visible:ring-2 focus-visible:ring-emerald-500 rounded outline-none"
+                >
+                  Sign in to portal
+                </Link>
+              </p>
+            </div>
+          </>
+        )}
       </div>
-
-      {/* Heading */}
-      {/* Responsive Heading */}
-      <h2
-        style={{
-          color: '#fff',
-          fontWeight: 900,
-          fontSize: 'clamp(1.6rem, 5vw, 2.8rem)',
-          textTransform: 'uppercase',
-          letterSpacing: '-0.02em',
-          lineHeight: 1,
-          margin: 0,
-        }}
-      >
-        CREATE ACCOUNT
-      </h2>
-
-      {/* Subtitle */}
-      <p
-        style={{
-          color: '#666',
-          fontSize: 11,
-          fontWeight: 700,
-          letterSpacing: '0.15em',
-          textTransform: 'uppercase',
-          marginTop: 4,
-          marginBottom: 16,
-        }}
-      >
-        START YOUR PROFESSIONAL JOURNEY
-      </p>
-
-      <form onSubmit={handleRegister}>
-        {/* Full Name */}
-        <div style={{ marginBottom: 16 }}>
-          <label style={labelStyle}>Full Name</label>
-          <input
-            name="name"
-            type="text"
-            style={inputStyle}
-            placeholder="John Doe"
-            value={formData.name}
-            onChange={handleChange}
-            onFocus={(e) => (e.target.style.borderColor = `${STUDENT_ACCENT}60`)}
-            onBlur={(e) => (e.target.style.borderColor = 'rgba(255,255,255,0.06)')}
-            required
-          />
-        </div>
-
-        {/* Email Address */}
-        <div style={{ marginBottom: 16 }}>
-          <label style={labelStyle}>Email Address</label>
-          <input
-            name="email"
-            type="email"
-            style={{ 
-              ...inputStyle, 
-              borderColor: fieldErrors.email ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.06)' 
-            }}
-            placeholder="name@company.com"
-            value={formData.email}
-            onChange={handleChange}
-            onFocus={(e) => (e.target.style.borderColor = `${STUDENT_ACCENT}60`)}
-            onBlur={(e) => (e.target.style.borderColor = fieldErrors.email ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.06)')}
-            required
-          />
-          {fieldErrors.email && <p style={{ color: '#f87171', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 6 }}>{fieldErrors.email}</p>}
-        </div>
-
-        {/* Password Group */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 20 }}>
-          {/* Password */}
-          <div style={{ spaceY: 2 }}>
-            <label style={labelStyle}>Password</label>
-            <div style={{ position: 'relative' }}>
-              <input
-                name="password"
-                type={showPassword ? "text" : "password"}
-                style={{ 
-                  ...inputStyle, 
-                  paddingRight: 48,
-                  borderColor: fieldErrors.password ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.06)' 
-                }}
-                placeholder="••••••••"
-                value={formData.password}
-                onChange={handleChange}
-                onFocus={(e) => (e.target.style.borderColor = `${STUDENT_ACCENT}60`)}
-                onBlur={(e) => (e.target.style.borderColor = fieldErrors.password ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.06)')}
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#555', display: 'flex', alignItems: 'center' }}
-              >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
-            {fieldErrors.password && <p style={{ color: '#f87171', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 6 }}>{fieldErrors.password}</p>}
-          </div>
-
-          {/* Confirm Password */}
-          <div style={{ spaceY: 2 }}>
-            <label style={labelStyle}>Confirm</label>
-            <div style={{ position: 'relative' }}>
-              <input
-                name="confirmPassword"
-                type={showConfirmPassword ? "text" : "password"}
-                style={{ 
-                  ...inputStyle, 
-                  paddingRight: 48,
-                  borderColor: fieldErrors.confirmPassword ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.06)' 
-                }}
-                placeholder="••••••••"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                onFocus={(e) => (e.target.style.borderColor = `${STUDENT_ACCENT}60`)}
-                onBlur={(e) => (e.target.style.borderColor = fieldErrors.confirmPassword ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.06)')}
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#555', display: 'flex', alignItems: 'center' }}
-              >
-                {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
-            {fieldErrors.confirmPassword && <p style={{ color: '#f87171', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 6 }}>{fieldErrors.confirmPassword}</p>}
-          </div>
-        </div>
-
-        {error && <p style={{ color: '#f87171', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>{error}</p>}
-
-        {/* Submit Button */}
-        <button 
-          type="submit" 
-          disabled={isLoggingIn}
-          className="btn-accent w-full py-4 mt-2 student-btn"
-        >
-          {isLoggingIn ? (
-            <div style={{ width: 20, height: 20, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }}></div>
-          ) : (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-              <span>Create Account</span>
-              <ArrowRight size={18} />
-            </div>
-          )}
-        </button>
-      </form>
-
-      {/* Footer */}
-      <p
-        style={{
-          color: '#555',
-          fontSize: 12,
-          fontWeight: 600,
-          letterSpacing: '0.05em',
-          textAlign: 'center',
-          marginTop: 24,
-          textTransform: 'uppercase',
-        }}
-      >
-        Already have an account?{' '}
-        <Link
-          to="/login"
-          style={{
-            color: '#fff',
-            fontWeight: 900,
-            textDecoration: 'none',
-            letterSpacing: '0.08em',
-          }}
-        >
-          SIGN IN
-        </Link>
-      </p>
-
-      <style>{`
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-        .student-btn:hover {
-          background: #6d28d9 !important;
-          transform: translateY(-1px);
-          border-color: ${STUDENT_ACCENT}80 !important;
-          box-shadow: 0 6px 20px 0 rgba(124,58,237,0.3) !important;
-        }
-        .student-btn:active {
-          background: #5b21b6 !important;
-          transform: translateY(0px);
-        }
-        input::placeholder { color: #2a2a30; }
-      `}</style>
     </AuthLayout>
   );
 }

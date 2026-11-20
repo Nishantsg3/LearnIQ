@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Camera, Save, User } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { X, Camera, Save, User, ShieldCheck, Mail } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-const AdminProfileModalContent = ({ user, updateUser, onClose }) => {
+const AdminProfileModalContent = ({ user, updateUser, onClose, onSave }) => {
   const [name, setName] = useState(user?.name || '');
   const [isSaving, setIsSaving] = useState(false);
   const [previewImage, setPreviewImage] = useState(user?.avatar || null);
@@ -12,19 +13,23 @@ const AdminProfileModalContent = ({ user, updateUser, onClose }) => {
 
   useEffect(() => {
     const previousFocus = document.activeElement;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
     const timer = setTimeout(() => {
       closeBtnRef.current?.focus();
     }, 50);
 
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
+        e.preventDefault();
         onClose();
         return;
       }
 
       if (e.key === 'Tab' && modalRef.current) {
         const focusable = modalRef.current.querySelectorAll(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
         );
         if (focusable.length === 0) return;
         const first = focusable[0];
@@ -43,122 +48,224 @@ const AdminProfileModalContent = ({ user, updateUser, onClose }) => {
     window.addEventListener('keydown', handleKeyDown);
     return () => {
       clearTimeout(timer);
+      document.body.style.overflow = originalOverflow;
       window.removeEventListener('keydown', handleKeyDown);
-      previousFocus?.focus?.();
+      if (previousFocus && typeof previousFocus.focus === 'function') {
+        previousFocus.focus();
+      }
     };
   }, [onClose]);
 
-  const handleImageChange = (e) => {
+  const [saveError, setSaveError] = useState('');
+
+  const compressImage = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const size = 256;
+          canvas.width = size;
+          canvas.height = size;
+          const ctx = canvas.getContext('2d');
+
+          // Center crop to square
+          const minDim = Math.min(img.width, img.height);
+          const startX = (img.width - minDim) / 2;
+          const startY = (img.height - minDim) / 2;
+
+          ctx.drawImage(img, startX, startY, minDim, minDim, 0, 0, size, size);
+          try {
+            // Compressed webp ~20-30KB
+            const dataUrl = canvas.toDataURL('image/webp', 0.82);
+            resolve(dataUrl);
+          } catch {
+            // Fallback to jpeg ~25-35KB
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+            resolve(dataUrl);
+          }
+        };
+        img.onerror = (err) => reject(err);
+      };
+      reader.onerror = (err) => reject(err);
+    });
+  };
+
+  const handleImageChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setPreviewImage(reader.result);
-      reader.readAsDataURL(file);
+      setSaveError('');
+      try {
+        const compressed = await compressImage(file);
+        setPreviewImage(compressed);
+      } catch (err) {
+        console.error('Failed to compress avatar image:', err);
+        setSaveError('Failed to process image. Please try another image file.');
+      }
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSaving(true);
-    // Simulate slight delay for premium feel
-    await new Promise(resolve => setTimeout(resolve, 800));
+    setSaveError('');
 
-    updateUser({
-      name,
-      avatar: previewImage
-    });
+    try {
+      if (typeof updateUser === 'function') {
+        await updateUser({
+          name,
+          avatar: previewImage
+        });
+      }
 
-    setIsSaving(false);
-    onClose();
+      if (typeof onSave === 'function') {
+        onSave({ name, avatar: previewImage });
+      }
+      onClose();
+    } catch (err) {
+      setSaveError(err.response?.data?.message || err.message || 'Failed to update profile. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
+  const isAdmin = user?.role === 'ADMIN';
+
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] !m-0 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
         aria-hidden="true"
-        className="absolute inset-0 bg-black/80 backdrop-blur-md transition-opacity duration-300 animate-in fade-in"
+        className="fixed inset-0 z-40 !m-0 bg-slate-950/70 dark:bg-black/80 backdrop-blur-md transition-opacity duration-200 animate-in fade-in"
         onClick={onClose}
       />
 
-      {/* Modal Card - Apple Sheet Material & Spring Motion (§12, §4) */}
+      {/* Modal Card */}
       <div
         ref={modalRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="admin-profile-title"
-        className="relative z-[110] bg-[#101017]/95 backdrop-blur-2xl border border-white/12 rounded-[1.75rem] w-full max-w-md overflow-hidden shadow-[inset_0_1px_0_0_rgba(255,255,255,0.18),0_32px_80px_rgba(0,0,0,0.85)] transition-[transform,opacity] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] animate-in zoom-in-95"
+        aria-describedby="admin-profile-desc"
+        className="relative z-50 bg-white dark:bg-[#1a1f2b] border border-slate-200/90 dark:border-[#232936] text-slate-900 dark:text-slate-100 rounded-2xl w-full max-w-md max-h-[90dvh] overflow-y-auto shadow-2xl animate-apple-modal"
       >
-        {/* Subtle Light Catch Top Edge */}
-        <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-violet-500/40 to-transparent" />
-
         {/* Header */}
-        <div className="p-6 border-b border-white/[0.08] flex items-center justify-between">
-          <h2 id="admin-profile-title" className="text-sm font-semibold text-white tracking-tight">Identity Profile</h2>
+        <div className="px-6 py-4 border-b border-slate-200 dark:border-[#232936] flex items-center justify-between">
+          <div>
+            <h2 id="admin-profile-title" className="text-lg font-serif font-bold text-slate-900 dark:text-slate-100">
+              {isAdmin ? 'Faculty Profile' : 'Candidate Profile'}
+            </h2>
+            <p id="admin-profile-desc" className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+              {isAdmin ? 'Manage your faculty credentials and avatar' : 'Manage your candidate identity and avatar'}
+            </p>
+          </div>
           <button
             ref={closeBtnRef}
             type="button"
             onClick={onClose}
             aria-label="Close profile modal"
-            className="p-2 text-slate-400 hover:text-white transition-colors rounded-full hover:bg-white/5 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400"
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-[#252a34] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 cursor-pointer"
           >
-            <X size={18} />
+            <X size={18} aria-hidden="true" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 sm:p-7 space-y-6">
+        <form onSubmit={handleSubmit} className="p-6 space-y-5">
           {/* Avatar Section */}
           <div className="flex flex-col items-center">
             <div className="relative group">
-              <div className="w-22 h-22 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-center overflow-hidden transition-all group-hover:border-violet-500/50 shadow-md">
+              <div className={`w-20 h-20 rounded-2xl bg-slate-100 dark:bg-[#151921] border border-slate-200 dark:border-[#2b3240] flex items-center justify-center overflow-hidden transition-all shadow-xs ${isAdmin ? 'group-hover:border-violet-500/50' : 'group-hover:border-indigo-500/50'}`}>
                 {previewImage ? (
-                  <img src={previewImage} alt="Profile" className="w-full h-full object-cover" />
+                  <img src={previewImage} alt="Profile preview" className="w-full h-full object-cover" />
                 ) : (
-                  <User className="text-white/30" size={36} />
+                  <User className="text-slate-400" size={32} />
                 )}
 
-                <label className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer backdrop-blur-xs">
-                  <Camera className="text-white" size={22} />
+                <label className="absolute inset-0 bg-slate-900/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-2xl">
+                  <Camera className="text-white" size={20} />
+                  <span className="sr-only">Upload profile picture</span>
                   <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
                 </label>
               </div>
-              <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-violet-600 flex items-center justify-center border-2 border-[#101017] shadow-sm">
-                <Camera size={11} className="text-white" />
+              <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center border-2 border-white dark:border-[#1c2027] text-white shadow-xs ${isAdmin ? 'bg-violet-600' : 'bg-indigo-600'}`}>
+                <Camera size={11} aria-hidden="true" />
               </div>
             </div>
-            <p className="text-[11px] font-medium text-white/60 tracking-normal mt-3">Profile Photo</p>
+            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-2">
+              {isAdmin ? 'Faculty Portrait' : 'Scholar Portrait'}
+            </p>
+          </div>
+
+          {/* Identity Metadata Box */}
+          <div className="rounded-xl p-3 bg-slate-50 dark:bg-[#151921] border border-slate-200/80 dark:border-[#2b3240] text-xs space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-slate-500 dark:text-slate-400 font-mono text-[11px] flex items-center gap-1.5">
+                <ShieldCheck size={12} className={isAdmin ? "text-violet-600 dark:text-violet-400" : "text-indigo-600 dark:text-indigo-400"} />
+                Role
+              </span>
+              <span className={`font-mono text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${
+                isAdmin
+                  ? 'text-violet-700 dark:text-violet-300 bg-violet-50 dark:bg-violet-950/40 border-violet-200 dark:border-violet-800/40'
+                  : 'text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-800/40'
+              }`}>
+                {isAdmin ? 'ADMINISTRATOR' : 'CANDIDATE'}
+              </span>
+            </div>
+            <div className="flex justify-between items-center pt-2 border-t border-slate-200/60 dark:border-[#2b3240]">
+              <span className="text-slate-500 dark:text-slate-400 font-mono text-[11px] flex items-center gap-1.5">
+                <Mail size={12} className="text-slate-400" />
+                Registered Email
+              </span>
+              <span className="font-mono text-[11px] text-slate-900 dark:text-slate-100 truncate max-w-[200px]" title={user?.email || '—'}>
+                {user?.email || '—'}
+              </span>
+            </div>
           </div>
 
           {/* Form Fields */}
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-[11px] font-medium text-white/70 tracking-wider uppercase ml-1">Display Name</label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full px-4 py-2.5 bg-white/[0.04] border border-white/10 rounded-xl text-white text-sm placeholder:text-white/40 outline-none focus:border-violet-500/60 focus:bg-white/[0.07] transition-all duration-150"
-                placeholder="Your Name"
-                required
-              />
-            </div>
+          <div>
+            <label htmlFor="admin-display-name" className="block text-xs font-mono font-semibold uppercase tracking-wider text-academy-ink-secondary mb-2">
+              Display Name
+            </label>
+            <input
+              id="admin-display-name"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="input-base text-xs font-medium min-h-[44px] px-3.5 py-2.5 w-full"
+              placeholder="Your Full Name"
+              required
+            />
           </div>
+
+          {saveError && (
+            <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs font-medium">
+              {saveError}
+            </div>
+          )}
 
           {/* Actions */}
           <button
             type="submit"
             disabled={isSaving}
-            className="w-full py-3 rounded-xl bg-violet-600 hover:bg-violet-500 flex items-center justify-center gap-2.5 text-white font-semibold text-sm tracking-tight transition-all active:scale-[0.98] shadow-lg shadow-violet-600/25 disabled:opacity-50"
+            className={`w-full min-h-[44px] py-2.5 px-4 rounded-xl text-white text-xs font-semibold shadow-xs hover:shadow-sm transition-all flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 cursor-pointer disabled:opacity-60 apple-shimmer-btn active:scale-[0.96] ${
+              isAdmin
+                ? 'bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 focus-visible:ring-violet-500 shadow-violet-500/25'
+                : 'bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-700 hover:to-sky-700 focus-visible:ring-indigo-500 shadow-indigo-500/25'
+            }`}
           >
             {isSaving ? (
               <>
-                <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                <span>Saving...</span>
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span>Saving Profile...</span>
               </>
             ) : (
               <>
-                <Save size={16} />
-                <span>Save Changes</span>
+                <Save size={15} aria-hidden="true" />
+                <span>Save Profile Changes</span>
               </>
             )}
           </button>
@@ -168,10 +275,19 @@ const AdminProfileModalContent = ({ user, updateUser, onClose }) => {
   );
 };
 
-const AdminProfileModal = ({ isOpen, onClose }) => {
-  const { user, updateUser } = useAuth();
-  if (!isOpen) return null;
-  return <AdminProfileModalContent user={user} updateUser={updateUser} onClose={onClose} />;
+const AdminProfileModal = ({ isOpen, onClose, user: propUser, onSave }) => {
+  const { user: authUser, updateUser } = useAuth();
+  const activeUser = propUser || authUser;
+  if (!isOpen || typeof document === 'undefined') return null;
+  return createPortal(
+    <AdminProfileModalContent
+      user={activeUser}
+      updateUser={updateUser}
+      onClose={onClose}
+      onSave={onSave}
+    />,
+    document.body
+  );
 };
 
 export default AdminProfileModal;

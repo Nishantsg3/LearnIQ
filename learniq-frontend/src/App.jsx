@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { useState, useEffect, lazy, Suspense } from 'react'
+import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { Toaster } from 'react-hot-toast'
+import { AlertCircle, Clock, RefreshCw } from 'lucide-react'
 
 // ── Lazy-loaded Route Components for Code Splitting ──
 const Login = lazy(() => import('./pages/Login'))
@@ -29,16 +30,18 @@ const StudentTest = lazy(() => import('./pages/StudentTest'))
 const TestResultView = lazy(() => import('./pages/TestResultView'))
 const TestReview = lazy(() => import('./pages/TestReview'))
 const AdminReportList = lazy(() => import('./pages/AdminReportList'))
+const BackgroundShowcase = lazy(() => import('./pages/BackgroundShowcase'))
 
 import ProtectedRoute from './components/ProtectedRoute'
 import MainLayout from './components/MainLayout'
 import AdminProfileModal from './components/AdminProfileModal'
 import { AuthProvider, useAuth } from './context/AuthContext'
+import { ThemeProvider } from './context/ThemeContext'
 
 const PageFallback = () => (
-  <div className="flex-1 flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-    <div className="w-8 h-8 border-2 border-white/5 border-t-violet-500 rounded-full animate-spin"></div>
-    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">Loading Module...</p>
+  <div className="flex-1 flex flex-col items-center justify-center min-h-[60vh] space-y-3">
+    <div className="w-8 h-8 border-3 border-slate-200 dark:border-slate-800 border-t-violet-600 rounded-full animate-spin"></div>
+    <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Loading Module...</p>
   </div>
 );
 
@@ -57,10 +60,10 @@ function AppContent() {
       <Toaster position="top-right" toastOptions={{
         style: { fontSize: '13px', borderRadius: '8px', background: '#333', color: '#fff' }
       }} />
-      
-      <AdminProfileModal 
-        isOpen={isProfileOpen} 
-        onClose={() => setIsProfileOpen(false)} 
+
+      <AdminProfileModal
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
         user={user}
         onSave={() => setIsProfileOpen(false)}
       />
@@ -74,8 +77,12 @@ function AppContent() {
           <Route path="/register" element={<Register />} />
           <Route path="/verify-otp" element={<OtpVerification />} />
           <Route path="/admin-access" element={<AdminLogin />} />
+          <Route path="/admin/login" element={<Navigate to="/admin-access" replace />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password/:token" element={<ResetPassword />} />
+          {import.meta.env.DEV && (
+            <Route path="/background-showcase" element={<BackgroundShowcase />} />
+          )}
 
           {/* ── STUDENT ROUTES (requiredRole="STUDENT") ─────────────────────── */}
           <Route path="/student/dashboard" element={
@@ -95,6 +102,9 @@ function AppContent() {
           } />
 
           <Route path="/student-dashboard" element={<Navigate to="/student/dashboard" replace />} />
+          <Route path="/student/tests" element={<Navigate to="/student/section1" replace />} />
+          <Route path="/student/practice" element={<Navigate to="/student/section1" replace />} />
+          <Route path="/student/history" element={<Navigate to="/student/results" replace />} />
 
           <Route path="/attempt/:attemptId" element={
             <ProtectedRoute requiredRole="STUDENT"><TestAttempt /></ProtectedRoute>
@@ -170,40 +180,68 @@ function AppContent() {
 }
 
 function App() {
-  const [healthStatus, setHealthStatus] = useState('CHECKING'); // 'CHECKING' | 'AWAKE' | 'TIMEOUT'
-  const [timeLeft, setTimeLeft] = useState(150);
-  const [retryCount, setRetryCount] = useState(0);
+  const [healthStatus, setHealthStatus] = useState('AWAKE'); // 'AWAKE' | 'CHECKING' | 'TIMEOUT'
+  const secondsLeftRef = useRef(150);
+  const isCheckingHealthRef = useRef(false);
+
+  const baseUrl = import.meta.env.VITE_API_URL || 'https://learniq-backend-vglf.onrender.com/api/v1';
 
   // Handle global backend sleep/awake/timeout events from Axios interceptors
   useEffect(() => {
     const handleSleep = () => {
+      // Never display blocking overlay on public/auth routes — forms must remain interactive
+      const path = window.location.pathname;
+      const isAuthPage = path === '/' || path === '/login' || path === '/admin-access' || path === '/register' || path === '/forgot-password' || path === '/verify-otp' || path.startsWith('/reset-password');
+      if (isAuthPage) return;
+
       setHealthStatus('CHECKING');
-      setTimeLeft(150);
+      secondsLeftRef.current = 150;
     };
     const handleAwake = () => {
       setHealthStatus('AWAKE');
     };
+    const handleTimeout = () => {
+      setHealthStatus('TIMEOUT');
+    };
     window.addEventListener('backend-sleep', handleSleep);
     window.addEventListener('backend-awake', handleAwake);
+    window.addEventListener('backend-timeout', handleTimeout);
     return () => {
       window.removeEventListener('backend-sleep', handleSleep);
       window.removeEventListener('backend-awake', handleAwake);
+      window.removeEventListener('backend-timeout', handleTimeout);
     };
   }, []);
 
-  // Health check & countdown timer loop
+  // Non-blocking initial background health verification (does not block UI)
+  useEffect(() => {
+    const checkInitialHealth = async () => {
+      if (isCheckingHealthRef.current) return;
+      isCheckingHealthRef.current = true;
+      try {
+        const response = await fetch(`${baseUrl}/health`);
+        if (response.ok) {
+          setHealthStatus('AWAKE');
+        }
+      } catch {
+        // Silent background check: do not block login unless an actual request fails with cold-start status
+      } finally {
+        isCheckingHealthRef.current = false;
+      }
+    };
+    checkInitialHealth();
+  }, [baseUrl]);
+
+  // Active health check & countdown timer loop when server is sleeping
   useEffect(() => {
     if (healthStatus !== 'CHECKING') return;
 
     let countdownInterval;
     let healthCheckInterval;
 
-    const IS_DEV = import.meta.env.MODE === 'development';
-    const PROD_URL = import.meta.env.VITE_API_URL || 'https://learniq-backend-vglf.onrender.com/api/v1';
-    const LOCAL_URL = 'http://localhost:8080/api/v1';
-    const baseUrl = IS_DEV ? LOCAL_URL : PROD_URL;
-
     const checkHealth = async () => {
+      if (isCheckingHealthRef.current) return;
+      isCheckingHealthRef.current = true;
       try {
         const response = await fetch(`${baseUrl}/health`);
         if (response.ok) {
@@ -212,118 +250,41 @@ function App() {
           window.dispatchEvent(new CustomEvent('backend-awake'));
         }
       } catch {
-        console.log("Backend server is starting up...");
+        console.log("Backend server is warming up...");
+      } finally {
+        isCheckingHealthRef.current = false;
       }
     };
 
-    // Run initial health check immediately
+    // Run health check immediately
     checkHealth();
 
     // Start 1-second countdown timer
     countdownInterval = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(countdownInterval);
-          clearInterval(healthCheckInterval);
-          setHealthStatus('TIMEOUT');
-          window.dispatchEvent(new CustomEvent('backend-timeout'));
-          return 0;
-        }
-        return prev - 1;
-      });
+      secondsLeftRef.current -= 1;
+      if (secondsLeftRef.current <= 0) {
+        clearInterval(countdownInterval);
+        clearInterval(healthCheckInterval);
+        setHealthStatus('TIMEOUT');
+        window.dispatchEvent(new CustomEvent('backend-timeout'));
+      }
     }, 1000);
 
-    // Start 5-second health check ping
-    healthCheckInterval = setInterval(checkHealth, 5000);
+    // Ping health endpoint every 4 seconds
+    healthCheckInterval = setInterval(checkHealth, 4000);
 
     return () => {
       clearInterval(countdownInterval);
       clearInterval(healthCheckInterval);
     };
-  }, [healthStatus, retryCount]);
+  }, [healthStatus, baseUrl]);
 
-  const handleRetry = () => {
-    console.log(`[DIAGNOSTIC] Wake-up retry: source=App.jsx, retryCount=${retryCount + 1}, timestamp=${new Date().toISOString()}`);
-    setTimeLeft(150);
-    setHealthStatus('CHECKING');
-    setRetryCount((prev) => prev + 1);
-  };
-
-  const elapsed = 150 - timeLeft;
-  let wakeTitle = "Starting LearnIQ...";
-  let wakeDesc = "The server is waking up.";
-  if (elapsed >= 90) {
-    wakeTitle = "Almost ready...";
-    wakeDesc = "Finalizing startup checks. Thank you for your patience.";
-  } else if (elapsed >= 60) {
-    wakeTitle = "Still waking...";
-    wakeDesc = "Almost there. Initializing core engines...";
-  } else if (elapsed >= 30) {
-    wakeTitle = "Backend is waking up...";
-    wakeDesc = "Establishing database handshake...";
-  } else if (elapsed >= 10) {
-    wakeTitle = "Checking server...";
-    wakeDesc = "Connecting to cloud instance...";
-  }
-
-  const minutes = Math.floor(timeLeft / 60);
-  const seconds = timeLeft % 60;
-  const formattedTime = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-
-  // ─── CRITICAL FIX ────────────────────────────────────────────────────────────
-  // The overlay is rendered ABOVE the AuthProvider/AppContent using CSS fixed
-  // positioning and z-index. The router and all page components remain mounted
-  // throughout the entire sleep/wake cycle. No remount, no state loss.
-  // ─────────────────────────────────────────────────────────────────────────────
   return (
-    <>
-      {/* Application tree — always mounted, never replaced */}
-      <AuthProvider>
+    <AuthProvider>
+      <ThemeProvider>
         <AppContent />
-      </AuthProvider>
-
-      {/* Wake-up overlay — rendered on top via fixed positioning, not instead of app */}
-      {healthStatus !== 'AWAKE' && (
-        <div className="fixed inset-0 w-screen h-screen bg-[#0a0a12] flex items-center justify-center p-4 z-[9999]">
-          {/* Background Radial Glow */}
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,#1a1a3a_0%,#0a0a12_70%)] opacity-50" />
-          
-          <div className="relative w-full max-w-md animate-in zoom-in duration-500 text-center">
-            <div className="relative bg-[#1a1a2e]/90 border border-white/10 backdrop-blur-3xl rounded-[32px] p-8 shadow-[0_50px_100px_rgba(0,0,0,0.8)] overflow-hidden">
-              {/* Top accent bar */}
-              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-violet-600 via-pink-500 to-violet-600 animate-pulse" />
-              
-              {healthStatus === 'CHECKING' ? (
-                <>
-                  <div className="w-16 h-16 border-4 border-violet-600/30 border-t-violet-500 rounded-full animate-spin mx-auto mb-6" />
-                  <h3 className="text-xl font-black text-white uppercase tracking-tight mb-2">{wakeTitle}</h3>
-                  <p className="text-gray-400 text-xs font-semibold leading-relaxed mb-1">{wakeDesc}</p>
-                  <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest leading-relaxed">
-                    Time remaining: {formattedTime}
-                  </p>
-                </>
-              ) : (
-                <>
-                  <div className="w-16 h-16 bg-rose-500/10 border border-rose-500/20 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce">
-                    <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                  </div>
-                  <h3 className="text-xl font-black text-white uppercase tracking-tight mb-2">Server Timeout</h3>
-                  <p className="text-gray-400 text-xs font-semibold leading-relaxed mb-6">The server is taking longer than expected.<br />Please try again shortly.</p>
-                  <button
-                    onClick={handleRetry}
-                    className="w-full py-3.5 bg-violet-600 hover:bg-violet-500 text-white rounded-xl font-black uppercase text-[11px] tracking-[0.2em] transition-all shadow-lg shadow-violet-600/20"
-                  >
-                    Retry Connection
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-    </>
+      </ThemeProvider>
+    </AuthProvider>
   );
 }
 

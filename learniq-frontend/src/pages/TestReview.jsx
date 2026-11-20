@@ -1,18 +1,20 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import CodeQuestion from '../components/CodeQuestion';
 import BrandLogo from '../components/BrandLogo';
 import ThemeToggle from '../components/ThemeToggle';
-import { 
-  ChevronLeft, 
-  ChevronRight, 
-  X, 
-  CheckCircle2, 
-  XCircle, 
-  Home, 
-  ArrowRight, 
-  Check, 
+import QuestionCardFlip from '../components/QuestionCardFlip';
+import {
+  ChevronLeft,
+  ChevronRight,
+  X,
+  CheckCircle2,
+  XCircle,
+  Home,
+  ArrowRight,
+  Check,
   HelpCircle,
   RotateCcw,
   Sparkles,
@@ -21,7 +23,9 @@ import {
   BookOpen,
   Lightbulb,
   ShieldCheck,
-  Trophy
+  Trophy,
+  Activity,
+  Layers
 } from 'lucide-react';
 import api from '../utils/api';
 import { ExamCockpitSkeleton } from '../components/common/Skeleton';
@@ -135,9 +139,9 @@ const renderExplanationContent = (q, isCorrect, isSkipped, correctLetter, catego
   const diffBadge = getDifficultyBadge(getQuestionDifficulty(q, index));
 
   return (
-    <div className="space-y-4 text-xs sm:text-sm leading-relaxed text-academy-ink">
+    <div className="flex flex-col justify-between h-full min-h-[380px] space-y-4 text-xs sm:text-sm leading-relaxed text-academy-ink">
       {q.explanation && q.explanation.trim().length > 0 ? (
-        <div className="p-4 rounded-lg bg-academy-paper-subtle dark:bg-surface-subtle border border-academy-rule space-y-2">
+        <div className="p-4 rounded-xl bg-academy-paper-subtle dark:bg-surface-subtle border-2 border-slate-200 dark:border-white/10 space-y-2">
           <span className="text-[11px] font-mono font-semibold text-academy-accent dark:text-academy-accent-deep uppercase tracking-wider block">
             Author Explanation
           </span>
@@ -146,7 +150,7 @@ const renderExplanationContent = (q, isCorrect, isSkipped, correctLetter, catego
           </p>
         </div>
       ) : (
-        <div className="p-4 rounded-lg bg-academy-paper-subtle dark:bg-surface-subtle border border-academy-rule space-y-2">
+        <div className="p-4 rounded-xl bg-academy-paper-subtle dark:bg-surface-subtle border-2 border-slate-200 dark:border-white/10 space-y-2">
           <div className="flex items-center gap-2 text-xs font-mono font-semibold text-academy-accent dark:text-academy-accent-deep uppercase tracking-wider">
             <Sparkles size={14} />
             <span>Core Concept & Rationale</span>
@@ -158,17 +162,17 @@ const renderExplanationContent = (q, isCorrect, isSkipped, correctLetter, catego
       )}
 
       {/* Step-by-step breakdown */}
-      <div className="space-y-2.5">
+      <div className="flex-1 space-y-3 flex flex-col justify-center my-1">
         <span className="text-[11px] font-mono font-semibold text-academy-muted uppercase tracking-wider block">
           Step-by-Step Solution Breakdown
         </span>
 
-        <div className="p-3.5 rounded-lg bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-800/60">
-          <div className="flex items-start gap-2.5">
-            <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] font-mono font-bold shrink-0 mt-0.5">
+        <div className="p-4 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/40 border-2 border-emerald-200/90 dark:border-emerald-800/60 shadow-2xs">
+          <div className="flex items-start gap-3">
+            <span className="w-6 h-6 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-xs font-mono font-bold shrink-0 mt-0.5 shadow-2xs">
               1
             </span>
-            <div className="text-academy-ink">
+            <div className="text-academy-ink leading-relaxed">
               <strong className="text-emerald-800 dark:text-emerald-300">
                 {correctLetter ? `Why Option ${correctLetter} is valid: ` : 'Key Rationale: '}
               </strong>
@@ -180,12 +184,12 @@ const renderExplanationContent = (q, isCorrect, isSkipped, correctLetter, catego
         </div>
 
         {!isCorrect && !isSkipped && q.selectedOption && (
-          <div className="p-3.5 rounded-lg bg-rose-50/60 dark:bg-rose-950/30 border border-rose-200/80 dark:border-rose-800/60">
-            <div className="flex items-start gap-2.5">
-              <span className="w-5 h-5 rounded-full bg-rose-600 text-white flex items-center justify-center text-[10px] font-mono font-bold shrink-0 mt-0.5">
+          <div className="p-4 rounded-xl bg-rose-50/70 dark:bg-rose-950/40 border-2 border-rose-200/90 dark:border-rose-800/60 shadow-2xs">
+            <div className="flex items-start gap-3">
+              <span className="w-6 h-6 rounded-lg bg-rose-600 text-white flex items-center justify-center text-xs font-mono font-bold shrink-0 mt-0.5 shadow-2xs">
                 2
               </span>
-              <div className="text-academy-ink">
+              <div className="text-academy-ink leading-relaxed">
                 <strong className="text-rose-800 dark:text-rose-300">Analysis of Selection (Option {q.selectedOption}): </strong>
                 <span>
                   Choosing &ldquo;{q[`option${q.selectedOption}`] || q.selectedOption}&rdquo; is a common pitfall under timed pressure. In {category}, this formulation overlooks subtle edge conditions or operator precedence rules that differentiate it from the verified key.
@@ -196,12 +200,12 @@ const renderExplanationContent = (q, isCorrect, isSkipped, correctLetter, catego
         )}
 
         {isSkipped && (
-          <div className="p-3.5 rounded-lg bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/60">
-            <div className="flex items-start gap-2.5">
-              <span className="w-5 h-5 rounded-full bg-amber-600 text-white flex items-center justify-center text-[10px] font-mono font-bold shrink-0 mt-0.5">
+          <div className="p-4 rounded-xl bg-amber-50/70 dark:bg-amber-950/40 border-2 border-amber-200/90 dark:border-amber-800/60 shadow-2xs">
+            <div className="flex items-start gap-3">
+              <span className="w-6 h-6 rounded-lg bg-amber-600 text-white flex items-center justify-center text-xs font-mono font-bold shrink-0 mt-0.5 shadow-2xs">
                 2
               </span>
-              <div className="text-academy-ink">
+              <div className="text-academy-ink leading-relaxed">
                 <strong className="text-amber-800 dark:text-amber-300">Omission Diagnostic: </strong>
                 <span>
                   This item was left unanswered during the assessment session. For questions categorized as <strong>{diffBadge.label}</strong>, reviewing the underlying theorems or API specifications will ensure confidence in similar evaluation scenarios.
@@ -212,7 +216,7 @@ const renderExplanationContent = (q, isCorrect, isSkipped, correctLetter, catego
         )}
       </div>
 
-      <div className="pt-2 border-t border-academy-rule-subtle flex items-center justify-between text-xs text-academy-muted font-mono">
+      <div className="mt-auto pt-3 border-t border-academy-rule-subtle flex items-center justify-between text-xs text-academy-muted font-mono shrink-0">
         <span className="flex items-center gap-1.5">
           <Lightbulb size={13} className="text-amber-500" />
           <span>Pedagogical Review Framework</span>
@@ -236,11 +240,17 @@ const TestReview = () => {
   const [exitPath, setExitPath]                       = useState(null);
   const [showMobileDirectory, setShowMobileDirectory] = useState(false);
   const [filterType, setFilterType]                   = useState('all'); // 'all' | 'incorrect' | 'correct' | 'skipped'
+  const [isCardFlipped, setIsCardFlipped]             = useState(false);
 
   const exitModalRef = useRef(null);
   const cancelExitBtnRef = useRef(null);
   const previousFocusRef = useRef(null);
   const questionBtnRefs = useRef({});
+
+  // Reset card flip to question side when user navigates to another question
+  useEffect(() => {
+    setIsCardFlipped(false);
+  }, [currentIndex]);
 
   // Auto-scroll active question in directory into view
   useEffect(() => {
@@ -520,29 +530,32 @@ const TestReview = () => {
   }
 
   return (
-    <div className="h-screen bg-[#f9f9f7] dark:bg-[#0e1015] text-[#090d16] dark:text-slate-100 flex flex-col overflow-hidden selection:bg-violet-100 dark:selection:bg-violet-900 selection:text-violet-900 dark:selection:text-violet-100 transition-colors duration-200">
-      
+    <div className="h-screen h-[100dvh] max-h-[100dvh] bg-[#f9f9f7] dark:bg-[#0e1015] text-[#090d16] dark:text-slate-100 flex flex-col overflow-hidden selection:bg-violet-100 dark:selection:bg-violet-900 selection:text-violet-900 dark:selection:text-violet-100 transition-colors duration-200">
+
       {/* ──────────────────────────────────────────────────────────────────────────
           1. COMPACT BRANDED TOP BAR
       ────────────────────────────────────────────────────────────────────────── */}
-      <header className="h-16 bg-white dark:bg-academy-card border-b border-academy-rule px-4 sm:px-8 flex items-center justify-between shrink-0 z-30 shadow-2xs">
-        <div className="flex items-center gap-3 min-w-0">
-          <BrandLogo size="sm" variant="wordmark" subtitle="Diagnostic review" />
+      <header className="h-16 bg-white dark:bg-academy-card border-b border-academy-rule px-2.5 sm:px-8 flex items-center justify-between shrink-0 z-30 shadow-2xs gap-1.5 sm:gap-2">
+        {/* Left: Brand Identity */}
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 shrink-0">
+          <BrandLogo size="xs" variant="mark" linkTo="/student/dashboard" className="sm:hidden shrink-0" />
+          <BrandLogo size="sm" variant="wordmark" subtitle="Diagnostic review" linkTo="/student/dashboard" className="hidden sm:inline-flex" />
           <div className="h-4 w-px bg-academy-rule hidden sm:block" />
           <p className="font-serif text-sm text-academy-ink-secondary truncate hidden sm:block max-w-xs md:max-w-md">
             {attempt?.testTitle || 'Diagnostic Assessment'}
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 shrink-0">
-          <ThemeToggle size="sm" />
-
+        {/* Right: Actions and Navigation Controls */}
+        <div className="flex items-center gap-1 sm:gap-2.5 shrink-0">
           <button
             type="button"
             onClick={() => setShowMobileDirectory(true)}
-            className="lg:hidden min-h-[44px] px-3 py-2 text-xs font-mono font-medium flex items-center gap-1.5 rounded-lg border border-academy-rule bg-white dark:bg-academy-card text-academy-ink cursor-pointer"
+            className="lg:hidden min-h-[36px] sm:min-h-[44px] px-1.5 sm:px-3 py-1 sm:py-2 text-[11px] sm:text-xs font-mono font-bold flex items-center gap-1 sm:gap-1.5 rounded-xl border-2 border-slate-300 dark:border-white/20 bg-white dark:bg-academy-card text-academy-ink cursor-pointer hover:-translate-y-0.5 active:scale-95 transition-all shadow-xs"
             aria-label="Open Question Directory"
+            title="Open Question Directory Palette"
           >
+            <Activity size={12} className="text-violet-600 dark:text-violet-400 shrink-0" />
             <span>Q{currentIndex + 1}</span>
             <span className="text-academy-muted">/</span>
             <span>{questions.length}</span>
@@ -550,10 +563,24 @@ const TestReview = () => {
 
           <button
             type="button"
-            onClick={() => { setExitPath('/student/dashboard'); setShowExitConfirm(true); }}
-            className="min-h-[44px] px-3.5 py-2 text-xs font-medium flex items-center gap-1.5 rounded-lg border border-academy-rule bg-white dark:bg-academy-card hover:bg-academy-paper-subtle dark:hover:bg-surface-subtle cursor-pointer text-academy-ink shadow-2xs transition-all"
+            onClick={() => navigate(`/results/${attemptId}`)}
+            className="h-[36px] sm:h-[44px] min-h-[36px] sm:min-h-[44px] px-2 sm:px-4 text-[11px] sm:text-xs font-semibold flex items-center gap-1 sm:gap-1.5 rounded-xl border-2 border-slate-300 dark:border-white/20 bg-white dark:bg-academy-card hover:bg-slate-100 dark:hover:bg-[#1c2027] hover:border-violet-500 dark:hover:border-violet-400 hover:-translate-y-0.5 hover:shadow-md cursor-pointer text-academy-ink shadow-xs transition-all active:scale-[0.98]"
+            aria-label="Back to Scorecard"
           >
-            <Home size={15} className="text-academy-muted" />
+            <ChevronLeft size={13} className="text-academy-muted shrink-0" />
+            <span>Back</span>
+          </button>
+
+          <ThemeToggle size="sm" className="sm:hidden h-[36px] min-h-[36px] w-[36px] min-w-[36px]" />
+          <ThemeToggle size="lg" className="hidden sm:inline-flex h-[44px] min-h-[44px]" />
+
+          <button
+            type="button"
+            onClick={() => { setExitPath('/student/dashboard'); setShowExitConfirm(true); }}
+            className="h-[36px] sm:h-[44px] min-h-[36px] sm:min-h-[44px] px-2 sm:px-4 text-[11px] sm:text-xs font-semibold flex items-center gap-1 sm:gap-1.5 rounded-xl border-2 border-slate-300 dark:border-white/20 bg-white dark:bg-academy-card hover:bg-slate-100 dark:hover:bg-[#1c2027] hover:border-violet-500 dark:hover:border-violet-400 hover:-translate-y-0.5 hover:shadow-md cursor-pointer text-academy-ink shadow-xs transition-all active:scale-[0.98]"
+            aria-label="Exit to Dashboard"
+          >
+            <Home size={13} className="text-academy-muted shrink-0" />
             <span className="hidden sm:inline">Dashboard</span>
             <span className="sm:hidden">Exit</span>
           </button>
@@ -563,21 +590,21 @@ const TestReview = () => {
       {/* ──────────────────────────────────────────────────────────────────────────
           2. RESULT SUMMARY & FILTER BANNER
       ────────────────────────────────────────────────────────────────────────── */}
-      <section className="bg-white dark:bg-academy-card border-b border-academy-rule px-4 sm:px-8 py-3.5 shrink-0 shadow-2xs">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3">
-          
+      <section className="bg-white dark:bg-academy-card border-b border-academy-rule px-4 sm:px-8 py-2 shrink-0 shadow-2xs">
+        <div className="w-full max-w-[1700px] mx-auto flex flex-col md:flex-row md:items-center justify-between gap-2.5">
+
           {/* Key Scorecard Metrics */}
-          <div className="flex items-center flex-wrap gap-4 sm:gap-7">
+          <div className="flex items-center flex-wrap gap-4 sm:gap-6">
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl sm:text-3xl font-mono font-bold tracking-tight text-academy-ink tabular-nums">
+              <span className="text-xl sm:text-2xl font-mono font-bold tracking-tight text-academy-ink tabular-nums">
                 {accuracyPercentage}%
               </span>
               <span className="text-xs font-serif italic text-academy-muted">Accuracy</span>
             </div>
 
-            <div className="h-6 w-px bg-academy-rule hidden sm:block" />
+            <div className="h-5 w-px bg-academy-rule hidden sm:block" />
 
-            <div className="flex items-center gap-4 sm:gap-6 text-xs font-sans">
+            <div className="flex items-center gap-3 sm:gap-5 text-xs font-sans">
               <div className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
                 <span className="text-academy-muted">Correct:</span>
@@ -597,7 +624,7 @@ const TestReview = () => {
           </div>
 
           {/* Directory Filter Chips */}
-          <div className="flex items-center gap-1.5 bg-academy-paper-subtle dark:bg-surface-subtle p-1 rounded-lg border border-academy-rule overflow-x-auto no-scrollbar shrink-0 self-start md:self-auto max-w-full">
+          <div className="flex items-center gap-1.5 bg-academy-paper-subtle dark:bg-surface-subtle p-1 rounded-lg border-2 border-slate-300 dark:border-white/20 overflow-x-auto no-scrollbar shrink-0 self-start md:self-auto max-w-full">
             {[
               { key: 'all', label: 'All', count: questions.length },
               { key: 'incorrect', label: 'Mistakes', count: clientWrongCount },
@@ -610,9 +637,9 @@ const TestReview = () => {
                   key={f.key}
                   type="button"
                   onClick={() => setFilterType(f.key)}
-                  className={`min-h-[36px] px-3 py-1.5 rounded-md text-xs font-mono transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                  className={`min-h-[32px] px-3 py-1 rounded-md text-xs font-mono transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                     isActive
-                      ? 'bg-academy-accent text-white shadow-2xs font-semibold'
+                      ? 'bg-academy-accent text-white shadow-xs font-semibold'
                       : 'text-academy-muted hover:text-academy-ink hover:bg-white dark:hover:bg-academy-card'
                   }`}
                 >
@@ -626,25 +653,30 @@ const TestReview = () => {
       </section>
 
       {/* ──────────────────────────────────────────────────────────────────────────
-          3. MAIN EDITORIAL WORKSPACE (2-COLUMN BALANCED SPLIT)
+          3. MAIN EDITORIAL WORKSPACE (2-COLUMN BALANCED SPLIT - 100VH BOUNDED)
       ────────────────────────────────────────────────────────────────────────── */}
-      <main className="flex-1 overflow-y-auto custom-scrollbar px-4 sm:px-8 py-6 sm:py-8 pb-12">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <main className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-4 sm:px-6 lg:px-8 py-3.5 sm:py-4">
+        <div className="w-full max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
 
           {/* ── LEFT COLUMN: QUESTION & DIAGNOSTIC WORKSPACE (8 COLS) ──────────── */}
-          <div className="lg:col-span-8 space-y-6">
+          <div className="lg:col-span-8 space-y-4">
+            <QuestionCardFlip
+              isFlipped={isCardFlipped}
+              onFlip={setIsCardFlipped}
+              canFlip={!isSolutionsSequestered}
+              flipButtonLabel={isSolutionsSequestered ? "Solutions Locked" : "Show Solution & Explanation"}
+              backButtonLabel="Back to Question"
+              frontContent={
+                <div className="bg-white dark:bg-academy-card rounded-2xl border-2 border-slate-300 dark:border-white/20 p-4 sm:p-6 shadow-xs min-h-[460px] flex flex-col justify-between">
 
-            {/* Main Question Card Surface */}
-            <div className="bg-white dark:bg-academy-card rounded-xl border border-academy-rule p-6 sm:p-8 shadow-2xs">
-              
               {/* Question Meta Header */}
-              <div className="flex items-center justify-between border-b border-academy-rule-subtle pb-4 mb-6 flex-wrap gap-3">
-                <div className="flex items-center gap-3 flex-wrap">
-                  <span className="font-serif text-2xl font-normal text-academy-ink tracking-tight tabular-nums">
+              <div className="flex items-center justify-between border-b border-academy-rule-subtle pb-3 mb-4 flex-wrap gap-2.5">
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <span className="font-serif text-xl sm:text-2xl font-normal text-academy-ink tracking-tight tabular-nums">
                     Question {currentIndex + 1}
                   </span>
                   <span className="text-academy-rule font-light">•</span>
-                  
+
                   {/* Status Badge */}
                   <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-mono font-medium border shadow-2xs ${
                     qIsCorrect
@@ -686,16 +718,16 @@ const TestReview = () => {
               </div>
 
               {/* Prominent Question Text with Code Syntax Highlighting */}
-              <div className="mb-7">
-                <CodeQuestion 
-                  text={currentQ?.questionText} 
-                  category={currentCategory} 
-                  textClassName="font-serif text-lg sm:text-xl font-normal text-academy-ink leading-relaxed tracking-tight"
+              <div className="mb-4">
+                <CodeQuestion
+                  text={currentQ?.questionText}
+                  category={currentCategory}
+                  textClassName="font-serif text-base sm:text-lg font-normal text-academy-ink leading-relaxed tracking-tight"
                 />
               </div>
 
               {/* Answer Choices: Vertical Linear Stack */}
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {['A', 'B', 'C', 'D'].map((opt) => {
                   const text = currentQ?.[`option${opt}`];
                   if (!text) return null;
@@ -707,13 +739,13 @@ const TestReview = () => {
                     (currentQ?.correctAnswer && text.trim().toLowerCase() === currentQ.correctAnswer.trim().toLowerCase())
                   );
 
-                  let cardStyle = 'border-academy-rule bg-white dark:bg-academy-card text-academy-ink-secondary hover:border-academy-accent/40';
-                  let letterStyle = 'bg-academy-paper-subtle dark:bg-surface-subtle text-academy-muted border-academy-rule';
+                  let cardStyle = 'border-2 border-slate-300 dark:border-white/20 bg-white dark:bg-academy-card text-academy-ink hover:border-violet-500';
+                  let letterStyle = 'bg-slate-100 dark:bg-slate-800 text-academy-ink border-2 border-slate-300 dark:border-white/20';
                   let badge = null;
 
                   if (isTheCorrectOption && isSelected) {
                     cardStyle = 'border-2 border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-950 dark:text-emerald-200 shadow-2xs';
-                    letterStyle = 'bg-emerald-600 text-white border-emerald-600 shadow-2xs';
+                    letterStyle = 'bg-emerald-600 text-white border-2 border-emerald-600 shadow-2xs';
                     badge = (
                       <div className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-100/90 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-700 rounded-md text-xs font-mono font-medium">
                         <CheckCircle2 size={13} className="text-emerald-600 dark:text-emerald-400" />
@@ -722,7 +754,7 @@ const TestReview = () => {
                     );
                   } else if (isTheCorrectOption && !isSelected) {
                     cardStyle = 'border-2 border-emerald-500/80 bg-emerald-50/40 dark:bg-emerald-950/30 text-emerald-950 dark:text-emerald-200 shadow-2xs';
-                    letterStyle = 'bg-emerald-600 text-white border-emerald-600 shadow-2xs';
+                    letterStyle = 'bg-emerald-600 text-white border-2 border-emerald-600 shadow-2xs';
                     badge = (
                       <div className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-100/90 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-700 rounded-md text-xs font-mono font-medium">
                         <Check size={13} className="text-emerald-600 dark:text-emerald-400" />
@@ -732,7 +764,7 @@ const TestReview = () => {
                   } else if (isSelected && !isTheCorrectOption) {
                     if (hasAnswerKey) {
                       cardStyle = 'border-2 border-rose-500 bg-rose-50/70 dark:bg-rose-950/40 text-rose-950 dark:text-rose-200 shadow-2xs';
-                      letterStyle = 'bg-rose-600 text-white border-rose-600 shadow-2xs';
+                      letterStyle = 'bg-rose-600 text-white border-2 border-rose-600 shadow-2xs';
                       badge = (
                         <div className="flex items-center gap-1.5 px-2.5 py-1 bg-rose-100/90 dark:bg-rose-900/60 text-rose-800 dark:text-rose-200 border border-rose-300 dark:border-rose-700 rounded-md text-xs font-mono font-medium">
                           <XCircle size={13} className="text-rose-600 dark:text-rose-400" />
@@ -741,7 +773,7 @@ const TestReview = () => {
                       );
                     } else {
                       cardStyle = 'border-2 border-academy-accent bg-academy-paper-subtle dark:bg-surface-subtle text-academy-ink shadow-2xs';
-                      letterStyle = 'bg-academy-accent text-white border-academy-accent shadow-2xs';
+                      letterStyle = 'bg-academy-accent text-white border-2 border-academy-accent shadow-2xs';
                       badge = (
                         <div className="flex items-center gap-1.5 px-2.5 py-1 bg-academy-paper-subtle dark:bg-surface-subtle text-academy-ink border border-academy-rule rounded-md text-xs font-mono font-medium">
                           <CheckCircle2 size={13} className="text-academy-accent" />
@@ -754,7 +786,7 @@ const TestReview = () => {
                   return (
                     <div
                       key={opt}
-                      className={`w-full flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 sm:p-5 rounded-xl border transition-all ${cardStyle}`}
+                      className={`w-full flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 py-2 px-3 sm:px-4 rounded-xl transition-all ${cardStyle}`}
                     >
                       <div className="flex items-start sm:items-center gap-3.5 flex-1 min-w-0">
                         <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-mono font-bold shrink-0 border ${letterStyle}`}>
@@ -770,18 +802,18 @@ const TestReview = () => {
                 })}
               </div>
             </div>
+          }
+          backContent={
+            <div className="space-y-6">
 
-            {/* Dedicated Answer Diagnostic & Pedagogical Explanation Panel */}
-            <div className="rounded-xl border p-5 sm:p-7 transition-all bg-white dark:bg-academy-card border-academy-rule shadow-2xs space-y-6">
-              
               {/* Diagnostic Verification Header */}
               <div className="flex items-center justify-between flex-wrap gap-3 pb-4 border-b border-academy-rule-subtle">
                 <div className="flex items-center gap-3">
                   <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 border shadow-2xs ${
-                    qIsCorrect 
-                      ? 'bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800' 
-                      : qIsSkipped 
-                        ? 'bg-academy-paper-subtle dark:bg-surface-subtle text-academy-muted border-academy-rule' 
+                    qIsCorrect
+                      ? 'bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'
+                      : qIsSkipped
+                        ? 'bg-academy-paper-subtle dark:bg-surface-subtle text-academy-muted border-academy-rule'
                         : 'bg-rose-50 dark:bg-rose-950/80 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-800'
                   }`}>
                     {qIsCorrect ? <CheckCircle2 size={18} /> : qIsSkipped ? <HelpCircle size={18} /> : <XCircle size={18} />}
@@ -791,9 +823,9 @@ const TestReview = () => {
                       {qIsCorrect ? 'Key Verification: Correct Answer' : qIsSkipped ? 'Diagnostic: Question Unanswered' : 'Diagnostic: Discrepancy Analysis'}
                     </h4>
                     <p className="text-xs text-academy-muted font-normal">
-                      {qIsCorrect 
-                        ? 'Candidate selection matched the verified examination key.' 
-                        : qIsSkipped 
+                      {qIsCorrect
+                        ? 'Candidate selection matched the verified examination key.'
+                        : qIsSkipped
                           ? 'This question was skipped during your test session. Review the verified answer below.'
                           : 'Review the discrepancy between your selection and the intended answer key.'}
                     </p>
@@ -803,8 +835,8 @@ const TestReview = () => {
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-mono text-academy-muted">Credit:</span>
                   <span className={`px-2.5 py-1 rounded text-xs font-mono font-bold ${
-                    qIsCorrect 
-                      ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300' 
+                    qIsCorrect
+                      ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300'
                       : 'bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300'
                   }`}>
                     {qIsCorrect ? '+1.0 / 1.0' : '0.0 / 1.0'}
@@ -814,7 +846,7 @@ const TestReview = () => {
 
               {/* Side-by-Side Comparison Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                
+
                 {/* Candidate Selection Card */}
                 <div className={`rounded-xl p-4 sm:p-5 border shadow-2xs ${
                   qIsCorrect
@@ -828,10 +860,10 @@ const TestReview = () => {
                       Your Response
                     </span>
                     <span className={`text-[11px] font-mono font-semibold px-2 py-0.5 rounded ${
-                      qIsCorrect 
-                        ? 'bg-emerald-200/70 dark:bg-emerald-900/80 text-emerald-900 dark:text-emerald-200' 
-                        : qIsSkipped 
-                          ? 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300' 
+                      qIsCorrect
+                        ? 'bg-emerald-200/70 dark:bg-emerald-900/80 text-emerald-900 dark:text-emerald-200'
+                        : qIsSkipped
+                          ? 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
                           : (correctOptionLetter || currentQ?.correctAnswer)
                             ? 'bg-rose-200/70 dark:bg-rose-900/80 text-rose-900 dark:text-rose-200'
                             : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
@@ -901,12 +933,14 @@ const TestReview = () => {
                 {renderExplanationContent(currentQ, qIsCorrect, qIsSkipped, correctOptionLetter, currentCategory, currentIndex)}
               </div>
             </div>
-          </div>
+          }
+        />
+      </div>
 
           {/* ── RIGHT COLUMN: SECONDARY QUESTION DIRECTORY (4 COLS) ─────────────── */}
           <aside className="hidden lg:block lg:col-span-4 space-y-5 sticky top-24">
-            
-            <div className="bg-white dark:bg-academy-card rounded-xl border border-academy-rule p-6 shadow-2xs">
+
+            <div className="bg-white dark:bg-academy-card rounded-2xl border-2 border-slate-300 dark:border-white/20 p-4 sm:p-5 shadow-xs">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h4 className="font-serif text-base font-normal text-academy-ink">Question Directory</h4>
@@ -935,31 +969,31 @@ const TestReview = () => {
                     const skipped = calcIsSkipped(q);
 
                     // Filter condition
-                    const isDimmed = 
+                    const isDimmed =
                       (filterType === 'incorrect' && (correct || skipped)) ||
                       (filterType === 'correct' && !correct) ||
                       (filterType === 'skipped' && !skipped);
 
-                    let btnStyle = 'w-full min-h-[44px] rounded-lg text-xs font-mono font-medium flex items-center justify-center cursor-pointer transition-all border';
+                    let btnStyle = 'w-full h-10 min-h-[40px] max-h-[40px] rounded-xl text-xs font-mono font-bold flex items-center justify-center cursor-pointer transition-all border-2 shadow-2xs hover:-translate-y-0.5 active:scale-95';
 
                     if (isCurrent) {
-                      btnStyle += ` ring-2 ring-academy-accent dark:ring-academy-accent-deep ring-offset-2 ring-offset-white dark:ring-offset-academy-card font-bold shadow-2xs scale-105 z-10 ${
-                        correct 
-                          ? 'bg-emerald-600 text-white border-emerald-600' 
-                          : skipped 
-                            ? 'bg-slate-700 text-white border-slate-700' 
-                            : 'bg-rose-600 text-white border-rose-600'
+                      btnStyle += ` ring-2 ring-violet-500 dark:ring-violet-400 ring-offset-2 ring-offset-white dark:ring-offset-[#121520] shadow-md z-10 ${
+                        correct
+                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-emerald-500/25'
+                          : skipped
+                            ? 'bg-slate-700 text-white border-slate-700'
+                            : 'bg-rose-600 text-white border-rose-600 shadow-rose-500/25'
                       }`;
                     } else if (correct) {
-                      btnStyle += ' bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-200/80 dark:border-emerald-800/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60';
+                      btnStyle += ' bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-200 border-emerald-400 dark:border-emerald-700 hover:bg-emerald-200 dark:hover:bg-emerald-900/80 hover:border-emerald-500';
                     } else if (skipped) {
-                      btnStyle += ' bg-academy-paper-subtle dark:bg-surface-subtle text-academy-muted border-academy-rule hover:bg-white dark:hover:bg-academy-card';
+                      btnStyle += ' bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600 hover:bg-slate-200 dark:hover:bg-slate-700';
                     } else {
-                      btnStyle += ' bg-rose-50/70 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 border-rose-200/80 dark:border-rose-800/60 hover:bg-rose-100 dark:hover:bg-rose-900/60';
+                      btnStyle += ' bg-rose-100 dark:bg-rose-950/70 text-rose-800 dark:text-rose-200 border-rose-400 dark:border-rose-700 hover:bg-rose-200 dark:hover:bg-rose-900/80 hover:border-rose-500';
                     }
 
                     if (isDimmed) {
-                      btnStyle += ' opacity-25 hover:opacity-100';
+                      btnStyle += ' opacity-30 hover:opacity-100';
                     }
 
                     return (
@@ -994,12 +1028,6 @@ const TestReview = () => {
                 </span>
               </div>
             </div>
-
-            {/* Quick Action Keyboard Helper Box */}
-            <div className="bg-academy-paper-subtle/50 dark:bg-surface-subtle/40 rounded-xl p-4 border border-academy-rule text-xs text-academy-ink-secondary flex items-center justify-between">
-              <span className="font-sans">Use <kbd className="px-1.5 py-0.5 bg-white dark:bg-academy-card rounded border border-academy-rule font-mono text-[11px] font-bold">←</kbd> and <kbd className="px-1.5 py-0.5 bg-white dark:bg-academy-card rounded border border-academy-rule font-mono text-[11px] font-bold">→</kbd> keys to navigate</span>
-              <span className="text-[10px] font-mono font-semibold text-academy-accent dark:text-academy-accent-deep">Keyboard</span>
-            </div>
           </aside>
         </div>
       </main>
@@ -1008,8 +1036,8 @@ const TestReview = () => {
           4. DOCKED COMFORTABLE BOTTOM NAVIGATION BAR
       ────────────────────────────────────────────────────────────────────────── */}
       <footer className="shrink-0 bg-white dark:bg-academy-card border-t border-academy-rule px-4 sm:px-8 py-3.5 shadow-md z-20">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-          
+        <div className="w-full max-w-[1700px] mx-auto flex items-center justify-between gap-4">
+
           <button
             onClick={goPrev}
             disabled={currentIndex === 0}
@@ -1020,18 +1048,22 @@ const TestReview = () => {
             <span className="sm:hidden">Prev</span>
           </button>
 
-          {/* Position & Progress Tracker */}
+          {/* Position & Progress Tracker (Opens Mobile Palette on Tap) */}
           <button
             type="button"
             onClick={() => setShowMobileDirectory(true)}
-            className="flex flex-col items-center cursor-pointer group min-h-[44px] justify-center"
-            title="Open question directory"
+            className="flex flex-col items-center cursor-pointer group min-h-[44px] justify-center px-3 py-1 rounded-xl transition-all border border-transparent hover:border-slate-300 dark:hover:border-white/10 active:scale-95"
+            title="Open question directory palette"
+            aria-label="Open question directory palette"
           >
-            <span className="text-xs font-mono text-academy-muted tabular-nums group-hover:text-academy-accent transition-colors">
-              Question <span className="text-academy-ink font-bold group-hover:text-academy-accent">{currentIndex + 1}</span> of {questions.length}
-            </span>
-            <div className="w-32 sm:w-44 h-1.5 bg-academy-paper-subtle dark:bg-surface-subtle rounded-full mt-1.5 overflow-hidden">
-              <div 
+            <div className="flex items-center gap-1.5 text-xs font-mono text-academy-muted tabular-nums group-hover:text-academy-accent transition-colors">
+              <Layers size={13} className="text-violet-600 dark:text-violet-400 lg:hidden" />
+              <span>
+                Question <span className="text-academy-ink font-bold group-hover:text-academy-accent">{currentIndex + 1}</span> of {questions.length}
+              </span>
+            </div>
+            <div className="w-28 xs:w-36 sm:w-44 h-1.5 bg-academy-paper-subtle dark:bg-surface-subtle rounded-full mt-1.5 overflow-hidden">
+              <div
                 className="h-full bg-academy-accent transition-all duration-300 rounded-full"
                 style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
               />
@@ -1054,9 +1086,9 @@ const TestReview = () => {
           5. MOBILE QUESTION DIRECTORY DRAWER
       ────────────────────────────────────────────────────────────────────────── */}
       {showMobileDirectory && (
-        <div className="fixed inset-0 z-50 flex flex-col justify-end lg:hidden">
+        <div className="fixed inset-0 z-50 !m-0 flex flex-col justify-end lg:hidden">
           <div
-            className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs"
+            className="fixed inset-0 !m-0 bg-slate-900/50 backdrop-blur-sm"
             onClick={() => setShowMobileDirectory(false)}
           />
           <div className="relative bg-white dark:bg-academy-card rounded-t-3xl max-h-[85vh] flex flex-col overflow-hidden shadow-2xl z-10 border-t border-academy-rule animate-in slide-in-from-bottom duration-200">
@@ -1105,26 +1137,26 @@ const TestReview = () => {
                   const correct = calcIsCorrect(q);
                   const skipped = calcIsSkipped(q);
 
-                  const isDimmed = 
+                  const isDimmed =
                     (filterType === 'incorrect' && (correct || skipped)) ||
                     (filterType === 'correct' && !correct) ||
                     (filterType === 'skipped' && !skipped);
 
-                  let btnStyle = 'w-full min-h-[44px] rounded-xl text-xs font-mono font-bold flex items-center justify-center transition-all border';
+                  let btnStyle = 'w-full h-10 min-h-[40px] max-h-[40px] rounded-xl text-xs font-mono font-bold flex items-center justify-center transition-all border-2 shadow-2xs active:scale-95';
                   if (isCurrent) {
-                    btnStyle += ` ring-2 ring-academy-accent ring-offset-2 ring-offset-white dark:ring-offset-academy-card ${
-                      correct ? 'bg-emerald-600 text-white' : skipped ? 'bg-slate-700 text-white' : 'bg-rose-600 text-white'
+                    btnStyle += ` ring-2 ring-violet-500 dark:ring-violet-400 ring-offset-2 ring-offset-white dark:ring-offset-[#121520] shadow-md z-10 ${
+                      correct ? 'bg-emerald-600 text-white border-emerald-600' : skipped ? 'bg-slate-700 text-white border-slate-700' : 'bg-rose-600 text-white border-rose-600'
                     }`;
                   } else if (correct) {
-                    btnStyle += ' bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800';
+                    btnStyle += ' bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-200 border-emerald-400 dark:border-emerald-700';
                   } else if (skipped) {
-                    btnStyle += ' bg-academy-paper-subtle dark:bg-surface-subtle text-academy-muted border-academy-rule';
+                    btnStyle += ' bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600';
                   } else {
-                    btnStyle += ' bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-800';
+                    btnStyle += ' bg-rose-100 dark:bg-rose-950/70 text-rose-800 dark:text-rose-200 border-rose-400 dark:border-rose-700';
                   }
 
                   if (isDimmed) {
-                    btnStyle += ' opacity-25';
+                    btnStyle += ' opacity-30';
                   }
 
                   return (
@@ -1156,8 +1188,8 @@ const TestReview = () => {
       {/* ──────────────────────────────────────────────────────────────────────────
           6. EXIT REVIEW CONFIRMATION MODAL
       ────────────────────────────────────────────────────────────────────────── */}
-      {showExitConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
+      {showExitConfirm && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[100] !m-0 flex items-center justify-center p-4 bg-slate-950/70 dark:bg-black/80 backdrop-blur-md">
           <div
             ref={exitModalRef}
             role="dialog"
@@ -1193,7 +1225,8 @@ const TestReview = () => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

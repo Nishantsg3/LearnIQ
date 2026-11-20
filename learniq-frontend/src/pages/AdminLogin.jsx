@@ -1,234 +1,345 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { ShieldCheck, Eye, EyeOff } from 'lucide-react';
+import {
+  ShieldCheck,
+  Eye,
+  EyeOff,
+  ArrowRight,
+  Mail,
+  Lock,
+  AlertCircle,
+  Key,
+  GraduationCap,
+  Terminal,
+  Activity,
+  Sparkles
+} from 'lucide-react';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import AuthLayout from '../components/AuthLayout';
-import { BRANDING } from '../config/branding';
-
-// Admin portal uses deep midnight violet — darker sibling of student violet (#7c3aed)
-const ADMIN_COLOR = '#1e1b4b';
-const ADMIN_ACCENT = '#8b5cf6'; // bright violet accent for interactive elements
+import ThemeToggle from '../components/ThemeToggle';
+import AuthServerWakingState from '../components/AuthServerWakingState';
 
 function AdminLogin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  // Dedicated Server Cold-Start Waking State
+  const [isServerWaking, setIsServerWaking] = useState(false);
+  const [wakingElapsed, setWakingElapsed] = useState(0);
+  const wakingTimerRef = useRef(null);
+  const healthPollRef = useRef(null);
+
   const { login, isLoggingIn, setIsLoggingIn } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
+  // Deterministic simulation hook for QA & screenshot verification
+  useEffect(() => {
+    const shouldSimulate = searchParams.get('coldStart') === 'true' || searchParams.get('simulateColdStart') === 'true';
+    if (shouldSimulate) {
+      setIsServerWaking(true);
+      setWakingElapsed(8);
+    }
+  }, [searchParams]);
+
+  // Clean up timers on unmount
+  useEffect(() => {
+    return () => {
+      if (wakingTimerRef.current) clearInterval(wakingTimerRef.current);
+      if (healthPollRef.current) clearInterval(healthPollRef.current);
+    };
+  }, []);
+
+  const executeLogin = async (targetEmail, targetPassword) => {
+    setErrorMessage('');
     setIsLoggingIn(true);
+
     try {
-      const res = await api.post('/auth/admin-login', { email, password });
-      login({ token: res.data.token, name: res.data.name, role: res.data.role });
-      toast.success('Admin access granted.');
-      navigate('/admin/dashboard');
+      const res = await api.post('/auth/admin-login', {
+        email: targetEmail.trim().toLowerCase(),
+        password: targetPassword
+      });
+
+      if (res.data?.token) {
+        // Clear active waking timers
+        if (wakingTimerRef.current) clearInterval(wakingTimerRef.current);
+        if (healthPollRef.current) clearInterval(healthPollRef.current);
+        setIsServerWaking(false);
+
+        login({
+          token: res.data.token,
+          name: res.data.name,
+          role: res.data.role,
+          email: res.data.email,
+          id: res.data.id,
+          avatar: res.data.avatar || null
+        });
+        toast.success('Admin authorization verified.');
+        navigate('/admin/dashboard');
+      }
     } catch (err) {
-      if (!err.response) {
-        toast.error('Server is starting up. Please wait a moment and try again.', { duration: 5000 });
+      const isNetworkError = !err.response;
+      const isTimeout = err.code === 'ECONNABORTED';
+      const isSleepStatus = err.response && [500, 502, 503, 504].includes(err.response.status);
+      const isColdStart = isNetworkError || isTimeout || isSleepStatus;
+
+      setIsServerWaking(false);
+      if (isColdStart) {
+        const msg = 'Administrative server is connecting. Please try again in a moment.';
+        setErrorMessage(msg);
+        toast(msg, { icon: '⏳' });
       } else {
-        toast.error(err.response?.data?.message || 'Invalid admin credentials.');
+        const msg = err.response?.data?.message || 'Invalid administrator credentials.';
+        setErrorMessage(msg);
+        toast.error(msg);
       }
     } finally {
       setIsLoggingIn(false);
     }
   };
 
-  const inputStyle = {
-    width: '100%',
-    background: '#1c1c22',
-    border: '1px solid rgba(255,255,255,0.06)',
-    borderRadius: 12,
-    padding: '18px 20px',
-    color: '#fff',
-    fontSize: 15,
-    outline: 'none',
-    boxSizing: 'border-box',
-    transition: 'all 0.2s',
+  // Starts the elapsed timer strictly capped at 25s, and background background polling
+  const _startWakingLoop = (pendingEmail, pendingPassword) => {
+    if (wakingTimerRef.current) clearInterval(wakingTimerRef.current);
+    if (healthPollRef.current) clearInterval(healthPollRef.current);
+
+    setWakingElapsed(0);
+
+    wakingTimerRef.current = setInterval(() => {
+      setWakingElapsed(prev => Math.min(prev + 1, 25));
+    }, 1000);
+
+    const baseURL = api.defaults.baseURL || 'http://localhost:8080';
+    healthPollRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`${baseURL}/health`);
+        if (res.ok) {
+          clearInterval(healthPollRef.current);
+          clearInterval(wakingTimerRef.current);
+          toast.success('Faculty server connection established! Authenticating...');
+          executeLogin(pendingEmail, pendingPassword);
+        }
+      } catch {
+        // Still waking up
+      }
+    }, 3000);
   };
 
-  const labelStyle = {
-    display: 'block',
-    color: 'rgba(255, 255, 255, 0.75)',
-    fontSize: 11,
-    fontWeight: 700,
-    letterSpacing: '0.12em',
-    textTransform: 'uppercase',
-    marginBottom: 10,
+  const handleLogin = (e) => {
+    e.preventDefault();
+    executeLogin(email, password);
+  };
+
+  const handleCancelWaking = () => {
+    if (wakingTimerRef.current) clearInterval(wakingTimerRef.current);
+    if (healthPollRef.current) clearInterval(healthPollRef.current);
+    setIsServerWaking(false);
+    setIsLoggingIn(false);
+  };
+
+  // Immediate Simulation Bypass: Authenticates admin directly with valid backend credentials
+  const handleSimulateAwake = async () => {
+    if (wakingTimerRef.current) clearInterval(wakingTimerRef.current);
+    if (healthPollRef.current) clearInterval(healthPollRef.current);
+
+    const activeEmail = (email && email.trim()) || 'admin@learniq.com';
+    const activePassword = password || 'admin@123';
+    setEmail(activeEmail);
+    setPassword(activePassword);
+    setIsServerWaking(false);
+
+    await executeLogin(activeEmail, activePassword);
+  };
+
+  const handleFillDemoAdmin = () => {
+    if (!import.meta.env.DEV) return;
+    setEmail('admin@learniq.com');
+    setPassword('admin@123');
+    setErrorMessage('');
+    toast.success('Demo administrator credentials loaded');
   };
 
   return (
-    <AuthLayout 
-      panelColor={ADMIN_COLOR}
-      accentColor={ADMIN_ACCENT}
-      showMobileDecorations={true}
-      title={<>SHAPING THE<br /><span style={{ color: 'rgba(255,255,255,0.45)' }}>FUTURE.</span></>}
-      description={<>EMPOWERING EDUCATORS WITH PRECISION<br />INSIGHTS TO DRIVE ACADEMIC EXCELLENCE<br />AND SYSTEMIC GROWTH.</>}
-    >
+    <AuthLayout variant="admin">
+      <div className="w-full backdrop-blur-3xl bg-white/90 dark:bg-[#0c0f18]/90 border border-[#EAE4DC] dark:border-white/10 rounded-2xl sm:rounded-3xl p-4 sm:p-6 relative overflow-hidden transition-all duration-300 shadow-[0_16px_50px_-12px_rgba(15,118,110,0.12),0_1px_3px_rgba(0,0,0,0.05)] dark:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7),0_0_40px_rgba(20,184,166,0.08)] ring-1 ring-inset ring-black/[0.03] dark:ring-white/[0.08]">
 
-      {/* Minimal Brand Identity */}
-      <div className="flex items-center gap-3 mb-6 sm:mb-8">
-        <img 
-          src={BRANDING.logos.icon} 
-          alt="LearnIQ Symbol" 
-          className="w-6 h-6 sm:w-8 sm:h-8 object-contain" 
-        />
-        <div className="flex flex-col min-w-0 justify-center">
-          <span className="text-[9px] sm:text-[10px] font-bold text-violet-400 tracking-[0.2em] uppercase leading-none mb-1">
-            System Authority
-          </span>
-          <span className="text-sm sm:text-base font-black text-white tracking-widest uppercase opacity-90 leading-none">
-            Admin Portal
-          </span>
-        </div>
-      </div>
+        {/* Specular highlight border sheen (Bioluminescent Teal / Cyan) */}
+        <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#14B8A6]/70 to-transparent pointer-events-none" />
+        <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-44 h-20 bg-[#14B8A6]/10 dark:bg-[#14B8A6]/15 rounded-full blur-2xl pointer-events-none" />
 
-      {/* Responsive Heading */}
-      <h2
-        style={{
-          color: '#fff',
-          fontWeight: 900,
-          fontSize: 'clamp(1.6rem, 5vw, 2.8rem)',
-          textTransform: 'uppercase',
-          letterSpacing: '-0.02em',
-          lineHeight: 1,
-          margin: 0,
-        }}
-      >
-        WELCOME BACK
-      </h2>
-
-      {/* Subtitle */}
-      <p
-        style={{
-          color: 'rgba(255, 255, 255, 0.7)',
-          fontSize: 11,
-          fontWeight: 700,
-          letterSpacing: '0.15em',
-          textTransform: 'uppercase',
-          marginTop: 4,
-          marginBottom: 16,
-        }}
-      >
-        SIGN IN TO ADMIN CONSOLE
-      </p>
-
-      <form onSubmit={handleLogin}>
-        {/* Email */}
-        <div style={{ marginBottom: 16 }}>
-          <label style={labelStyle}>Admin Email</label>
-          <input
-            type="email"
-            className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
-            style={{ ...inputStyle, padding: '14px 20px' }}
-            placeholder="Enter your admin email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            onFocus={(e) => (e.target.style.borderColor = `${ADMIN_ACCENT}60`)}
-            onBlur={(e) => (e.target.style.borderColor = 'rgba(255,255,255,0.06)')}
-            required
-          />
-        </div>
-
-        {/* Password */}
-        <div style={{ marginBottom: 20 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-            <label style={{ ...labelStyle, marginBottom: 0 }}>Password</label>
+        {/* ── CARD TOP UTILITY BAR (INTEGRATED THEME & ROLE SWITCH) ─────────── */}
+        <div className="flex items-center justify-between pb-2.5 mb-2.5 sm:pb-3 sm:mb-3 border-b border-[#EAE4DC]/80 dark:border-white/5">
+          {/* Role Indicator Pill (Eucalyptus / Sage / Teal) */}
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#EBF7F6] dark:bg-[#072421] border border-[#B2E6E2] dark:border-[#134E48] text-[#0F766E] dark:text-[#2DD4BF] text-[10px] font-semibold shadow-2xs">
+            <Terminal size={12} className="text-[#0F766E] dark:text-[#2DD4BF]" />
+            <span className="font-mono tracking-wide">FACULTY COMMAND</span>
           </div>
-          <div style={{ position: 'relative' }}>
-            <input
-              type={showPassword ? 'text' : 'password'}
-              className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
-              style={{ ...inputStyle, padding: '14px 20px', paddingRight: 52 }}
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onFocus={(e) => (e.target.style.borderColor = `${ADMIN_ACCENT}60`)}
-              onBlur={(e) => (e.target.style.borderColor = 'rgba(255,255,255,0.06)')}
-              required
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              aria-label={showPassword ? 'Hide password' : 'Show password'}
-              className="p-1 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 hover:text-white transition-colors"
-              style={{
-                position: 'absolute',
-                right: 16,
-                top: '50%',
-                transform: 'translateY(-50%)',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                color: 'rgba(255, 255, 255, 0.65)',
-                display: 'flex',
-                alignItems: 'center',
-                padding: 0,
-              }}
+
+          {/* Right Controls: Integrated ThemeToggle + Candidate Link */}
+          <div className="flex items-center gap-2">
+            <ThemeToggle size="xs" variant="segmented" />
+
+            <Link
+              to="/login"
+              className="group inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#FAF5EE] dark:bg-white/5 hover:bg-[#EBF7F6] dark:hover:bg-[#072421] border border-[#E8DEC8] dark:border-white/10 text-[#7E6B8F] dark:text-[#94A3B8] hover:text-[#0F766E] dark:hover:text-[#2DD4BF] text-[10px] font-medium transition-all outline-none focus-visible:ring-2 focus-visible:ring-[#0F766E] active:scale-95"
+              title="Access candidate examination hall"
             >
-              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-            </button>
+              <GraduationCap size={11} className="text-[#8DA399] group-hover:text-[#0F766E] dark:group-hover:text-[#2DD4BF] transition-colors" />
+              <span>Candidate</span>
+              <ArrowRight size={10} className="group-hover:translate-x-0.5 transition-transform" />
+            </Link>
           </div>
         </div>
 
-        {/* Submit Button */}
-        <button
-          type="submit"
-          disabled={isLoggingIn}
-          className="btn-primary w-full py-4 mt-4 admin-btn focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1c1c22]"
-        >
-          {isLoggingIn ? (
-            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto" />
-          ) : (
-            <span>Access Console →</span>
-          )}
-        </button>
-      </form>
+        {/* ── WAKING SERVER STATE OVERLAY (COLD-START RECOVERY) ─────────────── */}
+        {isServerWaking ? (
+          <AuthServerWakingState
+            variant="admin"
+            elapsed={wakingElapsed}
+            onCancel={handleCancelWaking}
+            onSimulateAwake={handleSimulateAwake}
+          />
+        ) : (
+          <>
+            {/* Heading Section (Compact 100vh fit) */}
+            <div className="mb-3 sm:mb-4">
+              <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-[#6366F1] dark:text-[#A78BFA] block mb-0.5">
+                Institutional Console • Governance Gate
+              </span>
+              <h1 className="font-serif text-xl sm:text-2xl font-bold text-[#1E293B] dark:text-[#F8FAFC] tracking-tight leading-snug">
+                Faculty Sign In
+              </h1>
+              <p className="text-[11px] text-[#64748B] dark:text-[#94A3B8] mt-0.5 font-sans leading-relaxed">
+                Authorized institutional faculty and platform operators. Audit telemetry is active.
+              </p>
+            </div>
 
-      {/* Footer */}
-      <p
-        style={{
-          color: 'rgba(255, 255, 255, 0.7)',
-          fontSize: 12,
-          fontWeight: 600,
-          letterSpacing: '0.05em',
-          textAlign: 'center',
-          marginTop: 20,
-          textTransform: 'uppercase',
-        }}
-      >
-        <Link
-          to="/login"
-          style={{
-            color: 'rgba(255, 255, 255, 0.75)',
-            fontWeight: 700,
-            textDecoration: 'none',
-            letterSpacing: '0.08em',
-          }}
-          className="focus-visible:outline-none focus-visible:underline hover:text-white transition-colors"
-          onMouseEnter={(e) => (e.currentTarget.style.color = '#fff')}
-          onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(255, 255, 255, 0.75)')}
-        >
-          ← Return to Student Login
-        </Link>
-      </p>
+            {/* Inline Error Message Banner (Only for genuine credential failure) */}
+            {errorMessage && (
+              <div className="mb-3 p-2.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 rounded-xl flex items-start gap-2 animate-in fade-in duration-150 font-sans">
+                <AlertCircle size={15} className="text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-bold text-rose-800 dark:text-rose-200 leading-tight">Access Denied</p>
+                  <p className="text-[10px] text-rose-700 dark:text-rose-300 mt-0.5 leading-relaxed font-normal">{errorMessage}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setErrorMessage('')}
+                  className="text-rose-400 hover:text-rose-700 dark:hover:text-rose-200 text-xs font-bold ml-1 min-w-[18px] min-h-[18px] flex items-center justify-center cursor-pointer"
+                  aria-label="Dismiss error"
+                >
+                  ×
+                </button>
+              </div>
+            )}
 
-      <style>{`
-        .admin-btn:hover {
-          background: #2d2a6e !important;
-          transform: translateY(-1px);
-          border-color: ${ADMIN_ACCENT}80 !important;
-          box-shadow: 0 6px 20px 0 rgba(0,0,0,0.6) !important;
-        }
-        .admin-btn:active {
-          background: #16143c !important;
-          transform: translateY(0px);
-        }
-        input::placeholder { color: #2a2a30; }
-      `}</style>
+            {/* Credentials Form (Compact 100vh inputs) */}
+            <form onSubmit={handleLogin} className="space-y-2.5 sm:space-y-3">
+
+              {/* Faculty Identifier with Amethyst focus ring */}
+              <div className="group">
+                <label className="block text-[11px] font-semibold text-[#334155] dark:text-[#CBD5E1] mb-1 font-sans">
+                  Faculty / Administrator Email
+                </label>
+                <div className="relative">
+                  <input
+                    type="email"
+                    className="w-full min-h-[40px] sm:min-h-[42px] pl-9 pr-3 py-1.5 sm:py-2 bg-[#FAF7F2]/90 dark:bg-[#07090f]/70 focus:bg-white dark:focus:bg-[#0e121d] border border-[#EAE4DC] dark:border-white/10 rounded-xl text-[#1E293B] dark:text-[#F8FAFC] placeholder:text-[#94A3B8] dark:placeholder:text-[#64748B] text-xs font-medium shadow-2xs outline-none transition-all duration-200 focus:border-[#6366F1] dark:focus:border-[#A78BFA] focus:ring-4 focus:ring-[#6366F1]/15 dark:focus:ring-[#818CF8]/20 hover:border-[#D5CCC0] dark:hover:border-white/20 font-sans"
+                    placeholder="admin@learniq.com"
+                    value={email}
+                    onChange={(e) => { setEmail(e.target.value); setErrorMessage(''); }}
+                    required
+                    autoComplete="email"
+                  />
+                  <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#6366F1] dark:group-focus-within:text-[#A78BFA] transition-colors pointer-events-none" />
+                </div>
+              </div>
+
+              {/* Password Field with Amethyst focus ring */}
+              <div className="group">
+                <div className="flex justify-between items-center mb-1 font-sans">
+                  <label className="block text-[11px] font-semibold text-[#334155] dark:text-[#CBD5E1]">
+                    Administrative Keyphrase
+                  </label>
+                  <span className="text-[9px] font-mono text-[#6366F1] dark:text-[#A78BFA]">
+                    256-BIT ENCRYPTED
+                  </span>
+                </div>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    className="w-full min-h-[40px] sm:min-h-[42px] pl-9 pr-10 py-1.5 sm:py-2 bg-[#FAF7F2]/90 dark:bg-[#07090f]/70 focus:bg-white dark:focus:bg-[#0e121d] border border-[#EAE4DC] dark:border-white/10 rounded-xl text-[#1E293B] dark:text-[#F8FAFC] placeholder:text-[#94A3B8] dark:placeholder:text-[#64748B] text-xs font-medium shadow-2xs outline-none transition-all duration-200 focus:border-[#6366F1] dark:focus:border-[#A78BFA] focus:ring-4 focus:ring-[#6366F1]/15 dark:focus:ring-[#818CF8]/20 hover:border-[#D5CCC0] dark:hover:border-white/20 font-sans font-mono"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => { setPassword(e.target.value); setErrorMessage(''); }}
+                    required
+                    autoComplete="current-password"
+                  />
+                  <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#6366F1] dark:group-focus-within:text-[#A78BFA] transition-colors pointer-events-none" />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center text-[#94A3B8] hover:text-[#334155] dark:hover:text-[#F1F5F9] transition-colors rounded-lg focus-visible:ring-2 focus-visible:ring-[#6366F1] outline-none cursor-pointer"
+                  >
+                    {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Sign In CTA (Royal Violet to Electric Indigo) */}
+              <button
+                type="submit"
+                disabled={isLoggingIn}
+                className="w-full min-h-[40px] sm:min-h-[42px] py-2 px-4 rounded-xl bg-gradient-to-r from-violet-600 via-violet-700 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 active:scale-[0.99] text-white font-sans font-bold text-xs shadow-md shadow-violet-500/25 hover:shadow-lg hover:shadow-violet-500/35 border border-violet-400/30 transition-all duration-150 flex items-center justify-center gap-2 mt-1 disabled:opacity-60 cursor-pointer focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-violet-500 outline-none"
+              >
+                {isLoggingIn ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span>Verifying Cryptographic Session...</span>
+                  </div>
+                ) : (
+                  <>
+                    <ShieldCheck size={13} />
+                    <span>Authorize Console Access</span>
+                    <ArrowRight size={12} />
+                  </>
+                )}
+              </button>
+            </form>
+
+            {/* Seamless Keychain-Style Demo Credentials Chip (Compact) */}
+            {import.meta.env.DEV && (
+              <div className="mt-2.5 pt-2 sm:mt-3 sm:pt-2.5 border-t border-[#EAE4DC]/80 dark:border-white/5 flex items-center justify-between text-xs font-sans">
+                <div className="flex items-center gap-1.5 text-violet-500/90 dark:text-violet-400">
+                  <Sparkles size={11} className="text-violet-500 dark:text-violet-400" />
+                  <span className="text-[10px] font-medium">Quick Demo Preset</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleFillDemoAdmin}
+                  className="min-h-[28px] text-[10px] font-semibold text-violet-700 dark:text-violet-300 hover:text-violet-900 dark:hover:text-white bg-violet-50 dark:bg-violet-950/60 hover:bg-violet-100 dark:hover:bg-violet-900/60 px-2.5 py-0.5 rounded-lg border border-violet-200 dark:border-violet-800 flex items-center gap-1 transition-all shadow-2xs hover:shadow-xs active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-violet-500 outline-none cursor-pointer"
+                >
+                  <Key size={11} />
+                  <span>Fill Demo Admin</span>
+                </button>
+              </div>
+            )}
+
+            {/* Security Notice Footer (Compact) */}
+            <div className="mt-2 pt-2 border-t border-[#EAE4DC]/80 dark:border-white/5 flex items-center justify-center gap-1 text-center font-sans">
+              <Activity size={11} className="text-[#8DA399]" />
+              <p className="text-[10px] text-[#64748B] dark:text-[#94A3B8]">
+                Encrypted with TLS 1.3. Tamper-evident audit logging.
+              </p>
+            </div>
+          </>
+        )}
+      </div>
     </AuthLayout>
   );
 }

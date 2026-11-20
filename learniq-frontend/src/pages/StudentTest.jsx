@@ -1,10 +1,13 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import CodeQuestion from '../components/CodeQuestion';
 import BrandLogo from '../components/BrandLogo';
 import ThemeToggle from '../components/ThemeToggle';
-import { Clock, ChevronLeft, ChevronRight, Trophy, RotateCcw, Bookmark, Send, AlertTriangle, X, Lock } from 'lucide-react';
+import ConfirmModal from '../components/ConfirmModal';
+import QuestionCardFlip from '../components/QuestionCardFlip';
+import { Clock, ChevronLeft, ChevronRight, Trophy, RotateCcw, Bookmark, Send, AlertTriangle, X, Lock, CheckCircle2, Activity } from 'lucide-react';
 import api from '../utils/api';
 import { ExamCockpitSkeleton } from '../components/common/Skeleton';
 
@@ -79,6 +82,11 @@ const StudentTest = () => {
     return parseInt(sessionStorage.getItem(`malpractice_${attemptId}`) || '0');
   });
   const [showMalpractice, setShowMalpractice] = useState(false);
+  const [isCardFlipped, setIsCardFlipped] = useState(false);
+
+  useEffect(() => {
+    setIsCardFlipped(false);
+  }, [currentIndex]);
 
   const answersRef = useRef({});
   const timerRef   = useRef(null);
@@ -153,6 +161,11 @@ const StudentTest = () => {
       setQuestions(nq);
       setTimeLeft(timeRes.data.remainingTime);
 
+      if (attemptRes?.data?.status === 'SUBMITTED' || attemptRes?.data?.submitted) {
+        setResult(attemptRes.data);
+        return;
+      }
+
       if (attemptRes?.data?.answerReviews) {
         const restored = {};
         attemptRes.data.answerReviews.forEach(r => {
@@ -162,7 +175,7 @@ const StudentTest = () => {
         answersRef.current = restored;
         const first = nq.findIndex(q => !restored[q.id]);
         setCurrentIndex(first !== -1 ? first : 0);
-        
+
         const v = new Set([0]);
         nq.forEach((q, i) => { if (restored[q.id]) v.add(i); });
         setVisited(v);
@@ -235,21 +248,21 @@ const StudentTest = () => {
     isSubmittingRef.current = true;
     setSubmitting(true);
     setAutoSubmitted(true);
-    
+
     if (reason === 'malpractice') {
-      toast.error("SECURITY VIOLATION! TERMINATING SESSION...", { 
-        duration: 5000, 
+      toast.error("SECURITY VIOLATION! TERMINATING SESSION...", {
+        duration: 5000,
         id: 'malpractice-toast',
         style: { fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.1em' }
       });
     } else {
-      toast.error("TIME'S UP! AUTO-SUBMITTING ASSESSMENT...", { 
-        duration: 5000, 
+      toast.error("TIME'S UP! AUTO-SUBMITTING ASSESSMENT...", {
+        duration: 5000,
         id: 'time-toast',
         style: { fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.1em' }
       });
     }
-    
+
     await submitTest(true);
   }, [autoSubmitted, result, submitTest]);
 
@@ -507,17 +520,23 @@ const StudentTest = () => {
   const themeHover = '';
 
   const paletteStyle = (status, isCurrent) => {
-    const tBg = 'bg-brand-700 dark:bg-brand-600';
-    const tRing = 'ring-brand-700 dark:ring-brand-400';
+    const base = 'h-9 w-full rounded-lg text-xs font-mono font-bold flex items-center justify-center cursor-pointer transition-all relative border min-w-0';
 
-    const base = 'w-9 h-9 rounded-md text-xs font-mono font-bold flex items-center justify-center cursor-pointer transition-all relative border';
-    if (isCurrent) return `${base} ring-2 ${tRing} ring-offset-2 ring-offset-white dark:ring-offset-academy-card ${tBg} text-white shadow-2xs z-10 scale-105 border-transparent`;
+    if (isCurrent) {
+      return `${base} ring-2 ring-violet-600 dark:ring-violet-400 ring-offset-2 ring-offset-white dark:ring-offset-[#15181e] border-2 border-violet-600 dark:border-violet-400 bg-violet-50 dark:bg-violet-950/60 text-violet-700 dark:text-violet-300 shadow-sm z-10 scale-105 font-black`;
+    }
+
     switch (status) {
-      case 'answeredMarked': return `${base} ${tBg} text-white border-transparent`;
-      case 'answered':       return `${base} ${tBg} text-white border-transparent`;
-      case 'marked':         return `${base} bg-amber-500 text-white border-transparent`;
-      case 'visited':        return `${base} bg-academy-paper-subtle dark:bg-surface-subtle text-academy-ink border-academy-rule hover:bg-academy-rule-subtle`;
-      default:               return `${base} bg-white dark:bg-academy-card text-academy-muted border-academy-rule hover:border-academy-accent/50`;
+      case 'answeredMarked':
+        return `${base} bg-emerald-600 dark:bg-emerald-500 text-white border-2 border-amber-400 dark:border-amber-400 shadow-2xs font-bold`;
+      case 'answered':
+        return `${base} bg-emerald-600 dark:bg-emerald-500 text-white border-emerald-600 dark:border-emerald-500 font-bold shadow-2xs`;
+      case 'marked':
+        return `${base} bg-white dark:bg-academy-card text-amber-700 dark:text-amber-300 border-2 border-amber-500 dark:border-amber-500 font-bold shadow-2xs`;
+      case 'visited':
+        return `${base} bg-slate-100 dark:bg-[#1a202c] text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:border-violet-400`;
+      default:
+        return `${base} bg-slate-100 dark:bg-[#15181e] text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:border-violet-400 hover:text-slate-900 dark:hover:text-slate-100`;
     }
   };
 
@@ -559,32 +578,40 @@ const StudentTest = () => {
     const targetAttemptId = result.id || attemptId;
 
     return (
-      <div className="fixed inset-0 w-screen h-screen bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100] overflow-y-auto custom-scrollbar">
-        <div className="relative w-full max-w-lg animate-in zoom-in-95 duration-200">
-          <div className="bg-white dark:bg-[#15181e] rounded-3xl p-8 sm:p-10 shadow-2xl border border-slate-200 dark:border-[#262a33] relative overflow-hidden">
-             <div className={`absolute top-0 left-0 right-0 h-1.5 ${isMain ? 'bg-rose-500' : 'bg-violet-600'}`} />
+      <div className="fixed inset-0 w-screen h-screen h-[100dvh] max-h-[100dvh] bg-[#FBF9F5] dark:bg-[#090C15] flex flex-col items-center justify-center p-3 sm:p-6 z-[100] overflow-y-auto custom-scrollbar">
+        {/* Ambient Backlight Aura */}
+        <div className={`absolute w-[500px] h-[500px] rounded-full blur-3xl pointer-events-none opacity-20 dark:opacity-30 ${isMain ? 'bg-rose-500' : 'bg-indigo-600'}`} />
 
-             <div className="text-center mb-6">
-                <div className="w-16 h-16 bg-violet-50 dark:bg-violet-950/60 border border-violet-100 dark:border-violet-900/50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-violet-600 dark:text-violet-400 shadow-sm">
-                  <Trophy size={32} />
+        <div className="relative w-full max-w-xl animate-in zoom-in-95 duration-200 z-10 max-h-[94dvh] flex flex-col">
+          <div className="bg-white dark:bg-[#151A28] rounded-3xl p-5 sm:p-10 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] dark:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] border border-slate-200/90 dark:border-white/10 relative overflow-y-auto custom-scrollbar backdrop-blur-2xl">
+             <div className={`absolute top-0 left-0 right-0 h-1.5 ${isMain ? 'bg-rose-500' : 'bg-indigo-600'}`} />
+
+             <div className="text-center mb-4 sm:mb-6">
+                <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4 border shadow-sm ${
+                  isMain
+                    ? 'bg-rose-50 dark:bg-rose-950/60 border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400'
+                    : 'bg-indigo-50 dark:bg-indigo-950/60 border-indigo-200 dark:border-indigo-900/50 text-indigo-600 dark:text-indigo-400'
+                }`}>
+                  <Trophy size={24} className="sm:w-8 sm:h-8" />
                 </div>
-                <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight mb-1">Assessment Complete</h1>
+                <h1 className="text-xl sm:text-3xl font-serif font-bold text-slate-900 dark:text-slate-100 tracking-tight mb-1">Assessment Complete</h1>
                 <p className="text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider">{test?.title || result.testTitle || 'Diagnostic Assessment'}</p>
              </div>
 
              {/* Score Gauge Section */}
-             <div className="flex justify-center mb-6">
-                <div className="relative w-32 h-32 flex items-center justify-center">
+             <div className="flex justify-center mb-4 sm:mb-6">
+                <div className="relative w-28 h-28 sm:w-36 sm:h-36 flex items-center justify-center">
                    <svg className="w-full h-full -rotate-90">
-                      <circle cx="64" cy="64" r="54" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-slate-100 dark:text-[#1e222b]" />
-                      <circle cx="64" cy="64" r="54" stroke="currentColor" strokeWidth="8" fill="transparent" 
-                              strokeDasharray={340} 
-                              strokeDashoffset={340 - (340 * Math.min(100, Math.max(0, displayScore))) / 100}
+                      <circle cx="72" cy="72" r="60" stroke="currentColor" strokeWidth="9" fill="transparent" className="text-slate-100 dark:text-[#1E2433]" />
+                      <circle cx="72" cy="72" r="60" stroke="currentColor" strokeWidth="9" fill="transparent"
+                              strokeDasharray={377}
+                              strokeDashoffset={377 - (377 * Math.min(100, Math.max(0, displayScore))) / 100}
+                              strokeLinecap="round"
                               className={`${themeText} transition-all duration-700 ease-out`} />
                    </svg>
                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-3xl font-extrabold text-slate-900 dark:text-slate-100 leading-none tabular-nums">{displayScore}%</span>
-                      <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-1">Accuracy</span>
+                      <span className="text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-slate-100 leading-none tabular-nums font-mono">{displayScore}%</span>
+                      <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5 sm:mt-1">Accuracy</span>
                    </div>
                 </div>
              </div>
@@ -597,9 +624,9 @@ const StudentTest = () => {
                   { label: 'Correct', color: 'text-emerald-600 dark:text-emerald-400', value: displayCorrect },
                   { label: 'Wrong', color: 'text-rose-600 dark:text-rose-400', value: displayWrong },
                 ].map((stat) => (
-                  <div key={stat.label} className="bg-slate-50 dark:bg-[#1a1d24] border border-slate-200/80 dark:border-[#262a33] rounded-xl p-2.5">
+                  <div key={stat.label} className="bg-slate-50 dark:bg-[#101420] border border-slate-200/80 dark:border-white/5 rounded-xl p-3">
                     <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-0.5">{stat.label}</p>
-                    <p className={`text-base font-extrabold ${stat.color} tabular-nums`}>{stat.value}</p>
+                    <p className={`text-lg font-extrabold ${stat.color} tabular-nums font-mono`}>{stat.value}</p>
                   </div>
                 ))}
              </div>
@@ -615,7 +642,7 @@ const StudentTest = () => {
              )}
 
              {/* Actions */}
-             <div className="flex flex-col gap-2">
+             <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={() => {
                     if (targetAttemptId) {
@@ -624,13 +651,13 @@ const StudentTest = () => {
                       navigate('/student/dashboard');
                     }
                   }}
-                  className={`w-full py-3 ${themeBg} ${themeHover} text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-all shadow-sm cursor-pointer`}
+                  className={`w-full py-3.5 ${themeBg} ${themeHover} text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-all shadow-md active:scale-[0.98] cursor-pointer`}
                 >
                   View Detailed Scorecard
                 </button>
                 <button
                   onClick={() => navigate('/student/dashboard')}
-                  className="w-full py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-xs uppercase tracking-wider transition-all cursor-pointer"
+                  className="w-full py-3.5 bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-white/10 rounded-xl font-bold text-xs uppercase tracking-wider transition-all active:scale-[0.98] cursor-pointer"
                 >
                   Return to Dashboard
                 </button>
@@ -644,46 +671,69 @@ const StudentTest = () => {
   /* ═══════════════ EXAM UI ══════════════════════════════════════════ */
   const currentQ = questions[currentIndex];
   const answeredCount = Object.keys(answers).length;
+  const markedCount = Object.keys(marked).filter(k => marked[k]).length;
   const isUrgent = timeLeft !== null && timeLeft > 0 && timeLeft < 60;
   const isWarning = timeLeft !== null && timeLeft >= 60 && timeLeft < 300;
 
   return (
-    <div className="h-screen bg-[#f9f9f7] dark:bg-[#0e1015] text-[#090d16] dark:text-slate-100 flex flex-col overflow-hidden transition-colors duration-200" style={{ fontFamily: "'Inter', sans-serif" }}>
-      {/* ── TOP BAR ─────────────────────────────────────────────────── */}
-      <header className="flex items-center justify-between px-3 md:px-6 py-2.5 md:py-3 bg-white dark:bg-academy-card border-b border-academy-rule flex-shrink-0 gap-2 z-[60] shadow-2xs">
-        <div className="flex items-center gap-2 md:gap-4 min-w-0">
+    <div className="h-screen max-h-screen overflow-hidden flex flex-col bg-[#f9f9f7] dark:bg-[#0e1015] text-[#090d16] dark:text-slate-100 transition-colors duration-200" style={{ fontFamily: "'Inter', sans-serif" }}>
+      {/* ── 1. FIXED, COMPACT EXAMINATION TOPBAR ─────────────────────── */}
+      <header className="h-14 flex-shrink-0 bg-white dark:bg-academy-card border-b border-academy-rule px-4 sm:px-6 flex items-center justify-between gap-3 z-30 shadow-2xs">
+        {/* Left: Exit & Test Identity */}
+        <div className="flex items-center gap-3 min-w-0">
           <button
             type="button"
             onClick={handleExit}
-            className="min-h-[40px] px-3 py-1.5 text-xs rounded-lg border border-academy-rule bg-white dark:bg-academy-card text-academy-ink hover:bg-academy-paper-subtle dark:hover:bg-surface-subtle flex items-center gap-1.5 cursor-pointer font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
+            className="min-h-[38px] px-3 py-1.5 text-xs rounded-lg border border-academy-rule bg-white dark:bg-academy-card text-academy-ink hover:bg-academy-paper-subtle dark:hover:bg-surface-subtle flex items-center gap-1.5 cursor-pointer font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 shrink-0 transition-colors"
+            title="Exit Assessment"
           >
-            <ChevronLeft size={14} className="text-academy-muted" />
+            <ChevronLeft size={15} className="text-academy-muted" />
             <span className="hidden sm:inline">Exit</span>
           </button>
-          
-          <div className="hidden md:flex items-center gap-3">
-            <BrandLogo size="sm" variant="wordmark" subtitle="Examination session" />
-          </div>
 
-          {/* Compact Branding for Mobile */}
-          <div className="md:hidden flex items-center">
-            <BrandLogo size="sm" variant="mark" />
+          <div className="h-5 w-px bg-academy-rule hidden sm:block shrink-0" />
+
+          <div className="min-w-0 flex items-center gap-2">
+            <h1 className="font-serif text-sm sm:text-base font-bold text-academy-ink tracking-tight truncate max-w-[170px] sm:max-w-xs md:max-w-sm" title={test?.title || 'Examination Session'}>
+              {test?.title || 'Examination Session'}
+            </h1>
+            <span className="hidden sm:inline-flex px-2 py-0.5 rounded text-[10px] font-mono font-semibold uppercase tracking-wider bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 border border-violet-200/80 dark:border-violet-800/50 shrink-0">
+              {test?.category || 'Assessment'}
+            </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 md:gap-3 shrink-0">
-          {/* Live Proctoring & Security Status Badge */}
+        {/* Center: Question Progress Meter */}
+        <div className="hidden md:flex items-center gap-3">
+          <div className="flex flex-col items-center">
+            <div className="flex items-center gap-2 text-[11px] font-mono text-slate-500 dark:text-slate-400 font-semibold mb-1">
+              <span>Question <strong className="text-slate-900 dark:text-slate-100">{currentIndex + 1}</strong> of {questions.length}</span>
+              <span>•</span>
+              <span className="text-emerald-600 dark:text-emerald-400 font-bold">{answeredCount} answered</span>
+            </div>
+            <div className="w-32 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden border border-slate-200 dark:border-slate-700">
+              <div
+                className="h-full bg-violet-600 rounded-full transition-all duration-300"
+                style={{ width: `${((currentIndex + 1) / (questions.length || 1)) * 100}%` }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Actions, Proctoring & Urgency Timer HUD */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          {/* Live Proctoring Status Badge */}
           <div
-            className="hidden sm:flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-[11px] text-emerald-800 dark:text-emerald-300 shadow-2xs"
-            title="Active Proctoring & Realtime Sync Active. Focus is monitored."
+            className="hidden xl:flex items-center gap-2 px-2.5 py-1 rounded-lg bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-[11px] text-emerald-800 dark:text-emerald-300 shadow-2xs"
+            title="Real-time exam telemetry active. Focus is proctored."
           >
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
-            <span className="font-semibold tracking-wide flex items-center gap-1">
-              <span>Proctored</span>
-              <span className="hidden lg:inline text-emerald-600 dark:text-emerald-400 font-mono text-[10px]">
+            <span className="font-semibold tracking-wide">
+              Proctored
+              <span className="text-emerald-600 dark:text-emerald-400 font-mono text-[10px] ml-1">
                 {malpracticeCount === 0 ? '· Secure' : `· ${malpracticeCount}/5 warnings`}
               </span>
             </span>
@@ -694,23 +744,23 @@ const StudentTest = () => {
           <button
             type="button"
             onClick={() => setShowReloadConfirm(true)}
-            className="hidden sm:flex min-h-[40px] min-w-[40px] items-center justify-center p-2 bg-academy-paper-subtle dark:bg-surface-subtle border border-academy-rule rounded-lg text-academy-muted hover:text-academy-accent hover:bg-academy-paper-subtle dark:hover:bg-surface-subtle active:scale-[0.95] transition-all cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
-            title="Sync & Refresh Session"
+            className="hidden sm:flex min-h-[38px] min-w-[38px] items-center justify-center p-2 bg-slate-50 dark:bg-surface-subtle border border-academy-rule rounded-lg text-slate-500 dark:text-slate-400 hover:text-violet-600 active:scale-[0.95] transition-all cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
+            title="Sync & Save Progress"
           >
             <RotateCcw size={14} className="group-hover:rotate-[-180deg] transition-transform duration-500" />
           </button>
 
-          {/* High-visibility Timer HUD */}
+          {/* ── 4. TIMER URGENCY SYSTEM ── */}
           <div
             role="timer"
             aria-label={`Time remaining: ${formatTime(timeLeft)}`}
             aria-live="polite"
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border font-mono font-bold text-xs md:text-sm tabular-nums transition-all duration-200 shadow-2xs ${
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border font-mono font-bold text-xs sm:text-sm tabular-nums transition-all duration-200 shadow-2xs ${
               isUrgent
-                ? 'bg-rose-50 dark:bg-rose-950/60 border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-300 animate-pulse ring-1 ring-rose-400/40'
+                ? 'bg-rose-50 dark:bg-rose-950/60 border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-300 ring-2 ring-rose-500/40 animate-pulse'
                 : isWarning
-                ? 'bg-amber-50 dark:bg-amber-950/50 border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300 ring-1 ring-amber-400/30'
-                : 'bg-slate-50 dark:bg-academy-card border-slate-200 dark:border-academy-rule text-slate-800 dark:text-slate-100'
+                ? 'bg-amber-50 dark:bg-amber-950/50 border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300 ring-1 ring-amber-400/30 animate-pulse'
+                : 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200/80 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-300'
             }`}
           >
             <Clock
@@ -720,74 +770,135 @@ const StudentTest = () => {
                   ? 'text-rose-600 dark:text-rose-400'
                   : isWarning
                   ? 'text-amber-600 dark:text-amber-400'
-                  : 'text-violet-600 dark:text-violet-400'
+                  : 'text-emerald-600 dark:text-emerald-400'
               }`}
             />
             <span className="tracking-tight">{formatTime(timeLeft)}</span>
             {isUrgent && (
-              <span className="hidden xl:inline text-[9px] uppercase font-sans font-bold tracking-wider text-rose-600 dark:text-rose-400">
-                &lt; 1m
+              <span className="hidden sm:inline text-[9px] uppercase font-sans font-extrabold tracking-wider text-rose-600 dark:text-rose-400">
+                &lt;1m
               </span>
             )}
             {isWarning && (
-              <span className="hidden xl:inline text-[9px] uppercase font-sans font-bold tracking-wider text-amber-600 dark:text-amber-400">
-                &lt; 5m
+              <span className="hidden sm:inline text-[9px] uppercase font-sans font-bold tracking-wider text-amber-600 dark:text-amber-400">
+                &lt;5m
               </span>
             )}
           </div>
 
-          {/* Responsive Question Palette / Drawer Toggle */}
+          {/* Responsive Mobile Drawer Palette Toggle Button */}
           <button
             type="button"
             onClick={() => setShowPalette(prev => !prev)}
             aria-label={`Toggle question palette. Question ${currentIndex + 1} of ${questions.length}`}
             aria-expanded={showPalette}
             aria-controls="question-palette-drawer"
-            className="lg:hidden min-h-[44px] px-3 py-2 text-xs rounded-lg border border-academy-rule bg-white dark:bg-academy-card text-academy-ink flex items-center gap-1.5 font-mono font-medium active:scale-[0.98] shadow-2xs hover:bg-academy-paper-subtle dark:hover:bg-surface-subtle cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
+            className="lg:hidden min-h-[38px] px-2.5 py-1.5 text-xs rounded-lg border border-academy-rule bg-white dark:bg-academy-card text-academy-ink flex items-center gap-1.5 font-mono font-medium active:scale-[0.98] shadow-2xs hover:bg-slate-50 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
           >
+            <Activity size={14} className="text-violet-600 dark:text-violet-400" />
             <span className="text-violet-600 dark:text-violet-400 font-bold">Q{currentIndex + 1}</span>
             <span className="text-academy-muted">/</span>
             <span>{questions.length}</span>
           </button>
 
+          {/* Quick Submit CTA */}
           <button
             type="button"
             onClick={() => setShowConfirm(true)}
             disabled={submitting}
-            className="min-h-[40px] px-4 py-1.5 bg-academy-accent hover:bg-academy-accent-hover disabled:opacity-50 text-white rounded-lg font-semibold text-xs active:scale-[0.98] transition-all shadow-2xs cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-academy-accent"
+            className="min-h-[38px] px-3.5 sm:px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white rounded-lg font-semibold text-xs transition-all shadow-2xs cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 flex items-center gap-1.5"
           >
-            {submitting ? 'Submitting...' : 'Finish Test'}
+            <Send size={13} />
+            <span className="hidden sm:inline">{submitting ? 'Submitting...' : 'Finish Test'}</span>
+            <span className="sm:hidden">{submitting ? '...' : 'Finish'}</span>
           </button>
         </div>
       </header>
 
-      {/* ── BODY ────────────────────────────────────────────────────── */}
-      <div className="flex flex-1 overflow-hidden relative">
-        <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-          <div className="flex-1 overflow-y-auto px-6 sm:px-12 py-8 pb-32 md:pb-8 custom-scrollbar max-w-5xl mx-auto w-full">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-mono font-medium text-academy-accent dark:text-academy-accent-deep">
-                Question {currentIndex + 1} of {questions.length}
-              </span>
-              <span className="text-xs font-serif italic text-academy-muted">
-                {test?.category || 'General Aptitude'}
-              </span>
-            </div>
+      {/* ── 2. TWO-COLUMN SPLIT LAYOUT (100VH FIT) ───────────────────── */}
+      <div className="flex-1 min-h-0 flex overflow-hidden w-full relative">
 
-            {/* Question Card */}
-            <div className="bg-white dark:bg-academy-card rounded-xl border border-academy-rule p-6 md:p-8 shadow-2xs mb-6">
-              <div className="text-base sm:text-lg font-serif font-normal text-academy-ink leading-relaxed">
-                <CodeQuestion text={currentQ?.questionText} category={test?.category || 'Code'}/>
+        {/* ── LEFT COLUMN (70%): Question & Options Area ─────────────── */}
+        <div className="w-full lg:w-[70%] flex flex-col h-full min-h-0 overflow-hidden border-r border-academy-rule">
+          {/* Subtle Top Linear Progress Bar */}
+          <div className="w-full h-1 bg-slate-100 dark:bg-surface-subtle flex-shrink-0">
+            <div
+              className="h-full bg-violet-600 transition-all duration-300"
+              style={{ width: `${((currentIndex + 1) / (questions.length || 1)) * 100}%` }}
+            />
+          </div>
+
+          {/* Independently Scrollable Question Pane */}
+          <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-4 sm:px-8 lg:px-12 py-5 sm:py-6 space-y-5 sm:space-y-6 focus:outline-none">
+
+            {/* Question Meta Header */}
+            <div className="flex items-center justify-between gap-3 pb-3 border-b border-academy-rule/60">
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-1 rounded-md bg-violet-50 dark:bg-violet-950/50 border border-violet-200 dark:border-violet-900/60 text-xs font-mono font-bold text-violet-700 dark:text-violet-300">
+                  Question {currentIndex + 1} of {questions.length}
+                </span>
+                <span className="text-xs font-serif italic text-academy-muted hidden sm:inline">
+                  {test?.category || 'General Assessment'}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {marked[currentQ?.id] && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-semibold bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300">
+                    <Bookmark size={11} className="fill-amber-500 text-amber-500" />
+                    <span>Review Marked</span>
+                  </span>
+                )}
+                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-semibold ${
+                  answers[currentQ?.id]
+                    ? 'bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300'
+                    : 'bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400'
+                }`}>
+                  {answers[currentQ?.id] ? '● Answered' : '○ Not Answered'}
+                </span>
               </div>
             </div>
 
-            {/* Options */}
+            {/* Question Statement Card with 3D Flip */}
+            <QuestionCardFlip
+              isFlipped={isCardFlipped}
+              onFlip={setIsCardFlipped}
+              canFlip={!isMain && Boolean(currentQ?.explanation || currentQ?.correctAnswer)}
+              flipButtonLabel="Show Solution Key"
+              backButtonLabel="Return to Question"
+              frontContent={
+                <div className="bg-white dark:bg-academy-card rounded-2xl border-2 border-slate-300 dark:border-white/20 p-5 sm:p-6 shadow-sm">
+                  <div className="text-base sm:text-lg md:text-xl font-serif font-normal text-academy-ink leading-relaxed">
+                    <CodeQuestion text={currentQ?.questionText} category={test?.category || 'Code'} />
+                  </div>
+                </div>
+              }
+              backContent={
+                <div className="bg-white dark:bg-academy-card rounded-2xl border-2 border-violet-400 dark:border-violet-700 p-5 sm:p-6 shadow-sm space-y-3">
+                  <div className="flex items-center justify-between pb-2 border-b border-academy-rule">
+                    <span className="text-xs font-mono font-bold text-violet-700 dark:text-violet-300 uppercase tracking-wider">
+                      Pedagogical Solution Key & Diagnostic
+                    </span>
+                    {currentQ?.correctAnswer && (
+                      <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                        Option {currentQ.correctAnswer}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-academy-ink leading-relaxed font-normal">
+                    {currentQ?.explanation || "No extended explanation provided for this practice item."}
+                  </p>
+                </div>
+              }
+            />
+
+            {/* Options Radiogroup Stack */}
             <div
               className="space-y-3"
               role="radiogroup"
               aria-label={`Options for Question ${currentIndex + 1}`}
             >
-              {['A','B','C','D'].map((opt) => {
+              {['A', 'B', 'C', 'D'].map((opt) => {
                 const text = currentQ?.[`option${opt}`];
                 if (!text) return null;
                 const selected = answers[currentQ?.id] === opt;
@@ -799,36 +910,41 @@ const StudentTest = () => {
                     aria-checked={selected}
                     tabIndex={0}
                     onClick={() => updateAnswer(currentQ.id, opt)}
-                    className={`w-full flex items-center gap-4 px-5 py-4 rounded-xl border text-left active:scale-[0.99] transition-all duration-150 group cursor-pointer min-h-[58px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0e1015] select-none ${
+                    className={`w-full flex items-center gap-4 px-5 py-3.5 rounded-xl text-left transition-all duration-150 group cursor-pointer min-h-[54px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0e1015] select-none active:scale-[0.995] ${
                       selected
-                        ? 'border-2 border-violet-600 bg-violet-50/80 dark:bg-violet-950/50 text-slate-900 dark:text-white shadow-sm ring-1 ring-violet-500/20 font-medium'
-                        : 'bg-white dark:bg-academy-card border-academy-rule text-academy-ink-secondary hover:border-violet-400/60 hover:bg-slate-50 dark:hover:bg-surface-subtle'
+                        ? 'border-2 border-violet-600 dark:border-violet-500 bg-violet-50/90 dark:bg-violet-950/60 text-slate-900 dark:text-white shadow-sm ring-1 ring-violet-500/30 font-medium'
+                        : 'border-2 border-slate-300 dark:border-white/20 bg-white dark:bg-academy-card text-academy-ink hover:border-violet-400 hover:bg-slate-50/80 dark:hover:bg-surface-subtle shadow-xs'
                     }`}
                   >
                     <span className={`w-9 h-9 rounded-lg flex items-center justify-center text-xs font-mono font-bold shrink-0 transition-all ${
                       selected
-                        ? 'bg-violet-600 text-white shadow-sm ring-2 ring-violet-400/30'
-                        : 'bg-academy-paper-subtle dark:bg-surface-subtle text-academy-muted border border-academy-rule group-hover:text-academy-ink group-hover:border-violet-300 dark:group-hover:border-violet-700'
+                        ? 'bg-violet-600 text-white shadow-sm ring-2 ring-violet-400/40'
+                        : 'bg-slate-100 dark:bg-surface-subtle text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-academy-rule group-hover:border-violet-400 group-hover:text-violet-600 dark:group-hover:text-violet-400'
                     }`}>
                       {opt}
                     </span>
-                    <span className="text-sm sm:text-base font-normal leading-relaxed text-academy-ink flex-1">{text}</span>
-                    <span
-                      className={`hidden sm:inline-flex text-[11px] font-mono px-2 py-0.5 rounded border transition-all ${
-                        selected
-                          ? 'bg-violet-100 dark:bg-violet-900/60 border-violet-300 dark:border-violet-700 text-violet-700 dark:text-violet-300 font-semibold'
-                          : 'bg-slate-100 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-400 opacity-0 group-hover:opacity-100'
-                      }`}
-                    >
-                      Key {opt}
+                    <span className="text-sm sm:text-base font-normal leading-relaxed text-academy-ink flex-1">
+                      {text}
                     </span>
+                    {selected ? (
+                      <div className="shrink-0 flex items-center gap-2 text-violet-600 dark:text-violet-400">
+                        <span className="hidden sm:inline-flex text-[11px] font-mono px-2 py-0.5 rounded border border-violet-300 dark:border-violet-700 bg-violet-100 dark:bg-violet-900/60 text-violet-700 dark:text-violet-300 font-semibold">
+                          Selected
+                        </span>
+                        <CheckCircle2 size={18} aria-hidden="true" />
+                      </div>
+                    ) : (
+                      <span className="hidden sm:inline-flex text-[11px] font-mono px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/80 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                        Key {opt}
+                      </span>
+                    )}
                   </button>
                 );
               })}
             </div>
 
-            {/* Keyboard shortcut hint strip */}
-            <div className="mt-5 pt-3 border-t border-academy-rule/60 flex flex-wrap items-center justify-between gap-2 text-[11px] text-academy-muted font-mono">
+            {/* Keyboard Shortcut Guidance Strip */}
+            <div className="pt-4 border-t border-academy-rule/60 flex flex-wrap items-center justify-between gap-2 text-[11px] text-academy-muted font-mono">
               <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                 <span className="flex items-center gap-1">
                   <kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold">1-4</kbd>
@@ -848,236 +964,332 @@ const StudentTest = () => {
                   <span className="text-slate-600 dark:text-slate-400">Review</span>
                 </span>
               </div>
-              <div className="text-[10px] text-academy-muted italic font-serif">
-                Auto-saved continuously
-              </div>
-            </div>
-          </div>
-
-          {/* ── BOTTOM ACTION BAR ─────────────────────────────────────── */}
-          <div className="fixed md:relative bottom-0 left-0 right-0 z-30 md:flex-shrink-0 border-t border-academy-rule bg-white dark:bg-academy-card px-4 md:px-8 py-3 pb-[calc(env(safe-area-inset-bottom)+12px)] md:pb-3 shadow-md md:shadow-none">
-            <div className="flex items-center justify-between gap-2 max-w-5xl mx-auto w-full">
-              
-              {/* Left Group */}
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => toggleMark(currentQ?.id)}
-                  className={`min-h-[44px] flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-lg border text-xs font-medium transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 ${
-                    marked[currentQ?.id]
-                      ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300 font-semibold'
-                      : 'bg-white dark:bg-academy-card border-academy-rule text-academy-muted hover:text-amber-700 hover:bg-amber-50/50'
-                  }`}
-                  title="Mark for Review (Shortcut: M)"
-                >
-                  <Bookmark size={15} className="shrink-0"/>
-                  <span className="hidden sm:inline">Mark for review</span>
-                  <span className="sm:hidden">Mark</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={clearAnswer}
-                  className="min-h-[44px] flex items-center gap-1.5 px-3 sm:px-3.5 py-2 rounded-lg border border-academy-rule bg-white dark:bg-academy-card text-academy-muted hover:text-rose-600 hover:bg-rose-50/50 text-xs font-medium active:scale-[0.98] transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
-                  title="Clear response"
-                >
-                  <RotateCcw size={14} className="shrink-0"/>
-                  <span className="hidden sm:inline">Clear</span>
-                </button>
-              </div>
-
-              {/* Right Group: Navigation */}
-              <div className="flex items-center gap-2 ml-auto">
-                <button
-                  type="button"
-                  onClick={goPrev}
-                  disabled={currentIndex === 0}
-                  className="min-h-[44px] px-3.5 sm:px-4 py-2 rounded-lg border border-academy-rule bg-white dark:bg-academy-card text-academy-ink hover:bg-academy-paper-subtle dark:hover:bg-surface-subtle text-xs font-medium flex items-center gap-1.5 disabled:opacity-30 cursor-pointer transition-all shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
-                >
-                  <ChevronLeft size={16} className="shrink-0"/> 
-                  <span>Previous</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={goNext}
-                  disabled={currentIndex === questions.length - 1}
-                  className="min-h-[44px] px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 disabled:opacity-30 cursor-pointer bg-academy-accent hover:bg-academy-accent-hover text-white transition-all shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
-                >
-                  <span>Save & Next</span>
-                  <ChevronRight size={16} className="shrink-0"/>
-                </button>
+              <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Synchronized with cloud</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Mobile overlay backdrop */}
-        {showPalette && (
-          <div
-            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 lg:hidden"
-            onClick={() => setShowPalette(false)}
-            aria-hidden="true"
-          />
-        )}
+        {/* ── RIGHT COLUMN (30%): Question Navigation Palette Sidebar ── */}
         <aside
-          id="question-palette-drawer"
-          aria-label="Question Navigator"
-          className={`
-            w-72 sm:w-80 flex-shrink-0 border-l border-academy-rule bg-white dark:bg-academy-card flex flex-col overflow-hidden
-            lg:relative lg:translate-x-0 lg:z-auto
-            fixed right-0 top-0 bottom-0 z-50 transition-transform duration-200 ease-out shadow-xl lg:shadow-none
-            ${showPalette ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
-          `}
+          aria-label="Question Directory"
+          className="hidden lg:flex lg:w-[30%] flex-col h-full min-h-0 overflow-hidden bg-white dark:bg-academy-card"
         >
-          <div className="p-4 sm:p-5 border-b border-academy-rule flex-shrink-0 flex items-center justify-between">
-            <div>
-              <p className="text-[10px] font-serif italic text-academy-muted uppercase tracking-wider">Question overview</p>
-              <p className="text-xs font-semibold text-academy-ink mt-0.5">
-                {answeredCount} of {questions.length} answered
-              </p>
+          {/* Sidebar Header */}
+          <div className="p-4 border-b border-academy-rule flex-shrink-0 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Activity size={16} className="text-violet-600 dark:text-violet-400" />
+              <h2 className="font-serif text-sm font-semibold text-academy-ink">Question Directory</h2>
             </div>
-            <button
-              type="button"
-              onClick={() => setShowPalette(false)}
-              className="lg:hidden min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg border border-academy-rule bg-slate-50 dark:bg-surface-subtle text-academy-muted hover:text-academy-ink cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
-              aria-label="Close question palette"
-            >
-              <X size={18} />
-            </button>
+            <span className="text-xs font-mono text-academy-muted font-bold">
+              {answeredCount}/{questions.length} answered
+            </span>
           </div>
-          <div className="px-4 sm:px-5 py-3 border-b border-academy-rule/60 flex-shrink-0 bg-slate-50/50 dark:bg-[#15181e]/50">
-            <div className="space-y-1.5 text-xs font-sans">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className={`w-3.5 h-3.5 rounded-sm ${themeBg}`}/>
-                  <span className="text-academy-muted">Answered</span>
-                </div>
-                <span className="font-mono text-academy-ink font-bold">{questions.filter(q => answers[q.id] && !marked[q.id]).length}</span>
+
+          {/* High-Contrast Status Legend */}
+          <div className="p-3.5 border-b border-academy-rule/70 bg-slate-50/70 dark:bg-[#15181e]/60 text-xs flex-shrink-0">
+            <div className="grid grid-cols-2 gap-x-2 gap-y-2 text-[11px]">
+              {/* Current */}
+              <div className="flex items-center gap-1.5">
+                <div className="w-4 h-4 rounded border-2 border-violet-600 dark:border-violet-400 bg-violet-50 dark:bg-violet-950/60 text-violet-700 dark:text-violet-300 flex items-center justify-center font-bold text-[9px] scale-105">●</div>
+                <span className="text-slate-600 dark:text-slate-300 font-medium">Current</span>
               </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className={`relative w-3.5 h-3.5 rounded-sm ${themeBg} flex-shrink-0`}>
-                    <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-amber-500 border border-white dark:border-slate-900"/>
-                  </div>
-                  <span className="text-academy-muted">Ans + Marked</span>
-                </div>
-                <span className="font-mono text-academy-ink font-bold">{questions.filter(q => answers[q.id] && marked[q.id]).length}</span>
+
+              {/* Answered */}
+              <div className="flex items-center gap-1.5">
+                <div className="w-4 h-4 rounded bg-emerald-600 dark:bg-emerald-500 text-white flex items-center justify-center font-bold text-[9px] shadow-2xs">✓</div>
+                <span className="text-slate-600 dark:text-slate-300 font-medium">Answered ({questions.filter(q => answers[q.id] && !marked[q.id]).length})</span>
               </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-3.5 h-3.5 rounded-sm bg-amber-500"/>
-                  <span className="text-academy-muted">Marked</span>
-                </div>
-                <span className="font-mono text-academy-ink font-bold">{questions.filter(q => !answers[q.id] && marked[q.id]).length}</span>
+
+              {/* Marked */}
+              <div className="flex items-center gap-1.5">
+                <div className="w-4 h-4 rounded border-2 border-amber-500 bg-white dark:bg-academy-card text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold text-[9px]">!</div>
+                <span className="text-slate-600 dark:text-slate-300 font-medium">Marked ({questions.filter(q => !answers[q.id] && marked[q.id]).length})</span>
               </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-3.5 h-3.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700"/>
-                  <span className="text-slate-600 dark:text-slate-400">Visited</span>
+
+              {/* Ans & Marked */}
+              <div className="flex items-center gap-1.5">
+                <div className="relative w-4 h-4 rounded bg-emerald-600 dark:bg-emerald-500 text-white border-2 border-amber-400 flex items-center justify-center font-bold text-[9px]">
+                  <span className="absolute -top-1 -right-1 w-1.5 h-1.5 rounded-full bg-amber-500" />
                 </div>
-                <span className="text-slate-800 dark:text-slate-200 font-bold">{questions.filter((q,i) => !answers[q.id] && !marked[q.id] && visited.has(i)).length}</span>
+                <span className="text-slate-600 dark:text-slate-300 font-medium">Ans+Mark ({questions.filter(q => answers[q.id] && marked[q.id]).length})</span>
               </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-3.5 h-3.5 rounded bg-white dark:bg-[#15181e] border border-slate-200 dark:border-[#262a33]"/>
-                  <span className="text-slate-600 dark:text-slate-400">Not Visited</span>
-                </div>
-                <span className="text-slate-800 dark:text-slate-200 font-bold">{questions.filter((q,i) => !answers[q.id] && !marked[q.id] && !visited.has(i)).length}</span>
+
+              {/* Unvisited */}
+              <div className="flex items-center gap-1.5 col-span-2">
+                <div className="w-4 h-4 rounded bg-slate-100 dark:bg-[#1a202c] border border-slate-300 dark:border-slate-700 text-slate-500" />
+                <span className="text-slate-600 dark:text-slate-300 font-medium">Unvisited ({questions.filter(q => !answers[q.id] && !marked[q.id]).length})</span>
               </div>
             </div>
           </div>
-          <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
-            <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
+
+          {/* Independently Scrollable Palette Grid */}
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
+            <div className="grid grid-cols-5 gap-2">
               {questions.map((q, idx) => {
                 const status = getQStatus(q, idx);
                 const isCurrent = idx === currentIndex;
                 return (
                   <button
                     key={q.id}
+                    type="button"
                     onClick={() => {
                       markVisited(idx);
                       setCurrentIndex(idx);
-                      setShowPalette(false);
                     }}
                     className={paletteStyle(status, isCurrent)}
                     title={`Question ${idx + 1}`}
-                    aria-label={`Go to Question ${idx + 1}, status: ${status}`}
+                    aria-label={`Question ${idx + 1}, status: ${status}`}
                   >
                     {idx + 1}
                     {status === 'answeredMarked' && (
-                      <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-500 border border-white dark:border-slate-900"/>
+                      <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-500 border border-white dark:border-slate-900" />
                     )}
                   </button>
                 );
               })}
             </div>
           </div>
-          <div className="flex-shrink-0 p-4 border-t border-slate-200 dark:border-[#262a33] bg-slate-50 dark:bg-[#1a1d24]">
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 text-center mb-2 font-semibold">
-              Answered: <strong className="text-violet-600 dark:text-violet-400">{answeredCount}</strong> / {questions.length}
-            </p>
+
+          {/* Sidebar Footer / Exam Summary */}
+          <div className="p-4 border-t border-academy-rule bg-slate-50/60 dark:bg-[#15181e]/60 flex-shrink-0 space-y-3">
+            <div className="flex items-center justify-between text-xs font-mono text-slate-600 dark:text-slate-300">
+              <span>Remaining:</span>
+              <span className="font-bold text-slate-800 dark:text-slate-100">{questions.length - answeredCount}</span>
+            </div>
             <button
               type="button"
               onClick={() => setShowConfirm(true)}
               disabled={submitting}
-              className={`w-full min-h-[44px] py-2.5 ${themeBg} ${themeHover} disabled:opacity-30 disabled:cursor-not-allowed text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500`}
+              className="w-full min-h-[40px] py-2 px-4 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white rounded-xl font-semibold text-xs transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50"
             >
-              <Send size={14}/> <span>Finish Test</span>
+              <Send size={14} />
+              <span>Submit Assessment</span>
             </button>
           </div>
         </aside>
       </div>
 
-      {/* ── CONFIRMATION MODAL ────────────────────────────────────── */}
-      {showConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white dark:bg-[#15181e] rounded-2xl border border-slate-200 dark:border-[#262a33] p-6 sm:p-8 max-w-sm w-full shadow-2xl text-center animate-in zoom-in-95 duration-150">
-            <div className="w-14 h-14 bg-violet-50 dark:bg-violet-950/60 border border-violet-100 dark:border-violet-900/50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-violet-600 dark:text-violet-400">
-              <Send size={24} />
-            </div>
-            <h3 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight mb-1">Finalize Exam?</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mb-6">
-              Review your responses carefully before finalizing your submission.
+      {/* ── 3. RESPONSIVE MOBILE DRAWER PALETTE (SHOWN < LG) ────────── */}
+      {showPalette && (
+        <div
+          className="fixed inset-0 !m-0 bg-slate-950/60 backdrop-blur-sm z-40 lg:hidden transition-opacity"
+          onClick={() => setShowPalette(false)}
+          aria-hidden="true"
+        />
+      )}
+      <aside
+        id="question-palette-drawer"
+        aria-label="Mobile Question Navigator"
+        className={`
+          lg:hidden fixed inset-y-0 right-0 z-50 w-80 max-w-[85vw] bg-white dark:bg-academy-card shadow-2xl flex flex-col overflow-hidden border-l border-academy-rule transition-transform duration-200 ease-out
+          ${showPalette ? 'translate-x-0' : 'translate-x-full pointer-events-none'}
+        `}
+      >
+        <div className="p-4 border-b border-academy-rule flex-shrink-0 flex items-center justify-between">
+          <div>
+            <h2 className="font-serif text-sm font-semibold text-academy-ink">Question Directory</h2>
+            <p className="text-[11px] font-mono text-academy-muted mt-0.5">
+              {answeredCount} of {questions.length} answered
             </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowPalette(false)}
+            className="min-h-[40px] min-w-[40px] flex items-center justify-center rounded-lg border border-academy-rule bg-slate-50 dark:bg-surface-subtle text-academy-muted hover:text-academy-ink cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
+            aria-label="Close question palette"
+          >
+            <X size={18} />
+          </button>
+        </div>
 
-            <div className="grid grid-cols-3 gap-2 mb-6">
-              <div className="bg-violet-50 dark:bg-violet-950/60 border border-violet-100 dark:border-violet-900/50 rounded-xl p-2.5">
-                <p className="text-lg font-extrabold text-violet-700 dark:text-violet-300">{answeredCount}</p>
-                <p className="text-[9px] font-bold text-violet-600 dark:text-violet-400 uppercase">Answered</p>
-              </div>
-              <div className="bg-amber-50 dark:bg-amber-950/60 border border-amber-100 dark:border-amber-900/50 rounded-xl p-2.5">
-                <p className="text-lg font-extrabold text-amber-700 dark:text-amber-300">{Object.keys(marked).filter(k => marked[k]).length}</p>
-                <p className="text-[9px] font-bold text-amber-600 dark:text-amber-400 uppercase">Marked</p>
-              </div>
-              <div className="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5">
-                <p className="text-lg font-extrabold text-slate-700 dark:text-slate-300">{questions.length - answeredCount}</p>
-                <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase">Skipped</p>
-              </div>
+        {/* Legend for Mobile */}
+        <div className="p-3 border-b border-academy-rule/70 bg-slate-50/70 dark:bg-[#15181e]/60 text-xs flex-shrink-0">
+          <div className="grid grid-cols-2 gap-2 text-[11px]">
+            <div className="flex items-center gap-1.5">
+              <div className="w-3.5 h-3.5 rounded border-2 border-violet-600 bg-violet-50 text-violet-700 flex items-center justify-center font-bold text-[9px]">●</div>
+              <span className="text-slate-600 dark:text-slate-300">Current</span>
             </div>
-
-            <div className="flex flex-col gap-2">
-              <button
-                onClick={() => submitTest()}
-                disabled={submitting}
-                className="btn-primary w-full py-2.5 text-xs"
-              >
-                {submitting ? 'Submitting...' : 'Confirm Submission'}
-              </button>
-              <button
-                onClick={() => setShowConfirm(false)}
-                className="btn-secondary w-full py-2.5 text-xs"
-              >
-                Return to Exam
-              </button>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3.5 h-3.5 rounded bg-emerald-600 text-white flex items-center justify-center font-bold text-[9px]">✓</div>
+              <span className="text-slate-600 dark:text-slate-300">Answered</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3.5 h-3.5 rounded border-2 border-amber-500 bg-white dark:bg-academy-card text-amber-600 flex items-center justify-center font-bold text-[9px]">!</div>
+              <span className="text-slate-600 dark:text-slate-300">Marked</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="relative w-3.5 h-3.5 rounded bg-emerald-600 text-white border-2 border-amber-400 flex items-center justify-center font-bold text-[9px]">
+                <span className="absolute -top-1 -right-1 w-1.5 h-1.5 rounded-full bg-amber-500" />
+              </div>
+              <span className="text-slate-600 dark:text-slate-300">Ans+Mark</span>
             </div>
           </div>
         </div>
-      )}
+
+        {/* Scrollable Palette Grid for Mobile */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
+          <div className="grid grid-cols-5 gap-2">
+            {questions.map((q, idx) => {
+              const status = getQStatus(q, idx);
+              const isCurrent = idx === currentIndex;
+              return (
+                <button
+                  key={q.id}
+                  type="button"
+                  onClick={() => {
+                    markVisited(idx);
+                    setCurrentIndex(idx);
+                    setShowPalette(false);
+                  }}
+                  className={paletteStyle(status, isCurrent)}
+                  title={`Question ${idx + 1}`}
+                  aria-label={`Go to Question ${idx + 1}, status: ${status}`}
+                >
+                  {idx + 1}
+                  {status === 'answeredMarked' && (
+                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-500 border border-white dark:border-slate-900" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Drawer Footer */}
+        <div className="p-4 border-t border-academy-rule bg-slate-50/60 dark:bg-[#15181e]/60 flex-shrink-0">
+          <button
+            type="button"
+            onClick={() => {
+              setShowPalette(false);
+              setShowConfirm(true);
+            }}
+            disabled={submitting}
+            className="w-full min-h-[44px] py-2 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+          >
+            <Send size={14} />
+            <span>Submit Exam</span>
+          </button>
+        </div>
+      </aside>
+
+      {/* ── 5. FIXED BOTTOM ACTION BAR WITH TACTILE BUTTONS ───────────── */}
+      <footer className="h-14 md:h-16 flex-shrink-0 border-t border-academy-rule bg-white dark:bg-academy-card px-4 sm:px-6 flex items-center justify-between gap-2 sm:gap-3 z-30 shadow-md md:shadow-none">
+
+        {/* Left Action Buttons: Clear & Mark for Review */}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => toggleMark(currentQ?.id)}
+            className={`min-h-[40px] px-3 sm:px-4 py-2 rounded-xl border text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 active:scale-[0.98] ${
+              marked[currentQ?.id]
+                ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-400 dark:border-amber-700 text-amber-700 dark:text-amber-300 ring-1 ring-amber-400/40'
+                : 'border-slate-200 dark:border-academy-rule bg-white dark:bg-academy-card text-slate-700 dark:text-slate-300 hover:text-amber-700 hover:border-amber-300 hover:bg-amber-50/50'
+            }`}
+            title="Mark question for review (Shortcut: M)"
+          >
+            <Bookmark size={15} className={`shrink-0 ${marked[currentQ?.id] ? 'fill-amber-500 text-amber-500' : ''}`} />
+            <span className="hidden sm:inline">Mark for Review</span>
+            <span className="sm:hidden">Mark</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={clearAnswer}
+            disabled={!answers[currentQ?.id]}
+            className="min-h-[40px] px-3 sm:px-3.5 py-2 rounded-xl border border-slate-200 dark:border-academy-rule bg-white dark:bg-academy-card text-slate-700 dark:text-slate-300 hover:text-rose-600 hover:border-rose-300 hover:bg-rose-50/50 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 active:scale-[0.98]"
+            title="Clear selected option"
+          >
+            <RotateCcw size={14} className="shrink-0" />
+            <span className="hidden sm:inline">Clear</span>
+          </button>
+        </div>
+
+        {/* Center: Live Status Indicator */}
+        <div className="hidden md:flex items-center gap-2 text-xs font-mono text-slate-500 dark:text-slate-400">
+          <span className="font-semibold text-slate-800 dark:text-slate-200">Question {currentIndex + 1}</span>
+          <span>of</span>
+          <span>{questions.length}</span>
+          <span className="text-slate-300 dark:text-slate-700">·</span>
+          <span className="text-emerald-600 dark:text-emerald-400 font-semibold">{answeredCount} answered</span>
+          {markedCount > 0 && (
+            <>
+              <span className="text-slate-300 dark:text-slate-700">·</span>
+              <span className="text-amber-600 dark:text-amber-400 font-semibold">{markedCount} marked</span>
+            </>
+          )}
+        </div>
+
+        {/* Mobile Question Palette Drawer Trigger */}
+        <button
+          type="button"
+          onClick={() => setShowPalette(true)}
+          className="md:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-xl border-2 border-slate-300 dark:border-white/10 bg-slate-100/90 dark:bg-white/5 text-[11px] font-mono font-bold text-slate-800 dark:text-slate-200 active:scale-95 transition-all cursor-pointer shadow-2xs"
+          aria-label="Open Question Palette Directory"
+          title="Open Question Palette"
+        >
+          <Activity size={12} className="text-violet-600 dark:text-violet-400" />
+          <span>{currentIndex + 1}/{questions.length}</span>
+        </button>
+
+        {/* Right Action Buttons: Prev, Next & Finish */}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={goPrev}
+            disabled={currentIndex === 0}
+            className="min-h-[40px] px-3.5 sm:px-4 py-2 rounded-xl border border-slate-200 dark:border-academy-rule bg-white dark:bg-academy-card text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-surface-subtle text-xs font-semibold flex items-center gap-1.5 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 active:scale-[0.98]"
+          >
+            <ChevronLeft size={16} className="shrink-0" />
+            <span className="hidden sm:inline">Previous</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={goNext}
+            disabled={currentIndex === questions.length - 1}
+            className="min-h-[40px] px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-700 active:scale-[0.98] text-white text-xs font-semibold flex items-center gap-1.5 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
+          >
+            <span>Next</span>
+            <ChevronRight size={16} className="shrink-0" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowConfirm(true)}
+            disabled={submitting}
+            className="min-h-[40px] px-4 sm:px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white text-xs font-semibold flex items-center gap-2 transition-all shadow-xs cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50"
+          >
+            <Send size={14} className="shrink-0" />
+            <span className="hidden sm:inline">Finish Test</span>
+            <span className="sm:hidden">Finish</span>
+          </button>
+        </div>
+      </footer>
+
+      {/* ── ACCESSIBLE CONFIRMATION MODAL ────────────────────────── */}
+      <ConfirmModal
+        isOpen={showConfirm}
+        onClose={() => setShowConfirm(false)}
+        onConfirm={() => submitTest()}
+        title="Finalize & Submit Examination?"
+        message="Review your responses before concluding your examination session. Once submitted, your answers will be securely vaulted and scored."
+        confirmText={submitting ? "Submitting..." : "Confirm & Submit"}
+        cancelText="Return to Examination"
+        confirmVariant="primary"
+        stats={{
+          answered: answeredCount,
+          marked: Object.keys(marked).filter(k => marked[k]).length,
+          unanswered: Math.max(0, questions.length - answeredCount),
+          total: questions.length
+        }}
+      />
 
       {/* ── RELOAD CONFIRMATION MODAL ──────────────────────────────── */}
-      {showReloadConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+      {showReloadConfirm && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[100] !m-0 flex items-center justify-center p-4 bg-slate-950/70 dark:bg-black/80 backdrop-blur-md">
           <div className="bg-white dark:bg-[#15181e] rounded-2xl border border-slate-200 dark:border-[#262a33] p-6 sm:p-8 max-w-sm w-full shadow-2xl text-center animate-in zoom-in-95 duration-150">
             <div className="w-14 h-14 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/40 rounded-2xl flex items-center justify-center mx-auto mb-4 text-amber-600 dark:text-amber-400">
               <RotateCcw size={24} />
@@ -1086,7 +1298,7 @@ const StudentTest = () => {
             <p className="text-xs text-slate-500 dark:text-slate-400 mb-6">
               Your current progress will be safely autosaved to the server before reloading.
             </p>
-            
+
             <div className="flex flex-col gap-2">
               <button
                 onClick={async () => {
@@ -1114,12 +1326,13 @@ const StudentTest = () => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ── MALPRACTICE WARNING MODAL ──────────────────────────────── */}
-      {showMalpractice && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+      {showMalpractice && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[100] !m-0 flex items-center justify-center p-4 bg-slate-950/70 dark:bg-black/80 backdrop-blur-md">
           <div className="bg-white dark:bg-[#15181e] rounded-2xl border-2 border-rose-400 dark:border-rose-500/80 p-6 sm:p-8 max-w-sm w-full shadow-2xl text-center animate-in zoom-in-95 duration-150">
             <div className="w-14 h-14 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-rose-600 dark:text-rose-400">
               <AlertTriangle size={26} />
@@ -1128,7 +1341,7 @@ const StudentTest = () => {
             <p className="text-xs text-slate-500 dark:text-slate-400 mb-4 leading-relaxed">
               Navigating away or blurring the exam window is monitored. Your assessment will automatically submit after 5 infractions.
             </p>
-            
+
             <div className="bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 rounded-xl py-3 mb-6">
               <p className="text-[10px] font-bold text-rose-700 dark:text-rose-300 uppercase tracking-wider mb-0.5">Recorded Infractions</p>
               <p className="text-2xl font-extrabold text-rose-700 dark:text-rose-300 tabular-nums">
@@ -1143,12 +1356,13 @@ const StudentTest = () => {
               I Understand & Resume Exam
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ── ABANDON MODAL ────────────────────────────────────────── */}
-      {showAbandon && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+      {showAbandon && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[100] !m-0 flex items-center justify-center p-4 bg-slate-950/70 dark:bg-black/80 backdrop-blur-md">
           <div className="bg-white dark:bg-[#15181e] rounded-2xl border border-slate-200 dark:border-[#262a33] p-6 sm:p-8 max-w-sm w-full shadow-2xl text-center animate-in zoom-in-95 duration-150">
             <div className="w-14 h-14 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-rose-600 dark:text-rose-400">
               <RotateCcw size={24} />
@@ -1157,7 +1371,7 @@ const StudentTest = () => {
             <p className="text-xs text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
               Exiting will terminate this session. Any unsaved progress will be permanently lost.
             </p>
-            
+
             <div className="flex flex-col gap-2">
               <button
                 onClick={abandonTest}
@@ -1173,7 +1387,8 @@ const StudentTest = () => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

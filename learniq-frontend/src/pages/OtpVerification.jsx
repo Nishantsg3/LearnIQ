@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { ShieldCheck, ArrowRight, RefreshCw } from 'lucide-react';
+import { ShieldCheck, ArrowRight, RefreshCw, ArrowLeft } from 'lucide-react';
 import api from '../utils/api';
 import AuthLayout from '../components/AuthLayout';
+import ThemeToggle from '../components/ThemeToggle';
 
 function OtpVerification() {
   const [otp, setOtp] = useState('');
@@ -37,66 +38,97 @@ function OtpVerification() {
     try {
       await api.post('/auth/resend-otp', { email });
       toast.success('A new verification code has been sent');
-    } catch (err) {
+    } catch {
       toast.error('Failed to resend code');
     }
   };
 
   return (
-    <AuthLayout 
-      panelColor="#7c3aed"
-      accentColor="#a78bfa"
-      showMobileDecorations={true}
-      title={<>VERIFY YOUR<br /><span style={{ color: 'rgba(255,255,255,0.45)' }}>IDENTITY.</span></>} 
-      description={`WE'VE SENT A 6-DIGIT CODE TO ${email?.toUpperCase()}. PLEASE ENTER IT BELOW TO CONTINUE.`}
-    >
-      <div className="card-base p-8 lg:p-10">
-        <div className="mb-10 flex flex-col items-center text-center">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-indigo-600 text-white mb-4">
-             <ShieldCheck size={24} />
+    <AuthLayout variant="onboarding" maxWidth="max-w-[430px]">
+      <div className="w-full backdrop-blur-3xl bg-white/90 dark:bg-[#0c0f18]/90 border border-[#EAE4DC] dark:border-white/10 rounded-2xl sm:rounded-3xl p-4 sm:p-6 relative overflow-hidden transition-all duration-300 shadow-[0_16px_50px_-12px_rgba(244,63,94,0.12),0_1px_3px_rgba(0,0,0,0.05)] dark:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7),0_0_40px_rgba(244,63,94,0.08)] ring-1 ring-inset ring-black/[0.03] dark:ring-white/[0.08]">
+
+        {/* Specular highlight border sheen */}
+        <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#F43F5E]/70 dark:via-[#FB7185]/70 to-transparent pointer-events-none" />
+        <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-44 h-20 bg-[#F43F5E]/10 dark:bg-[#FB7185]/15 rounded-full blur-2xl pointer-events-none" />
+
+        {/* ── CARD TOP UTILITY BAR (COMPACT 100VH) ─────────────────────────── */}
+        <div className="flex items-center justify-between pb-2.5 mb-2.5 sm:pb-3 sm:mb-3 border-b border-[#EAE4DC]/80 dark:border-white/5">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800/60 text-[#F43F5E] dark:text-[#FB7185] text-[10px] font-semibold shadow-2xs">
+            <ShieldCheck size={12} className="text-[#F43F5E] dark:text-[#FB7185]" />
+            <span className="font-mono tracking-wide">TWO-STEP VERIFICATION</span>
           </div>
-          <h2 className="text-2xl font-bold text-slate-50">Email Verification</h2>
-          <p className="text-slate-500 text-sm mt-1">Enter the 6-digit code received</p>
+
+          <div className="flex items-center gap-2">
+            <ThemeToggle size="xs" variant="segmented" />
+            <Link
+              to="/register"
+              className="text-[10px] font-medium text-[#7E6B8F] dark:text-[#94A3B8] hover:text-[#F43F5E] dark:hover:text-[#FB7185] px-1.5 py-0.5 rounded hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors flex items-center gap-1 outline-none focus-visible:ring-2 focus-visible:ring-[#F43F5E]"
+            >
+              <ArrowLeft size={10} />
+              <span>Cancel</span>
+            </Link>
+          </div>
         </div>
 
-        <form onSubmit={handleVerify} className="space-y-8">
-          <div className="space-y-2">
+        {/* Heading */}
+        <div className="mb-3 sm:mb-4">
+          <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-[#F43F5E] dark:text-[#FB7185] block mb-0.5">
+            Candidate Security Desk
+          </span>
+          <h1 className="font-serif text-xl sm:text-2xl font-bold text-[#1E293B] dark:text-[#F8FAFC] tracking-tight leading-snug">
+            Enter 6-Digit Code
+          </h1>
+          <p className="text-[11px] text-[#64748B] dark:text-[#94A3B8] mt-0.5 font-sans leading-relaxed">
+            Passkey dispatched to <strong className="font-semibold text-[#1E293B] dark:text-[#F1F5F9] font-mono">{email}</strong>.
+          </p>
+        </div>
+
+        <form onSubmit={handleVerify} className="space-y-4 font-sans">
+          <div>
             <input
               type="text"
+              inputMode="numeric"
               maxLength="6"
-              className="w-full px-4 py-5 bg-slate-900 border border-[#1f2937] rounded-xl text-center text-3xl font-bold tracking-[0.5em] focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-800 text-slate-50"
+              className="w-full min-h-[52px] sm:min-h-[58px] px-3 py-2 bg-[#FAF7F2]/90 dark:bg-[#07090f]/70 border-2 border-[#EAE4DC] dark:border-white/10 rounded-2xl text-center text-2xl sm:text-3xl font-mono font-bold tracking-[0.35em] text-[#1E293B] dark:text-[#F8FAFC] focus:bg-white dark:focus:bg-[#0e121d] focus:border-[#F43F5E] dark:focus:border-[#FB7185] focus:ring-4 focus:ring-[#F43F5E]/15 dark:focus:ring-[#FB7185]/20 outline-none transition placeholder:text-[#94A3B8] shadow-inner"
               placeholder="000000"
               value={otp}
               onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
               required
+              autoFocus
             />
           </div>
 
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             disabled={loading || otp.length < 6}
-            className="w-full btn-primary py-3.5"
+            className="w-full min-h-[40px] sm:min-h-[42px] py-2 px-4 rounded-xl bg-gradient-to-r from-[#F43F5E] to-[#F59E0B] hover:from-[#E11D48] hover:to-[#D97706] active:scale-[0.99] text-white font-sans font-bold text-xs shadow-md hover:shadow-[#F43F5E]/20 transition-all duration-150 flex items-center justify-center gap-1.5 mt-1 disabled:opacity-50 cursor-pointer focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#F43F5E] outline-none"
           >
-            {loading ? 'Verifying...' : 'Verify Email'}
-            {!loading && <ArrowRight size={18} />}
+            {loading ? (
+              <div className="flex items-center gap-1.5">
+                <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span>Verifying passkey...</span>
+              </div>
+            ) : (
+              <>
+                <span>Verify & Activate Candidate</span>
+                <ArrowRight size={13} />
+              </>
+            )}
           </button>
         </form>
 
-        <div className="mt-10 pt-8 border-t border-[#1f2937] text-center">
-          <p className="text-sm text-slate-500 font-medium mb-4">
-            Didn't receive the code? 
+        <div className="mt-3 pt-2.5 border-t border-[#EAE4DC]/80 dark:border-white/5 text-center font-sans">
+          <p className="text-[10px] text-[#64748B] dark:text-[#94A3B8] mb-1.5">
+            Didn't receive the passkey email?
           </p>
-          <button 
+          <button
+            type="button"
             onClick={resendOtp}
-            className="text-indigo-400 font-bold hover:text-indigo-300 transition-colors inline-flex items-center gap-2"
+            className="min-h-[28px] px-3 py-1 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 hover:text-emerald-800 dark:hover:text-white bg-emerald-50/90 dark:bg-emerald-950/60 hover:bg-emerald-100/90 rounded-lg border border-emerald-200 dark:border-emerald-800 transition-colors inline-flex items-center gap-1.5 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 font-sans shadow-2xs"
           >
-            <RefreshCw size={14} /> Resend verification code
+            <RefreshCw size={11} />
+            <span>Resend verification code</span>
           </button>
-          <div className="mt-6">
-             <Link to="/register" className="text-xs font-semibold text-slate-600 hover:text-slate-400">
-                Back to registration
-             </Link>
-          </div>
         </div>
       </div>
     </AuthLayout>
@@ -104,4 +136,3 @@ function OtpVerification() {
 }
 
 export default OtpVerification;
-

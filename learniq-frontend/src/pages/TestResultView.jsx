@@ -22,7 +22,8 @@ import {
   ShieldCheck,
   Layers,
   Sparkles,
-  Lock
+  Lock,
+  Home
 } from 'lucide-react';
 import api from '../utils/api';
 import { Skeleton, MetricTileSkeleton, SkeletonRegion } from '../components/common/Skeleton';
@@ -197,7 +198,7 @@ const TestResultView = () => {
   const globalStandingData = useMemo(() => {
     let rank = attempt?.rank || 1;
     if (leaderboard.length > 0 && user?.email) {
-      const idx = leaderboard.findIndex(entry => entry.studentEmail === user.email || entry.email === user.email);
+      const idx = leaderboard.findIndex(entry => entry.userEmail === user.email || entry.studentEmail === user.email || entry.email === user.email);
       if (idx !== -1) rank = idx + 1;
     }
     const total = leaderboard.length > 0 ? leaderboard.length : (attempt?.totalParticipants || 0);
@@ -305,36 +306,48 @@ const TestResultView = () => {
   }
 
   return (
-    <div className="h-full overflow-y-auto p-5 sm:p-7 lg:p-9 max-w-7xl mx-auto flex flex-col space-y-6 animate-in fade-in duration-200 motion-reduce:animate-none">
-      
-      {/* ── HEADER ─────────────────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-end justify-between gap-4 pb-6 border-b border-academy-rule">
-        <div>
-          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-academy-accent-tint border border-academy-accent/20 text-xs font-serif italic text-academy-accent dark:text-academy-accent-deep mb-2">
-            <Trophy size={13} className="text-academy-accent dark:text-academy-accent-deep" aria-hidden="true" />
-            <span>Academic Evaluation • Diagnostic Scorecard</span>
+    <div className="w-full min-h-0 lg:min-h-[calc(100vh-7.5rem)] flex flex-col lg:justify-between space-y-4 animate-page-enter p-1">
+
+      {/* ── COMPACT PANORAMIC HEADER ───────────────────────────────────────── */}
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b-2 border-slate-200 dark:border-white/10 shrink-0">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-[11px] font-mono font-bold text-indigo-700 dark:text-indigo-300">
+              <Trophy size={12} className="text-indigo-600 dark:text-indigo-400" aria-hidden="true" />
+              <span>Diagnostic Scorecard</span>
+            </span>
+            <span className="text-xs font-mono text-slate-500 dark:text-slate-400">
+              Sitting #{attemptId} • {formatDateTime(attempt?.submittedAt || attempt?.startedAt)}
+            </span>
           </div>
-          <h1 className="font-serif text-2xl sm:text-3xl font-normal text-academy-ink tracking-tight leading-tight">
-            {loading ? <Skeleton className="h-8 w-56 rounded" /> : (attempt?.testTitle || 'Test Results')}
+          <h1 className="font-serif text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight leading-tight truncate">
+            {loading ? <Skeleton className="h-7 w-56 rounded" /> : (attempt?.testTitle || 'Test Results')}
           </h1>
-          <p className="mt-1 text-xs sm:text-sm text-academy-ink-secondary max-w-2xl font-normal leading-relaxed">
-            Verified candidate performance breakdown, accuracy distribution, domain mastery, and diagnostic solution audit.
-          </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 shrink-0">
+          <button
+            type="button"
+            onClick={() => navigate('/student/results')}
+            aria-label="Back to Historical Results"
+            className="h-[44px] min-h-[44px] max-h-[44px] px-4 rounded-xl bg-white dark:bg-academy-card border-2 border-slate-300 dark:border-white/20 hover:border-violet-500 dark:hover:border-violet-400 text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-[#1c2027] hover:-translate-y-0.5 hover:shadow-md text-xs font-semibold shadow-xs flex items-center gap-2 transition-all cursor-pointer active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
+          >
+            <ArrowLeft size={15} className="text-slate-500 dark:text-slate-400" aria-hidden="true" />
+            <span>Back</span>
+          </button>
+
           <button
             type="button"
             onClick={handleExportPDF}
             disabled={isExporting}
             aria-busy={isExporting}
             aria-label="Export evaluation report as PDF"
-            className="min-h-[44px] px-4 py-2 rounded-md bg-white dark:bg-academy-card border border-academy-rule text-academy-ink hover:bg-academy-paper-subtle dark:hover:bg-surface-subtle text-xs font-medium shadow-2xs flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-academy-accent"
+            className="h-[44px] min-h-[44px] max-h-[44px] px-4 rounded-xl bg-white dark:bg-academy-card border-2 border-slate-300 dark:border-white/20 hover:border-violet-500 dark:hover:border-violet-400 text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-[#1c2027] hover:-translate-y-0.5 hover:shadow-md text-xs font-semibold shadow-xs flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
           >
             {isExporting ? (
-              <Loader2 size={14} className="text-academy-accent animate-spin" aria-hidden="true" />
+              <Loader2 size={15} className="text-indigo-600 dark:text-indigo-400 animate-spin" aria-hidden="true" />
             ) : (
-              <Download size={14} className="text-academy-accent" aria-hidden="true" />
+              <Download size={15} className="text-indigo-600 dark:text-indigo-400" aria-hidden="true" />
             )}
             <span>{isExporting ? 'Generating PDF...' : 'Export PDF'}</span>
           </button>
@@ -343,158 +356,109 @@ const TestResultView = () => {
             type="button"
             onClick={() => navigate('/student/dashboard')}
             aria-label="Return to Student Dashboard"
-            className="min-h-[44px] px-4 py-2 rounded-md bg-white dark:bg-academy-card border border-academy-rule text-academy-ink hover:bg-academy-paper-subtle dark:hover:bg-surface-subtle text-xs font-medium shadow-2xs flex items-center gap-1.5 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-academy-accent"
+            className="h-[44px] min-h-[44px] max-h-[44px] px-4 rounded-xl bg-white dark:bg-academy-card border-2 border-slate-300 dark:border-white/20 hover:border-violet-500 dark:hover:border-violet-400 text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-[#1c2027] hover:-translate-y-0.5 hover:shadow-md text-xs font-semibold shadow-xs flex items-center gap-2 transition-all cursor-pointer active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
           >
-            <ArrowLeft size={14} className="text-academy-muted" aria-hidden="true" />
+            <Home size={15} className="text-slate-500 dark:text-slate-400" aria-hidden="true" />
             <span>Dashboard</span>
           </button>
         </div>
       </div>
 
       {/* ── REPORT CONTENT AREA (Target for html2pdf) ───────────────────────── */}
-      <div ref={reportRef} className="space-y-6">
-
-        {/* PRINT/EXPORT HEADER (Visible in PDF, cleanly integrated) */}
-        <div className="bg-academy-paper-subtle/60 dark:bg-surface-subtle/60 border border-academy-rule rounded-xl p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4 text-xs font-mono">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-academy-accent text-white flex items-center justify-center font-serif font-bold text-sm shadow-2xs">
-              LQ
-            </div>
-            <div>
-              <div className="font-semibold text-academy-ink text-sm">
-                LearnIQ Verified Assessment Ledger
-              </div>
-              <div className="text-academy-muted">
-                Candidate: {user?.email || 'Authenticated Student'} • Sitting ID: #{attemptId}
-              </div>
-            </div>
-          </div>
-          <div className="text-right text-academy-muted">
-            <div>Timestamp: {formatDateTime(attempt?.submittedAt || attempt?.startedAt)}</div>
-            <div className="text-emerald-700 dark:text-emerald-400 font-medium">Status: Tamper-Evident Record</div>
-          </div>
-        </div>
+      <div ref={reportRef} className="flex-1 min-h-0 flex flex-col space-y-3.5">
 
         {/* Active Official Exam Solutions Sequestered Banner */}
         {isSolutionsSequestered && (
-          <div className="bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-xl p-4 sm:p-5 flex items-start gap-3.5 shadow-2xs">
-            <div className="w-9 h-9 rounded-lg bg-amber-100 dark:bg-amber-900/60 border border-amber-300 dark:border-amber-700/60 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0 mt-0.5">
-              <Lock size={18} aria-hidden="true" />
+          <div className="bg-amber-50/90 dark:bg-amber-950/40 border-2 border-amber-300 dark:border-amber-700/60 rounded-xl px-4 py-2.5 flex items-center gap-3 shrink-0 shadow-xs">
+            <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0">
+              <Lock size={16} aria-hidden="true" />
             </div>
-            <div className="space-y-1">
-              <h3 className="text-xs sm:text-sm font-semibold text-amber-900 dark:text-amber-200">
-                Official Assessment Active
-              </h3>
-              <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
-                Official Assessment Active: Question-by-question solutions and detailed answer keys will unlock on {formattedEndTime}.
-              </p>
+            <div className="text-xs text-amber-900 dark:text-amber-200 leading-snug">
+              <strong className="font-semibold">Official Assessment Active:</strong> Question-by-question solutions will unlock on {formattedEndTime}.
             </div>
           </div>
         )}
 
-        {/* ── SCORE BREAKDOWN & RADIAL ACCURACY ─────────────────────────────── */}
+        {/* ── 3-COLUMN PANORAMIC COCKPIT GRID ─────────────────────────────── */}
         {loading ? (
           <SkeletonRegion ariaLabel="Loading evaluation scorecard...">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              <div className="lg:col-span-5 bg-white dark:bg-academy-card rounded-xl border border-academy-rule p-8 flex flex-col items-center justify-center text-center shadow-2xs space-y-4">
-                <Skeleton className="w-40 h-40 rounded-full" />
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 flex-1 min-h-0">
+              <div className="lg:col-span-4 bg-white dark:bg-academy-card rounded-2xl border-2 border-slate-300 dark:border-white/20 p-6 flex flex-col items-center justify-center space-y-4">
+                <Skeleton className="w-32 h-32 rounded-full" />
                 <Skeleton className="h-5 w-36 rounded-full" />
-                <Skeleton className="h-4 w-52 rounded" />
-                <Skeleton className="h-10 w-full rounded-md mt-4" />
+                <Skeleton className="h-10 w-full rounded-xl mt-4" />
               </div>
-              <div className="lg:col-span-7 grid grid-cols-2 gap-4">
+              <div className="lg:col-span-5 grid grid-cols-2 gap-3">
                 {[1, 2, 3, 4].map((i) => (
                   <MetricTileSkeleton key={i} />
                 ))}
               </div>
+              <div className="lg:col-span-3 bg-white dark:bg-academy-card rounded-2xl border-2 border-slate-300 dark:border-white/20 p-5">
+                <Skeleton className="h-6 w-32 rounded mb-3" />
+                <Skeleton className="h-20 w-full rounded" />
+              </div>
             </div>
           </SkeletonRegion>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            
-            {/* Circular Radial Accuracy Indicator */}
-            <div className="lg:col-span-5 bg-white dark:bg-academy-card rounded-xl border border-academy-rule p-7 sm:p-8 flex flex-col items-center justify-center text-center shadow-2xs">
-              
-              <div className="relative w-40 h-40 flex items-center justify-center mb-6">
-                <svg className="w-full h-full -rotate-90" viewBox="0 0 144 144" aria-hidden="true">
-                  <circle
-                    cx="72"
-                    cy="72"
-                    r="62"
-                    stroke="currentColor"
-                    strokeWidth="10"
-                    fill="transparent"
-                    className="text-academy-paper-subtle dark:text-surface-subtle"
-                  />
-                  <circle
-                    cx="72"
-                    cy="72"
-                    r="62"
-                    stroke={isPassed ? '#10b981' : '#f43f5e'}
-                    strokeWidth="10"
-                    fill="transparent"
-                    strokeDasharray={390}
-                    strokeDashoffset={390 - (390 * Math.min(100, Math.max(0, clientScore))) / 100}
-                    strokeLinecap="round"
-                    className="transition-all duration-1000 ease-out"
-                  />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-4xl font-mono font-bold text-academy-ink tracking-tight tabular-nums">
-                    {clientScore}%
-                  </span>
-                  <span className="text-xs font-serif italic text-academy-muted mt-0.5">
-                    Accuracy Rating
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 flex-1 min-h-0 items-stretch">
+
+            {/* ── COL 1 (4 COLS): Radial Gauge & Solution Audit Action ──────── */}
+            <div className="lg:col-span-4 bg-white dark:bg-academy-card rounded-2xl border-2 border-slate-300 dark:border-white/20 p-5 sm:p-6 flex flex-col justify-between shadow-xs">
+
+              {/* Radial Score Gauge */}
+              <div className="flex flex-col items-center text-center">
+                <div className="relative w-32 h-32 sm:w-36 sm:h-36 flex items-center justify-center my-1">
+                  <svg className="w-full h-full -rotate-90" viewBox="0 0 144 144" aria-hidden="true">
+                    <circle
+                      cx="72"
+                      cy="72"
+                      r="60"
+                      stroke="currentColor"
+                      strokeWidth="10"
+                      fill="transparent"
+                      className="text-slate-100 dark:text-slate-800"
+                    />
+                    <circle
+                      cx="72"
+                      cy="72"
+                      r="60"
+                      stroke={isPassed ? '#10b981' : '#f43f5e'}
+                      strokeWidth="10"
+                      fill="transparent"
+                      strokeDasharray={377}
+                      strokeDashoffset={377 - (377 * Math.min(100, Math.max(0, clientScore))) / 100}
+                      strokeLinecap="round"
+                      className="transition-all duration-1000 ease-out"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-3xl sm:text-4xl font-mono font-bold text-slate-900 dark:text-slate-100 tracking-tight tabular-nums">
+                      {clientScore}%
+                    </span>
+                    <span className="text-[11px] font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-0.5">
+                      Accuracy
+                    </span>
+                  </div>
+                </div>
+
+                {/* Status Pill */}
+                <div className="mt-3">
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold border-2 ${
+                    isPassed
+                      ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700'
+                      : 'bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 border-rose-300 dark:border-rose-700'
+                  }`}>
+                    {isPassed ? <CheckCircle2 size={13} aria-hidden="true" /> : <X size={13} aria-hidden="true" />}
+                    <span>{isPassed ? 'Standard Met (≥40%)' : 'Remediation Advised (<40%)'}</span>
                   </span>
                 </div>
               </div>
 
-              {/* Pass / Standard Status Pill */}
-              <div className="space-y-1.5 mb-6 max-w-sm">
-                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-mono font-medium border ${
-                  isPassed
-                    ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/50'
-                    : 'bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-800/50'
-                }`}>
-                  {isPassed ? <CheckCircle2 size={14} aria-hidden="true" /> : <X size={14} aria-hidden="true" />}
-                  <span>{isPassed ? 'Assessment Passed • Standard Met' : 'Below Standard • Remediation Advised'}</span>
-                </span>
-                <p className="text-xs text-academy-ink-secondary leading-relaxed">
-                  {isPassed
-                    ? 'Candidate performance satisfies the baseline curriculum proficiency requirement (≥40%).'
-                    : 'Performance did not meet the 40% benchmark. Review targeted question explanations below.'}
-                </p>
-              </div>
-
-              {/* Review CTAs */}
-              <button
-                type="button"
-                onClick={() => navigate('/review/' + attemptId)}
-                aria-label={isSolutionsSequestered ? "Question-by-Question Solution Audit (Solutions Locked)" : "Launch Question-by-Question Review with solutions"}
-                className="min-h-[44px] w-full rounded-md bg-academy-accent hover:bg-academy-accent-hover text-white text-xs font-semibold shadow-2xs inline-flex items-center justify-center gap-2 cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-academy-accent"
-              >
-                {isSolutionsSequestered ? (
-                  <>
-                    <Lock size={15} aria-hidden="true" />
-                    <span>Question-by-Question Solution Audit (Locked)</span>
-                  </>
-                ) : (
-                  <>
-                    <Eye size={15} aria-hidden="true" />
-                    <span>Question-by-Question Solution Audit</span>
-                  </>
-                )}
-              </button>
-            </div>
-
-            {/* Question Breakdown Statistics & Progress Tiles */}
-            <div className="lg:col-span-7 flex flex-col justify-between space-y-4">
-              
-              {/* Stacked Proportional Distribution Bar */}
-              <div className="bg-white dark:bg-academy-card rounded-xl border border-academy-rule p-5 shadow-2xs space-y-3">
-                <div className="flex items-center justify-between text-xs font-serif italic text-academy-muted">
-                  <span>Question Outcome Distribution</span>
-                  <span className="font-mono">{totalQuestions} Total Questions</span>
+              {/* Outcome Proportional Bar */}
+              <div className="bg-slate-50 dark:bg-[#13171f] rounded-xl border-2 border-slate-200 dark:border-white/10 p-3.5 my-3 space-y-2">
+                <div className="flex items-center justify-between text-xs font-mono text-slate-500 dark:text-slate-400">
+                  <span className="font-semibold text-slate-700 dark:text-slate-300">Outcome Breakdown</span>
+                  <span>{totalQuestions} Questions</span>
                 </div>
 
                 <div
@@ -503,281 +467,273 @@ const TestResultView = () => {
                   aria-valuenow={correctPct}
                   aria-valuemin="0"
                   aria-valuemax="100"
-                  className="w-full h-3 rounded-full overflow-hidden bg-academy-paper-subtle dark:bg-surface-elevated flex border border-academy-rule/40"
+                  className="w-full h-2.5 rounded-full overflow-hidden bg-slate-200 dark:bg-slate-800 flex"
                 >
-                  <div
-                    style={{ width: `${correctPct}%` }}
-                    className="bg-emerald-500 transition-all duration-700"
-                    title={`Correct: ${clientCorrect} (${correctPct}%)`}
-                  />
-                  <div
-                    style={{ width: `${wrongPct}%` }}
-                    className="bg-rose-500 transition-all duration-700"
-                    title={`Incorrect: ${clientWrong} (${wrongPct}%)`}
-                  />
-                  <div
-                    style={{ width: `${skippedPct}%` }}
-                    className="bg-amber-400 dark:bg-amber-500 transition-all duration-700"
-                    title={`Unanswered: ${clientSkipped} (${skippedPct}%)`}
-                  />
+                  <div style={{ width: `${correctPct}%` }} className="bg-emerald-500 transition-all duration-700" title={`Correct: ${clientCorrect}`} />
+                  <div style={{ width: `${wrongPct}%` }} className="bg-rose-500 transition-all duration-700" title={`Incorrect: ${clientWrong}`} />
+                  <div style={{ width: `${skippedPct}%` }} className="bg-amber-400 transition-all duration-700" title={`Unanswered: ${clientSkipped}`} />
                 </div>
 
-                <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-mono text-academy-ink-secondary pt-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" aria-hidden="true" />
-                    <span>Correct ({correctPct}%)</span>
+                <div className="flex items-center justify-between text-[11px] font-mono text-slate-600 dark:text-slate-400 pt-0.5">
+                  <div className="flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                    <span>{clientCorrect} ({correctPct}%)</span>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-rose-500" aria-hidden="true" />
-                    <span>Incorrect ({wrongPct}%)</span>
+                  <div className="flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-rose-500" />
+                    <span>{clientWrong} ({wrongPct}%)</span>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-amber-400 dark:bg-amber-500" aria-hidden="true" />
-                    <span>Unanswered ({skippedPct}%)</span>
+                  <div className="flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-amber-400" />
+                    <span>{clientSkipped} ({skippedPct}%)</span>
                   </div>
                 </div>
               </div>
 
-              {/* 4 Metric Tiles */}
-              <div className="grid grid-cols-2 gap-4 flex-1">
-                
+              {/* Primary CTA: Question-by-Question Solution Audit */}
+              <button
+                type="button"
+                onClick={() => navigate('/review/' + attemptId)}
+                aria-label={isSolutionsSequestered ? "Question-by-Question Solution Audit (Solutions Locked)" : "Launch Question-by-Question Review with solutions"}
+                className="min-h-[46px] w-full rounded-xl bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-600 hover:from-indigo-700 hover:via-violet-700 hover:to-purple-700 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-indigo-500/25 active:scale-[0.98] text-white text-xs sm:text-sm font-bold shadow-md inline-flex items-center justify-center gap-2 cursor-pointer transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 border-2 border-indigo-400/40"
+              >
+                {isSolutionsSequestered ? (
+                  <>
+                    <Lock size={16} aria-hidden="true" />
+                    <span>Solution Audit (Locked)</span>
+                  </>
+                ) : (
+                  <>
+                    <Eye size={16} aria-hidden="true" />
+                    <span>Question-by-Question Solution Audit</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* ── COL 2 (5 COLS): 2x2 Metric Tiles + Curriculum Mastery ────────── */}
+            <div className="lg:col-span-5 flex flex-col gap-3 min-h-0">
+
+              {/* 4 Metric Tiles in 2x2 Grid */}
+              <div className="grid grid-cols-2 gap-2.5 shrink-0">
+
                 {/* 1. Correct */}
-                <div className="bg-white dark:bg-academy-card rounded-xl border border-academy-rule p-5 shadow-2xs flex flex-col justify-between">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-serif italic text-academy-muted">Correct Answers</span>
-                    <div className="w-8 h-8 rounded-md bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                      <CheckCircle2 size={16} aria-hidden="true" />
+                <div className="bg-white dark:bg-academy-card rounded-2xl border-2 border-slate-300 dark:border-white/20 p-3.5 shadow-xs flex flex-col justify-between hover:-translate-y-0.5 transition-all">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-mono font-medium text-slate-500 dark:text-slate-400">Correct</span>
+                    <div className="w-7 h-7 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                      <CheckCircle2 size={15} aria-hidden="true" />
                     </div>
                   </div>
                   <div>
-                    <div className="text-3xl font-mono font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">
+                    <div className="text-2xl font-mono font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">
                       {clientCorrect}
                     </div>
-                    <div className="text-xs font-mono text-academy-muted mt-1">
-                      {correctPct}% of assessment
+                    <div className="text-[11px] font-mono text-slate-400 mt-0.5">
+                      {correctPct}% of items
                     </div>
                   </div>
                 </div>
 
                 {/* 2. Incorrect */}
-                <div className="bg-white dark:bg-academy-card rounded-xl border border-academy-rule p-5 shadow-2xs flex flex-col justify-between">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-serif italic text-academy-muted">Incorrect Answers</span>
-                    <div className="w-8 h-8 rounded-md bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/40 text-rose-600 dark:text-rose-400 flex items-center justify-center">
-                      <X size={16} aria-hidden="true" />
+                <div className="bg-white dark:bg-academy-card rounded-2xl border-2 border-slate-300 dark:border-white/20 p-3.5 shadow-xs flex flex-col justify-between hover:-translate-y-0.5 transition-all">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-mono font-medium text-slate-500 dark:text-slate-400">Incorrect</span>
+                    <div className="w-7 h-7 rounded-lg bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+                      <X size={15} aria-hidden="true" />
                     </div>
                   </div>
                   <div>
-                    <div className="text-3xl font-mono font-bold text-rose-700 dark:text-rose-400 tabular-nums">
+                    <div className="text-2xl font-mono font-bold text-rose-700 dark:text-rose-400 tabular-nums">
                       {clientWrong}
                     </div>
-                    <div className="text-xs font-mono text-academy-muted mt-1">
-                      {wrongPct}% of assessment
+                    <div className="text-[11px] font-mono text-slate-400 mt-0.5">
+                      {wrongPct}% of items
                     </div>
                   </div>
                 </div>
 
                 {/* 3. Unanswered / Skipped */}
-                <div className="bg-white dark:bg-academy-card rounded-xl border border-academy-rule p-5 shadow-2xs flex flex-col justify-between">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-serif italic text-academy-muted">Unanswered / Skipped</span>
-                    <div className="w-8 h-8 rounded-md bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/40 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-                      <HelpCircle size={16} aria-hidden="true" />
+                <div className="bg-white dark:bg-academy-card rounded-2xl border-2 border-slate-300 dark:border-white/20 p-3.5 shadow-xs flex flex-col justify-between hover:-translate-y-0.5 transition-all">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-mono font-medium text-slate-500 dark:text-slate-400">Skipped</span>
+                    <div className="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                      <HelpCircle size={15} aria-hidden="true" />
                     </div>
                   </div>
                   <div>
-                    <div className="text-3xl font-mono font-bold text-amber-700 dark:text-amber-400 tabular-nums">
+                    <div className="text-2xl font-mono font-bold text-amber-700 dark:text-amber-400 tabular-nums">
                       {clientSkipped}
                     </div>
-                    <div className="text-xs font-mono text-academy-muted mt-1">
-                      {skippedPct}% of assessment
+                    <div className="text-[11px] font-mono text-slate-400 mt-0.5">
+                      {skippedPct}% of items
                     </div>
                   </div>
                 </div>
 
                 {/* 4. Total Questions */}
-                <div className="bg-white dark:bg-academy-card rounded-xl border border-academy-rule p-5 shadow-2xs flex flex-col justify-between">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-serif italic text-academy-muted">Total Questions</span>
-                    <div className="w-8 h-8 rounded-md bg-academy-accent-tint border border-academy-accent/20 text-academy-accent dark:text-academy-accent-deep flex items-center justify-center">
-                      <Target size={16} aria-hidden="true" />
+                <div className="bg-white dark:bg-academy-card rounded-2xl border-2 border-slate-300 dark:border-white/20 p-3.5 shadow-xs flex flex-col justify-between hover:-translate-y-0.5 transition-all">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-mono font-medium text-slate-500 dark:text-slate-400">Total Items</span>
+                    <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                      <Target size={15} aria-hidden="true" />
                     </div>
                   </div>
                   <div>
-                    <div className="text-3xl font-mono font-bold text-academy-ink tabular-nums">
+                    <div className="text-2xl font-mono font-bold text-slate-900 dark:text-slate-100 tabular-nums">
                       {totalQuestions}
                     </div>
-                    <div className="text-xs font-mono text-academy-muted mt-1">
-                      100% evaluated items
+                    <div className="text-[11px] font-mono text-slate-400 mt-0.5">
+                      100% evaluated
                     </div>
                   </div>
                 </div>
 
               </div>
-            </div>
 
-          </div>
-        )}
-
-        {/* ── SUBJECT / CATEGORY MASTERY BREAKDOWN ─────────────────────────── */}
-        <section aria-label="Category Mastery" className="bg-white dark:bg-academy-card rounded-xl border border-academy-rule p-6 shadow-2xs space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-academy-rule pb-3">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-md bg-academy-accent-tint border border-academy-accent/20 flex items-center justify-center text-academy-accent dark:text-academy-accent-deep">
-                <BookOpen size={14} aria-hidden="true" />
-              </div>
-              <h2 className="font-serif text-base sm:text-lg font-normal text-academy-ink">
-                Subject & Curriculum Mastery Analysis
-              </h2>
-            </div>
-            <span className="text-xs font-mono text-academy-muted">
-              {test?.category || attempt?.category || 'General Assessment'}
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-1">
-            {categoryMastery.map((cat, idx) => {
-              const catPass = cat.accuracy >= 75 ? 'Proficient' : cat.accuracy >= 40 ? 'Competent' : 'Developing';
-              const catBarColor = cat.accuracy >= 75 ? 'bg-emerald-500' : cat.accuracy >= 40 ? 'bg-academy-accent dark:bg-academy-accent-deep' : 'bg-rose-500';
-
-              return (
-                <div
-                  key={idx}
-                  className="bg-academy-paper-subtle/50 dark:bg-surface-subtle/50 rounded-lg border border-academy-rule p-4 space-y-3"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <h3 className="text-sm font-semibold text-academy-ink truncate">{cat.name}</h3>
-                      <span className="text-xs font-mono text-academy-muted">
-                        {cat.correct} of {cat.total} correct
-                      </span>
-                    </div>
-                    <span className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold border ${
-                      cat.accuracy >= 40
-                        ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/40'
-                        : 'bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-800/40'
-                    }`}>
-                      {cat.accuracy}%
-                    </span>
+              {/* Subject & Curriculum Mastery Analysis */}
+              <div className="bg-white dark:bg-academy-card rounded-2xl border-2 border-slate-300 dark:border-white/20 p-4 shadow-xs flex-1 min-h-0 flex flex-col">
+                <div className="flex items-center justify-between border-b-2 border-slate-100 dark:border-white/10 pb-2.5 mb-2.5 shrink-0">
+                  <div className="flex items-center gap-2">
+                    <BookOpen size={15} className="text-indigo-600 dark:text-indigo-400" aria-hidden="true" />
+                    <h3 className="font-serif font-bold text-sm text-slate-900 dark:text-slate-100">
+                      Curriculum Mastery Breakdown
+                    </h3>
                   </div>
+                  <span className="text-[11px] font-mono text-slate-400">
+                    {test?.category || attempt?.category || 'General'}
+                  </span>
+                </div>
 
-                  <div className="space-y-1">
-                    <div
-                      role="progressbar"
-                      aria-valuenow={cat.accuracy}
-                      aria-valuemin="0"
-                      aria-valuemax="100"
-                      aria-label={`${cat.name} accuracy progress`}
-                      className="w-full h-2 rounded-full bg-academy-paper-subtle dark:bg-surface-elevated overflow-hidden border border-academy-rule/40"
-                    >
+                <div className="space-y-2.5 overflow-y-auto custom-scrollbar flex-1 pr-1">
+                  {categoryMastery.map((cat, idx) => {
+                    const catPass = cat.accuracy >= 75 ? 'Proficient' : cat.accuracy >= 40 ? 'Competent' : 'Developing';
+                    const catBarColor = cat.accuracy >= 75 ? 'bg-emerald-500' : cat.accuracy >= 40 ? 'bg-indigo-600' : 'bg-rose-500';
+
+                    return (
                       <div
-                        style={{ width: `${Math.min(100, Math.max(0, cat.accuracy))}%` }}
-                        className={`h-full rounded-full transition-all duration-500 ${catBarColor}`}
-                      />
+                        key={idx}
+                        className="bg-slate-50 dark:bg-[#13171f] rounded-xl border border-slate-200 dark:border-white/10 p-2.5 space-y-1.5"
+                      >
+                        <div className="flex items-center justify-between text-xs font-medium">
+                          <span className="text-slate-900 dark:text-slate-100 font-semibold truncate">{cat.name}</span>
+                          <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
+                            {cat.correct}/{cat.total} ({cat.accuracy}%)
+                          </span>
+                        </div>
+
+                        <div className="w-full h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
+                          <div
+                            style={{ width: `${Math.min(100, Math.max(0, cat.accuracy))}%` }}
+                            className={`h-full rounded-full transition-all duration-500 ${catBarColor}`}
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-between text-[10px] font-mono text-slate-500">
+                          <span>Proficiency: <strong className="text-slate-700 dark:text-slate-300">{catPass}</strong></span>
+                          <span>{cat.wrong} wrong • {cat.skipped} skipped</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+            </div>
+
+            {/* ── COL 3 (3 COLS): Cohort Standing & Assessment Audit Specs ───── */}
+            <div className="lg:col-span-3 flex flex-col gap-3 min-h-0">
+
+              {/* Cohort Standing / Drill Purpose */}
+              {isOfficialExam ? (
+                <div className="bg-white dark:bg-academy-card rounded-2xl border-2 border-slate-300 dark:border-white/20 p-4 shadow-xs space-y-3">
+                  <div className="flex items-center gap-2.5 border-b-2 border-slate-100 dark:border-white/10 pb-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center shadow-xs shrink-0">
+                      <Award size={18} aria-hidden="true" />
                     </div>
-                    <div className="flex items-center justify-between text-[11px] font-mono text-academy-muted pt-0.5">
-                      <span>Proficiency: <span className="text-academy-ink font-medium">{catPass}</span></span>
-                      <span>Items: <span className="text-academy-ink font-medium">{cat.total}</span></span>
+                    <div>
+                      <h4 className="font-serif font-bold text-sm text-slate-900 dark:text-slate-100">Cohort Standing</h4>
+                      <p className="text-[11px] text-slate-400">Proctored Examination</p>
                     </div>
                   </div>
+
+                  <div className="text-center py-2 bg-indigo-50/60 dark:bg-indigo-950/40 rounded-xl border border-indigo-200 dark:border-indigo-800">
+                    <span className="text-[11px] font-mono uppercase tracking-wider text-indigo-700 dark:text-indigo-300 font-semibold">
+                      Class Rank
+                    </span>
+                    <div className="text-3xl font-mono font-bold text-indigo-600 dark:text-indigo-400 tabular-nums">
+                      #{globalStandingData.rank} <span className="text-xs font-normal text-slate-500">of {globalStandingData.total}</span>
+                    </div>
+                  </div>
+
+                  {hasReliableCohort ? (
+                    <div className="space-y-2 text-xs font-mono">
+                      <div className="flex justify-between py-1 border-b border-slate-100 dark:border-white/10">
+                        <span className="text-slate-500">Percentile:</span>
+                        <span className="font-bold text-emerald-600">{cohortStats.percentile}th</span>
+                      </div>
+                      <div className="flex justify-between py-1">
+                        <span className="text-slate-500">Class Standing:</span>
+                        <span className="font-bold text-indigo-600">Top {cohortStats.topPct}%</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed font-sans">
+                      Official percentile calculates once ≥5 candidates submit. Currently {globalStandingData.total} submitted.
+                    </p>
+                  )}
                 </div>
-              );
-            })}
+              ) : (
+                <div className="bg-white dark:bg-academy-card rounded-2xl border-2 border-slate-300 dark:border-white/20 p-4 shadow-xs space-y-2.5">
+                  <div className="flex items-center gap-2.5 border-b-2 border-slate-100 dark:border-white/10 pb-2">
+                    <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                      <BookOpen size={16} aria-hidden="true" />
+                    </div>
+                    <div>
+                      <h4 className="font-serif font-bold text-sm text-slate-900 dark:text-slate-100">Formative Drill</h4>
+                      <p className="text-[11px] text-slate-400">Self-Paced Practice</p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-sans">
+                    Practice drill analytics prioritize concept retention and iterative mastery. Cohort percentiles are reserved for proctored Main Exams.
+                  </p>
+                </div>
+              )}
+
+              {/* Assessment Audit Specs */}
+              <div className="bg-white dark:bg-academy-card rounded-2xl border-2 border-slate-300 dark:border-white/20 p-4 shadow-xs space-y-2.5 flex-1 flex flex-col justify-between">
+                <div className="space-y-2 text-xs font-mono">
+                  <div className="flex items-center gap-1.5 text-xs font-serif font-bold text-slate-900 dark:text-slate-100 border-b-2 border-slate-100 dark:border-white/10 pb-2">
+                    <ShieldCheck size={15} className="text-emerald-600 dark:text-emerald-400" />
+                    <span>Audit Verification</span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-slate-100 dark:border-white/5">
+                    <span className="text-slate-400">Duration:</span>
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">{test?.durationMinutes ? `${test.durationMinutes}m` : 'Untimed'}</span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-slate-100 dark:border-white/5">
+                    <span className="text-slate-400">Difficulty:</span>
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">{test?.difficultyLevel || 'Standard'}</span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-slate-100 dark:border-white/5">
+                    <span className="text-slate-400">Section:</span>
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">{test?.sectionType || 'Objective'}</span>
+                  </div>
+                  <div className="flex justify-between py-1">
+                    <span className="text-slate-400">Candidate:</span>
+                    <span className="font-semibold text-slate-700 dark:text-slate-300 truncate max-w-[120px]">{user?.email?.split('@')[0] || 'Student'}</span>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t-2 border-slate-100 dark:border-white/10 flex items-center justify-center gap-1.5 text-[11px] font-mono text-emerald-600 dark:text-emerald-400 font-semibold">
+                  <CheckCircle2 size={13} />
+                  <span>Tamper-Evident Ledger Entry</span>
+                </div>
+              </div>
+
+            </div>
+
           </div>
-
-          {/* Test Specifications Metadata */}
-          <div className="pt-2 border-t border-academy-rule-subtle flex flex-wrap items-center justify-between gap-3 text-xs font-mono text-academy-muted">
-            <div className="flex items-center gap-4">
-              <span>Duration: <span className="text-academy-ink font-medium">{test?.durationMinutes ? `${test.durationMinutes} mins` : 'Untimed'}</span></span>
-              <span>Section: <span className="text-academy-ink font-medium">{test?.sectionType || 'Multiple Choice'}</span></span>
-              <span>Difficulty: <span className="text-academy-ink font-medium">{test?.difficultyLevel || 'Standard'}</span></span>
-            </div>
-            <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400">
-              <ShieldCheck size={14} aria-hidden="true" />
-              <span>Standard-Aligned Evaluation</span>
-            </div>
-          </div>
-        </section>
-
-        {/* ── COHORT ANALYTICS / PERCENTILE CARD ───────────────────────────── */}
-        {isOfficialExam ? (
-          <section aria-label="Official Cohort Standing" className="bg-white dark:bg-academy-card rounded-xl border border-academy-rule p-6 shadow-2xs space-y-4">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-academy-rule pb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-lg bg-academy-accent text-white flex items-center justify-center shadow-2xs shrink-0">
-                  <Award size={22} aria-hidden="true" />
-                </div>
-                <div>
-                  <h2 className="font-serif text-lg font-normal text-academy-ink">
-                    Official Examination Cohort Analytics
-                  </h2>
-                  <p className="text-xs text-academy-ink-secondary">
-                    Comparative rank and percentile calibrated across verified candidate submissions.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div className="text-right">
-                  <div className="text-xs font-serif italic text-academy-muted">Verified Class Rank</div>
-                  <div className="text-2xl font-mono font-bold text-academy-accent dark:text-academy-accent-deep tabular-nums">
-                    #{globalStandingData.rank} <span className="text-xs text-academy-muted font-normal font-sans">of {globalStandingData.total}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Conditional Percentile Rendering (Strict zero fabrication) */}
-            {hasReliableCohort ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-                <div className="bg-academy-paper-subtle/50 dark:bg-surface-subtle/50 rounded-lg border border-academy-rule p-4 space-y-1">
-                  <span className="text-xs font-serif italic text-academy-muted">Cohort Percentile</span>
-                  <div className="text-2xl font-mono font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">
-                    {cohortStats.percentile}th Percentile
-                  </div>
-                  <p className="text-xs text-academy-ink-secondary">
-                    Scored higher than or equal to {cohortStats.percentile}% of all {globalStandingData.total} official exam candidates.
-                  </p>
-                </div>
-
-                <div className="bg-academy-paper-subtle/50 dark:bg-surface-subtle/50 rounded-lg border border-academy-rule p-4 space-y-1">
-                  <span className="text-xs font-serif italic text-academy-muted">Class Standing Tier</span>
-                  <div className="text-2xl font-mono font-bold text-academy-accent dark:text-academy-accent-deep tabular-nums">
-                    Top {cohortStats.topPct}%
-                  </div>
-                  <p className="text-xs text-academy-ink-secondary">
-                    Positioned within the top tier of candidates for this proctored examination sitting.
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 rounded-lg p-4 flex items-start gap-3">
-                <Users size={18} className="text-amber-700 dark:text-amber-400 shrink-0 mt-0.5" aria-hidden="true" />
-                <div className="space-y-1">
-                  <h3 className="text-xs font-semibold text-amber-900 dark:text-amber-200">
-                    Cohort data gathering (requires ≥ 5 participants)
-                  </h3>
-                  <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
-                    Official percentile distribution is calculated once 5 or more students complete this formal sitting to ensure statistical reliability. Currently {globalStandingData.total} {globalStandingData.total === 1 ? 'candidate has' : 'candidates have'} submitted this exam.
-                  </p>
-                </div>
-              </div>
-            )}
-          </section>
-        ) : (
-          <section aria-label="Practice Diagnostic Notice" className="bg-academy-paper-subtle/40 dark:bg-surface-subtle/40 border border-academy-rule rounded-xl p-5 flex items-start gap-3.5 shadow-2xs">
-            <div className="w-9 h-9 rounded-lg bg-academy-accent-tint border border-academy-accent/20 text-academy-accent dark:text-academy-accent-deep flex items-center justify-center shrink-0">
-              <BookOpen size={18} aria-hidden="true" />
-            </div>
-            <div className="space-y-0.5">
-              <h3 className="text-xs font-semibold text-academy-ink">
-                Self-Paced Practice Drill Diagnostics
-              </h3>
-              <p className="text-xs text-academy-ink-secondary leading-relaxed max-w-3xl">
-                Cohort percentile curves are exclusively reserved for proctored Official Main Exams. Practice drill analytics prioritize personal knowledge retention, identifying concept weak points, and iterative problem mastery.
-              </p>
-            </div>
-          </section>
         )}
 
       </div>

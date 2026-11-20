@@ -1,14 +1,34 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Sidebar from './Sidebar';
 import { useLocation } from 'react-router-dom';
-import { LogOut, UserCircle, Menu } from 'lucide-react';
+import { LogOut, UserCircle, Menu, Clock, Radio, Activity } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { BRANDING } from '../config/branding';
+import ThemeToggle from './ThemeToggle';
+import BrandLogo from './BrandLogo';
+import BackgroundAbstractFluid from './backgrounds/BackgroundAbstractFluid';
 
+/**
+ * MainLayout: Apple macOS Sonoma / VisionOS Desktop Command Shell
+ *
+ * - Full-height edge-docked sidebar (`w-[260px]`).
+ * - Seamless edge-to-edge frosted glass top masthead with integrated 12-hour RTC clock,
+ *   live system telemetry status, domain-strict breadcrumbs, and segmented theme toggle.
+ * - Hardware-accelerated fluid background integration without awkward floating gaps.
+ */
 const MainLayout = ({ children, onProfileClick }) => {
-  const { user, logout, isOffline } = useAuth();
+  const { user } = useAuth();
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const menuButtonRef = useRef(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  const isAdmin = user?.role === 'ADMIN' || location.pathname.startsWith('/admin');
+
+  // Real-time 12-Hour AM/PM Clock
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Auto-close sidebar on window resize if moving to desktop
   useEffect(() => {
@@ -21,156 +41,187 @@ const MainLayout = ({ children, onProfileClick }) => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Get Page Title from Pathname
+  // Keyboard navigation: Close mobile sidebar with Escape key (WCAG 2.1.1 & 2.1.2)
+  useEffect(() => {
+    if (!isSidebarOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setIsSidebarOpen(false);
+        menuButtonRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isSidebarOpen]);
+
+  // Page Title from Pathname
   const getPageTitle = () => {
     const path = location.pathname;
-    if (path.includes('admin-dashboard') || path.includes('/admin/dashboard')) return 'System Overview';
-    if (path.includes('student-dashboard') || path.includes('/student/dashboard')) return 'Student Dashboard';
-    if (path.includes('students')) return 'Student Directory';
-    if (path.includes('tests/history')) return 'Archives';
-    if (path.includes('tests/create')) return 'Test Construction';
-    if (path.includes('section1')) return 'Practice Assessments';
-    if (path.includes('section2')) return 'Main Assessments';
-    if (path.includes('tests/active')) return 'Active Inventory';
-    if (path.includes('tests')) return 'Assessment Control';
-    if (path.includes('questions')) return 'Question Library';
-    if (path.includes('bank')) return 'Question Library';
-    if (path.includes('results')) return 'Performance History';
-    if (path.includes('progress')) return 'Intelligence';
-    return 'Portal';
+    if (path.includes('admin-dashboard') || path.includes('/admin/dashboard')) return 'Dashboard';
+    if (path.includes('student-dashboard') || path.includes('/student/dashboard')) return 'Dashboard';
+    if (path.includes('students')) return 'Candidate Roster';
+    if (path.includes('tests/history')) return 'History Archive';
+    if (path.includes('tests/create')) return 'Create Assessment';
+    if (path.includes('section1')) return 'Practice Drills';
+    if (path.includes('section2')) return 'Main Examinations';
+    if (path.includes('tests/active')) return 'Active Tests';
+    if (path.includes('tests')) return 'Manage Tests';
+    if (path.includes('questions') || path.includes('bank')) return 'Question Bank';
+    if (path.includes('results')) return 'Historical Results';
+    if (path.includes('progress')) return 'Mastery Progress';
+    if (path.includes('leaderboard')) return 'Cohort Leaderboard';
+    return 'LearnIQ';
   };
 
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const formattedDate = new Intl.DateTimeFormat('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric'
+  }).format(currentTime);
 
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
+  const formattedTime = new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  }).format(currentTime);
 
-  const formatDate = (date) => {
-    const d = date.getDate().toString().padStart(2, '0');
-    const m = (date.getMonth() + 1).toString().padStart(2, '0');
-    const y = date.getFullYear();
-
-    let hh = date.getHours();
-    const ampm = hh >= 12 ? 'PM' : 'AM';
-    hh = hh % 12;
-    hh = hh ? hh : 12;
-    const hstr = hh.toString().padStart(2, '0');
-    const mm = date.getMinutes().toString().padStart(2, '0');
-    const ss = date.getSeconds().toString().padStart(2, '0');
-
-    return {
-      date: `${d}/${m}/${y}`,
-      time: `${hstr}:${mm}:${ss}`,
-      ampm
-    };
-  };
-
-  const { date, time, ampm } = formatDate(currentTime);
+  const studentDisplayName = user?.fullName || (user?.email?.startsWith('student1') ? 'Student One' : (user?.name || 'Student'));
 
   return (
-    <div className={`main-layout selection:bg-violet-500/30 min-h-screen bg-[#0d0d10] ${user?.role === 'ADMIN' ? 'admin-theme' : 'student-theme'}`}>
-      {/* SaaS Sidebar - Now Responsive */}
+    <div className="main-layout relative h-screen h-[100dvh] max-h-[100dvh] overflow-hidden bg-[#FBF9F5] dark:bg-[#0c0f17] text-[#090d16] dark:text-slate-100 font-sans transition-colors duration-200 flex">
+      {/* ── GLOBAL ARTISTIC BACKGROUND (DIRECTION 8) ─────────────────────────── */}
+      <BackgroundAbstractFluid />
+
+      {/* Skip to Main Content Link for Keyboard Accessibility (WCAG 2.4.1) */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:px-4 focus:py-2.5 focus:bg-violet-700 focus:text-white focus:rounded-xl focus:shadow-xl focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 font-semibold text-xs tracking-wide transition-all"
+      >
+        Skip to main content
+      </a>
+
+      {/* Monolithic Dock Sidebar */}
       <Sidebar
         onProfileClick={onProfileClick}
         isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
+        onClose={() => {
+          setIsSidebarOpen(false);
+          menuButtonRef.current?.focus();
+        }}
       />
 
-      {/* Main Content Area - Responsive Margins */}
-      <main className="main-content flex-1 flex flex-col transition-all duration-500 lg:ml-[340px] bg-[#0d0d10] min-h-screen">
-
-        {/* Top Header - Apple Translucent Material & Optical Typography */}
+      {/* Main Content Viewport */}
+      <main
+        id="main-content"
+        tabIndex="-1"
+        className="main-content relative z-10 flex-1 flex flex-col transition-all duration-300 lg:ml-[260px] bg-transparent h-screen h-[100dvh] max-h-[100dvh] min-w-0 overflow-hidden focus:outline-none"
+      >
+        {/* ── SEAMLESS TOP MASTHEAD (Apple Sonoma Style) ──────────────── */}
         <header
-          className="h-20 px-3 sm:px-6 lg:px-10 flex items-center justify-between shrink-0 z-40 sticky top-0 bg-[#0a0a0f]/80 backdrop-blur-xl border-b border-white/[0.08] shadow-[inset_0_-1px_0_0_rgba(255,255,255,0.03),0_8px_20px_rgba(0,0,0,0.3)] transition-[background-color,border-color] duration-150 ease-out"
+          role="banner"
+          className="shrink-0 z-30 h-14 sm:h-16 px-3.5 sm:px-6 lg:px-8 bg-white/70 dark:bg-[#0c0f17]/75 backdrop-blur-2xl border-b border-slate-200/80 dark:border-white/[0.08] flex items-center justify-between transition-colors shadow-2xs"
         >
-          <div className="flex items-center gap-2 sm:gap-4 lg:gap-10 min-w-0 flex-1">
-            {/* MOBILE MENU TOGGLE */}
+          {/* Left: Mobile Toggle & Hierarchical Breadcrumbs */}
+          <div className="flex items-center gap-2 sm:gap-3.5 min-w-0 flex-1 mr-2">
             <button
+              type="button"
+              ref={menuButtonRef}
               onClick={() => setIsSidebarOpen(true)}
               aria-label="Open navigation sidebar"
-              className="lg:hidden w-10 h-10 rounded-full bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-white/70 hover:text-white hover:bg-white/[0.08] transition-[background-color,border-color,color,transform] duration-150 ease-out active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+              aria-expanded={isSidebarOpen}
+              aria-controls="navigation-sidebar"
+              className={`lg:hidden min-w-[38px] min-h-[38px] sm:min-w-[40px] sm:min-h-[40px] rounded-xl bg-slate-100 dark:bg-white/[0.05] border border-slate-200/70 dark:border-white/10 flex items-center justify-center text-slate-700 dark:text-slate-300 transition-all duration-150 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 ${
+                isAdmin ? 'focus-visible:ring-violet-500' : 'focus-visible:ring-indigo-600'
+              } cursor-pointer`}
             >
-              <Menu size={18} />
+              <Menu size={18} aria-hidden="true" />
             </button>
 
-            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-              <div className="hidden sm:flex items-center gap-3">
-                <img
-                  src={BRANDING.logos.icon}
-                  alt="LearnIQ Symbol"
-                  className="h-8 w-8 object-contain drop-shadow-[0_0_8px_rgba(124,58,237,0.3)]"
-                />
-              </div>
-              <span className="hidden sm:block text-white/20 font-thin text-lg sm:text-xl select-none">/</span>
-              <h1 className="text-xs sm:text-sm font-bold text-white tracking-tight truncate flex-1">
+            {/* Mobile Brand Mark */}
+            <div className="lg:hidden shrink-0">
+              <BrandLogo
+                size="sm"
+                variant="mark"
+                linkTo={isAdmin ? '/admin/dashboard' : '/student/dashboard'}
+              />
+            </div>
+
+            {/* Breadcrumb Hierarchy */}
+            <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
+              <span className={`hidden sm:inline-flex items-center text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full border tracking-wider uppercase shadow-2xs ${
+                isAdmin
+                  ? 'bg-violet-500/15 text-violet-700 dark:text-violet-300 border-violet-500/30'
+                  : 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30'
+              }`}>
+                {isAdmin ? 'Faculty Console' : 'Candidate Desk'}
+              </span>
+
+              <span className="hidden sm:inline text-slate-300 dark:text-slate-600 font-mono text-xs select-none">/</span>
+
+              <h1 className="text-xs sm:text-sm font-serif font-bold text-slate-900 dark:text-slate-100 tracking-tight truncate">
                 {getPageTitle()}
               </h1>
             </div>
 
-            <div className="hidden sm:block h-5 w-px bg-white/10" />
+            <div className="hidden md:block h-4 w-px bg-slate-200 dark:bg-white/10" aria-hidden="true" />
 
-            {/* System Clock - Hidden on very small screens */}
-            <div className="hidden md:flex items-center gap-6">
-              <div className="flex flex-col">
-                <span className="text-[12px] font-medium text-white/75 tracking-tight">{date}</span>
-              </div>
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-[12px] font-semibold text-violet-300 tracking-tight">{time}</span>
-                <span className="text-[9px] font-medium text-violet-300/70 tracking-wider uppercase">{ampm}</span>
-              </div>
+            {/* Live Connectivity Tag */}
+            <div className="hidden md:flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 font-mono text-[9px] font-bold">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span>ONLINE</span>
+              </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-4 lg:gap-6 shrink-0">
-            <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3">
-              <button
-                onClick={onProfileClick}
-                className="flex items-center justify-between gap-3 sm:gap-4 px-3 sm:px-4 py-2 rounded-2xl bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] hover:border-white/[0.16] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] transition-[background-color,border-color,transform,box-shadow] duration-150 ease-out group/profile min-w-0 sm:min-w-[170px] lg:min-w-[210px] relative overflow-hidden h-13 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
-              >
-                 <div className="absolute top-0 left-0 w-1 h-full bg-violet-500/50" />
-                 <div className="text-left hidden sm:block">
-                   <p className="text-[12px] font-semibold text-white tracking-tight group-hover/profile:text-violet-300 transition-colors truncate max-w-[120px] lg:max-w-none">
-                     {user?.name || 'Scholar'}
-                   </p>
-                   <p className="text-[9px] font-medium text-white/60 tracking-wider uppercase mt-0.5">
-                     {user?.role === 'ADMIN' ? 'System Authority' : 'Candidate Portal'}
-                   </p>
-                 </div>
-                 <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-white/[0.06] flex items-center justify-center border border-white/10 overflow-hidden shadow-sm group-hover/profile:border-violet-500/30 transition-all shrink-0">
-                   {user?.avatar ? (
-                      <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
-                   ) : (
-                      <UserCircle className="text-white/40" size={18} />
-                   )}
-                 </div>
-              </button>
-
-              <button
-                onClick={logout}
-                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-white/60 hover:bg-rose-500/10 hover:border-rose-500/25 hover:text-rose-400 transition-[background-color,border-color,color,transform] duration-150 ease-out group shadow-sm active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/50"
-                title="Logout"
-              >
-                <LogOut size={16} className="group-hover:translate-x-0.5 transition-transform duration-150" />
-              </button>
+          {/* Right: Live 12-Hour RTC Clock & Segmented Theme Switcher & User Pill */}
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            {/* Live 12-Hour Digital Clock Capsule */}
+            <div className="hidden sm:flex items-center gap-2 h-[44px] min-h-[44px] max-h-[44px] px-4 rounded-xl bg-white/95 dark:bg-[#141822]/95 border-2 border-slate-300 dark:border-white/20 text-xs font-mono text-slate-800 dark:text-slate-200 shadow-xs select-none">
+              <Clock size={15} className={isAdmin ? 'text-violet-600 dark:text-violet-400 shrink-0' : 'text-indigo-600 dark:text-indigo-400 shrink-0'} />
+              <span className="font-bold tracking-tight tabular-nums">{formattedTime}</span>
+              <span className="text-slate-300 dark:text-slate-600">•</span>
+              <span className="text-slate-600 dark:text-slate-400 font-medium">{formattedDate}</span>
             </div>
+
+            {/* Prominent Morphing Theme Switcher */}
+            <ThemeToggle size="lg" className="h-[44px] min-h-[44px] max-h-[44px]" />
+
+            {/* User Profile Pill */}
+            <button
+              type="button"
+              onClick={onProfileClick}
+              className={`h-[44px] min-h-[44px] max-h-[44px] flex items-center gap-2.5 px-3 rounded-xl bg-white/95 dark:bg-[#141822]/95 hover:bg-slate-100/90 dark:hover:bg-[#1c2230] border-2 border-slate-300 dark:border-white/20 hover:border-violet-500/70 dark:hover:border-violet-400/70 text-slate-800 dark:text-slate-100 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 ${
+                isAdmin ? 'focus-visible:ring-violet-500' : 'focus-visible:ring-indigo-600'
+              } cursor-pointer group`}
+              title="View user profile"
+              aria-label="View user profile"
+            >
+              <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold font-mono overflow-hidden shrink-0 shadow-2xs border ${
+                isAdmin
+                  ? 'bg-violet-100 dark:bg-violet-950/70 border-violet-300 dark:border-violet-800/60 text-violet-800 dark:text-violet-300 group-hover:scale-105'
+                  : 'bg-indigo-100 dark:bg-indigo-950/70 border-indigo-300 dark:border-indigo-800/60 text-indigo-800 dark:text-indigo-300 group-hover:scale-105'
+              } transition-transform duration-200`}>
+                {user?.avatar ? (
+                  <img src={user.avatar} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <span>{user?.name ? user.name.charAt(0).toUpperCase() : (isAdmin ? 'A' : 'S')}</span>
+                )}
+              </div>
+              <span className="text-xs font-semibold hidden md:inline max-w-[120px] truncate">
+                {isAdmin ? (user?.name || 'Admin') : studentDisplayName}
+              </span>
+            </button>
           </div>
         </header>
 
-        {/* Content Body - Responsive Scrolling */}
-        <div className="flex-1 flex flex-col bg-[#0d0d10] min-h-0">
-            {isOffline && (
-              <div className="m-4 px-6 py-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center gap-3 shrink-0">
-                <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                <span className="text-[10px] font-black text-amber-500/80 uppercase tracking-[0.2em]">
-                  ⚠ Offline Mode
-                </span>
-              </div>
-            )}
-            <div className="flex-1 overflow-y-auto relative dashboard-content custom-scrollbar min-h-0">
-                {children}
-            </div>
+        {/* Scrollable Content Viewport */}
+        <div className="flex-1 overflow-y-auto no-scrollbar focus:outline-none">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+            {children}
+          </div>
         </div>
       </main>
     </div>

@@ -7,7 +7,7 @@ import 'prismjs/components/prism-javascript';
 import 'prismjs/components/prism-c';
 import 'prismjs/components/prism-cpp';
 
-const CodeQuestion = ({ text = '', category = 'Code', className = "" }) => {
+const CodeQuestion = ({ text = '', category = 'Code', className = "", textClassName = "text-[#090d16] dark:text-slate-100 font-semibold" }) => {
   useEffect(() => {
     Prism.highlightAll();
   }, [text]);
@@ -41,30 +41,29 @@ const CodeQuestion = ({ text = '', category = 'Code', className = "" }) => {
         if (code !== null) {
           if (!isBlock) {
             return (
-              <code key={index} className="mx-1 px-2 py-1 bg-[#7c3aed]/10 border border-[#7c3aed]/20 rounded-lg text-[#a78bfa] font-mono text-[14px] font-black tracking-tight shadow-sm inline-block">
+              <code key={index} className="mx-1 px-2 py-0.5 bg-violet-50/80 dark:bg-violet-950/40 border border-violet-200/80 dark:border-violet-900/40 rounded-md text-violet-700 dark:text-violet-300 font-mono text-[13px] font-semibold shadow-xs inline-block align-baseline">
                 {code}
               </code>
             );
           }
 
           return (
-            <div key={index} className="my-6 bg-[#0d0d17] border border-white/10 rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] transform hover:scale-[1.01] transition-transform duration-300">
+            <div key={index} className="my-5 bg-[#111318] border border-[#262a33] rounded-xl overflow-hidden shadow-lg">
               {/* IDE Header Strip */}
-              <div className="px-5 py-3 bg-white/5 border-b border-white/5 flex items-center justify-between backdrop-blur-md">
+              <div className="px-4 py-2.5 bg-white/5 border-b border-white/10 flex items-center justify-between backdrop-blur-md">
                 <div className="flex gap-2">
-                  <div className="w-3 h-3 rounded-full bg-rose-500/80 shadow-[0_0_10px_rgba(244,63,94,0.3)]"></div>
-                  <div className="w-3 h-3 rounded-full bg-amber-500/80 shadow-[0_0_10px_rgba(245,158,11,0.3)]"></div>
-                  <div className="w-3 h-3 rounded-full bg-[#7c3aed]/80 shadow-[0_0_10px_rgba(124,58,237,0.3)]"></div>
+                  <div className="w-2.5 h-2.5 rounded-full bg-rose-500/90"></div>
+                  <div className="w-2.5 h-2.5 rounded-full bg-amber-500/90"></div>
+                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/90"></div>
                 </div>
                 <div className="flex items-center gap-2">
-                   <div className="w-1 h-3 bg-[#7c3aed]/40 rounded-full" />
-                   <span className="text-[10px] font-black text-[#a78bfa] uppercase tracking-[0.2em]">{category || 'Source'}</span>
+                   <span className="text-[10px] font-bold text-violet-400 uppercase tracking-widest">{category || 'Code'}</span>
                 </div>
               </div>
               {/* Code Content */}
-              <div className="p-6 overflow-x-auto custom-scrollbar bg-[#09090f]">
+              <div className="p-5 overflow-x-auto custom-scrollbar bg-[#111318]">
                 <pre className="!m-0 !p-0 !bg-transparent !border-0">
-                  <code className={`language-${(category || 'javascript').toLowerCase()} !text-sm !font-mono !leading-loose !font-black !text-[#a78bfa]`}>
+                  <code className={`language-${(category || 'javascript').toLowerCase()} !text-sm !font-mono !leading-relaxed !font-medium !text-slate-100`}>
                     {code}
                   </code>
                 </pre>
@@ -72,10 +71,10 @@ const CodeQuestion = ({ text = '', category = 'Code', className = "" }) => {
             </div>
           );
         }
-        
-        // Handle regular text segments
+
+        // Handle regular text segments with high contrast dark text
         return (
-          <span key={index} className="text-gray-100 font-medium">
+          <span key={index} className={textClassName}>
             {part}
           </span>
         );
@@ -85,4 +84,3 @@ const CodeQuestion = ({ text = '', category = 'Code', className = "" }) => {
 };
 
 export default CodeQuestion;
-

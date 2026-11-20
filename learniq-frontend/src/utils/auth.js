@@ -1,4 +1,3 @@
-import api from './api';
 import { storage } from './storage';
 
 export const setSession = (token, user) => {
@@ -15,11 +14,11 @@ export const setSession = (token, user) => {
 export const getToken = (role) => {
   if (role === 'ADMIN') return storage.getItem('adminToken');
   if (role === 'STUDENT') return storage.getItem('studentToken');
-  
+
   // Fallback / Auto-detect for existing code
   const adminToken = storage.getItem('adminToken');
   const studentToken = storage.getItem('studentToken');
-  
+
   // If we are on an admin route, prioritize adminToken
   if (window.location.pathname.startsWith('/admin')) {
     return adminToken || storage.getItem('token');
@@ -30,7 +29,7 @@ export const getToken = (role) => {
 export const getUser = (role) => {
   const token = getToken(role);
   if (!token) return null;
-  
+
   let storedUser;
   if (role === 'ADMIN') storedUser = storage.getItem('adminUser');
   else if (role === 'STUDENT') storedUser = storage.getItem('studentUser');
