@@ -29,11 +29,17 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
 
     List<Question> findByCategoryAndIsDeletedFalse(String category);
 
+    @Query("SELECT q FROM Question q WHERE UPPER(q.category) = UPPER(:category) AND (q.isDeleted = false OR q.isDeleted IS NULL)")
+    List<Question> findByCategoryIgnoreCaseAndIsDeletedFalse(@Param("category") String category);
+
     List<Question> findAllByIsDeletedFalse();
 
     long countByIsDeletedFalse();
 
     long countByCategoryAndIsDeletedFalse(String category);
+
+    @Query("SELECT COUNT(q) FROM Question q WHERE UPPER(q.category) = UPPER(:category) AND (q.isDeleted = false OR q.isDeleted IS NULL)")
+    long countByCategoryIgnoreCaseAndIsDeletedFalse(@Param("category") String category);
 
     @Query(value = "SELECT * FROM question WHERE UPPER(category) = UPPER(:category) AND is_deleted = false ORDER BY RANDOM() LIMIT :limit", nativeQuery = true)
     List<Question> findRandomByCategory(@Param("category") String category, @Param("limit") int limit);

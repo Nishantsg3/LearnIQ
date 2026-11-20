@@ -446,14 +446,14 @@ const QuestionBank = () => {
                 </span>
               ) : (
                 <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-violet-50 dark:bg-violet-950/50 text-violet-700 dark:text-violet-300 border border-violet-200 dark:border-violet-800/40">
-                  {Math.min(100, Math.round((questions.length / 300) * 100))}% Capacity
+                  Active Repository
                 </span>
               )}
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               {selectedCategory !== 'ALL'
                 ? `Subject: ${selectedCategory} — ${categoryStats[selectedCategory] || 0} questions catalogued (Official exam standard: 50 questions)`
-                : 'Central repository capacity: 300 items across 6 institutional subject tracks'}
+                : 'Centralized inventory catalogued across 6 institutional subject tracks'}
             </p>
           </div>
         </div>
@@ -466,25 +466,28 @@ const QuestionBank = () => {
             <span className="font-bold text-slate-800 dark:text-slate-200 tabular-nums">
               {selectedCategory !== 'ALL'
                 ? `${categoryStats[selectedCategory] || 0} / 50`
-                : `${questions.length} / 300`}
+                : `${questions.length}`}
             </span>
           </div>
-          <div className="w-full bg-slate-100 dark:bg-[#101216] rounded-full h-2.5 overflow-hidden border border-slate-200/60 dark:border-[#262a33]">
-            <div
-              className={`h-full rounded-full transition-all duration-500 ${
-                selectedCategory !== 'ALL'
-                  ? (categoryStats[selectedCategory] || 0) >= 50
+          {selectedCategory !== 'ALL' ? (
+            <div className="w-full bg-slate-100 dark:bg-[#101216] rounded-full h-2.5 overflow-hidden border border-slate-200/60 dark:border-[#262a33]">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${
+                  (categoryStats[selectedCategory] || 0) >= 50
                     ? 'bg-gradient-to-r from-emerald-500 to-emerald-600'
                     : 'bg-gradient-to-r from-violet-500 to-indigo-500'
-                  : 'bg-gradient-to-r from-violet-600 via-violet-700 to-indigo-600'
-              }`}
-              style={{
-                width: `${Math.min(100, Math.round((
-                  (selectedCategory !== 'ALL' ? (categoryStats[selectedCategory] || 0) / 50 : questions.length / 300)
-                ) * 100))}%`
-              }}
-            />
-          </div>
+                }`}
+                style={{
+                  width: `${Math.min(100, Math.round(((categoryStats[selectedCategory] || 0) / 50) * 100))}%`
+                }}
+              />
+            </div>
+          ) : (
+            <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 font-mono">
+              <span>6 disciplines catalogued</span>
+              <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Active Repository</span>
+            </div>
+          )}
         </div>
       </div>
 

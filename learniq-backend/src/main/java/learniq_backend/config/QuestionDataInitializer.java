@@ -10,10 +10,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 @Component
 @RequiredArgsConstructor
@@ -24,11 +21,6 @@ public class QuestionDataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        if (questionRepository.count() > 0) {
-            log.info("Questions already present in database (count: {}). Seeding skipped to preserve existing catalog.", questionRepository.count());
-            return;
-        }
-
         ObjectMapper mapper = new ObjectMapper();
         List<Question> allQuestions = new ArrayList<>();
 
@@ -46,24 +38,49 @@ public class QuestionDataInitializer implements CommandLineRunner {
             }
         }
 
-        List<Question> validQuestions = new ArrayList<>();
-        Set<String> seenTexts = new HashSet<>();
-
-        for (Question q : allQuestions) {
-            if (q == null || q.getQuestionText() == null || q.getQuestionText().trim().isEmpty()) {
-                log.warn("Skipping invalid seed question with null or blank questionText");
-                continue;
-            }
-            String trimmedText = q.getQuestionText().trim();
-            if (seenTexts.add(trimmedText) && !questionRepository.existsByQuestionText(trimmedText)) {
-                q.setQuestionText(trimmedText);
-                validQuestions.add(q);
+        List<Question> existingQuestions = questionRepository.findAll();
+        Map<String, Question> existingByText = new HashMap<>();
+        for (Question eq : existingQuestions) {
+            if (eq.getQuestionText() != null) {
+                existingByText.put(eq.getQuestionText().trim(), eq);
             }
         }
 
-        if (!validQuestions.isEmpty()) {
-            questionRepository.saveAll(validQuestions);
-            log.info("Successfully seeded {} normalized questions.", validQuestions.size());
+        List<Question> toInsert = new ArrayList<>();
+        List<Question> toRestore = new ArrayList<>();
+        Set<String> processedTexts = new HashSet<>();
+
+        for (Question sq : allQuestions) {
+            if (sq == null || sq.getQuestionText() == null || sq.getQuestionText().trim().isEmpty()) {
+                continue;
+            }
+            String trimmedText = sq.getQuestionText().trim();
+            if (!processedTexts.add(trimmedText)) {
+                continue;
+            }
+
+            Question existing = existingByText.get(trimmedText);
+            if (existing == null) {
+                sq.setQuestionText(trimmedText);
+                toInsert.add(sq);
+            } else if (existing.isDeleted()) {
+                existing.setDeleted(false);
+                toRestore.add(existing);
+            }
+        }
+
+        if (!toInsert.isEmpty()) {
+            questionRepository.saveAll(toInsert);
+            log.info("Successfully seeded {} missing baseline questions into database. Total in DB: {}",
+                    toInsert.size(), questionRepository.count());
+        }
+        if (!toRestore.isEmpty()) {
+            questionRepository.saveAll(toRestore);
+            log.info("Successfully restored {} previously soft-deleted seed questions.", toRestore.size());
+        }
+        if (toInsert.isEmpty() && toRestore.isEmpty()) {
+            log.info("Question catalog verification complete. All {} baseline seed questions are active in repository (Total in DB: {}).",
+                    allQuestions.size(), existingQuestions.size());
         }
     }
 }

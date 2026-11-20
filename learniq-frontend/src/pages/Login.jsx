@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
@@ -11,7 +11,9 @@ import {
   Lock,
   AlertCircle,
   Sparkles,
-  Key
+  Key,
+  CheckCircle2,
+  Loader2
 } from 'lucide-react';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
@@ -25,15 +27,100 @@ function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Dedicated Server Cold-Start Waking State
+  // Dedicated Server Health & Cold-Start Recovery States
+  const [serverStatus, setServerStatus] = useState('checking'); // 'checking' | 'waking' | 'online'
+  const [wasWaking, setWasWaking] = useState(false);
   const [isServerWaking, setIsServerWaking] = useState(false);
   const [wakingElapsed, setWakingElapsed] = useState(0);
   const wakingTimerRef = useRef(null);
   const healthPollRef = useRef(null);
+  const pendingAuthRef = useRef(null);
+  const executeLoginRef = useRef(null);
 
   const { login, isLoggingIn, setIsLoggingIn } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+
+  // Active health checking loop when server is waking up
+  const startPollingHealth = useCallback((credsToRetry = null) => {
+    if (healthPollRef.current) clearInterval(healthPollRef.current);
+    if (credsToRetry) pendingAuthRef.current = credsToRetry;
+    setServerStatus('waking');
+    setWasWaking(true);
+
+    const baseURL = api.defaults.baseURL || 'https://learniq-backend-vglf.onrender.com/api/v1';
+    healthPollRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`${baseURL}/health`);
+        if (res.ok) {
+          clearInterval(healthPollRef.current);
+          healthPollRef.current = null;
+          setServerStatus('online');
+          setErrorMessage('');
+          toast.success('Examination server is now awake! You can log in.');
+          window.dispatchEvent(new CustomEvent('backend-awake'));
+
+          if (pendingAuthRef.current) {
+            const { email: retryEmail, password: retryPassword } = pendingAuthRef.current;
+            pendingAuthRef.current = null;
+            toast.loading('Server ready! Signing you in...', { duration: 1500 });
+            if (executeLoginRef.current) {
+              executeLoginRef.current(retryEmail, retryPassword);
+            }
+          }
+        }
+      } catch {
+        // Server still booting up
+      }
+    }, 2500);
+  }, []);
+
+  // Proactive background server check on mount and event listeners
+  useEffect(() => {
+    let isMounted = true;
+    const checkInitialHealth = async () => {
+      try {
+        const baseURL = api.defaults.baseURL || 'https://learniq-backend-vglf.onrender.com/api/v1';
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3500);
+        const res = await fetch(`${baseURL}/health`, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (!isMounted) return;
+        if (res.ok) {
+          setServerStatus('online');
+        } else {
+          setServerStatus('waking');
+          startPollingHealth();
+        }
+      } catch {
+        if (!isMounted) return;
+        setServerStatus('waking');
+        startPollingHealth();
+      }
+    };
+    checkInitialHealth();
+
+    const onAwake = () => {
+      if (!isMounted) return;
+      setServerStatus('online');
+      if (healthPollRef.current) clearInterval(healthPollRef.current);
+    };
+    const onSleep = () => {
+      if (!isMounted) return;
+      setServerStatus('waking');
+      startPollingHealth();
+    };
+    window.addEventListener('backend-awake', onAwake);
+    window.addEventListener('backend-sleep', onSleep);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener('backend-awake', onAwake);
+      window.removeEventListener('backend-sleep', onSleep);
+      if (healthPollRef.current) clearInterval(healthPollRef.current);
+      if (wakingTimerRef.current) clearInterval(wakingTimerRef.current);
+    };
+  }, [startPollingHealth]);
 
   // Deterministic simulation hook for QA & screenshot verification
   useEffect(() => {
@@ -43,14 +130,6 @@ function Login() {
       setWakingElapsed(8);
     }
   }, [searchParams]);
-
-  // Clean up timers on unmount
-  useEffect(() => {
-    return () => {
-      if (wakingTimerRef.current) clearInterval(wakingTimerRef.current);
-      if (healthPollRef.current) clearInterval(healthPollRef.current);
-    };
-  }, []);
 
   const executeLogin = async (targetEmail, targetPassword) => {
     setErrorMessage('');
@@ -87,9 +166,9 @@ function Login() {
 
       setIsServerWaking(false);
       if (isColdStart) {
-        const msg = 'Examination servers are connecting. Please try again in a moment.';
-        setErrorMessage(msg);
-        toast(msg, { icon: '⏳' });
+        setServerStatus('waking');
+        setWasWaking(true);
+        startPollingHealth({ email: targetEmail, password: targetPassword });
       } else {
         const msg = err.response?.data?.message || 'Invalid candidate email or password.';
         setErrorMessage(msg);
@@ -163,6 +242,8 @@ function Login() {
     toast.success('Demo candidate credentials loaded');
   };
 
+  executeLoginRef.current = executeLogin;
+
   return (
     <AuthLayout variant="student">
       <div className="w-full backdrop-blur-3xl bg-white/90 dark:bg-[#0c0f18]/90 border border-[#EAE4DC] dark:border-white/10 rounded-2xl sm:rounded-3xl p-4 sm:p-6 relative overflow-hidden transition-all duration-300 shadow-[0_16px_50px_-12px_rgba(226,125,96,0.12),0_1px_3px_rgba(0,0,0,0.05)] dark:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7),0_0_40px_rgba(99,102,241,0.08)] ring-1 ring-inset ring-black/[0.03] dark:ring-white/[0.08]">
@@ -173,10 +254,32 @@ function Login() {
 
         {/* ── CARD TOP UTILITY BAR (INTEGRATED THEME & ROLE SWITCH) ─────────── */}
         <div className="flex items-center justify-between pb-2.5 mb-2.5 sm:pb-3 sm:mb-3 border-b border-[#EAE4DC]/80 dark:border-white/5">
-          {/* Role Indicator Pill (Royal Indigo / Amethyst) */}
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200/80 dark:border-indigo-800/60 text-indigo-700 dark:text-indigo-300 text-[10px] font-semibold shadow-2xs">
-            <GraduationCap size={12} className="text-indigo-600 dark:text-indigo-400" />
-            <span className="font-mono tracking-wide">CANDIDATE DESK</span>
+          {/* Role Indicator & Real-Time Server State Pill */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200/80 dark:border-indigo-800/60 text-indigo-700 dark:text-indigo-300 text-[10px] font-semibold shadow-2xs">
+              <GraduationCap size={12} className="text-indigo-600 dark:text-indigo-400" />
+              <span className="font-mono tracking-wide">CANDIDATE DESK</span>
+            </div>
+
+            {serverStatus === 'online' ? (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 shadow-2xs">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span>SERVER ONLINE</span>
+              </span>
+            ) : serverStatus === 'waking' ? (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 animate-pulse shadow-2xs">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
+                </span>
+                <span>WAKING UP</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-medium bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-white/10">
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                <span>CONNECTING</span>
+              </span>
+            )}
           </div>
 
           {/* Right Controls: Integrated ThemeToggle + Faculty Link */}
@@ -217,6 +320,51 @@ function Login() {
                 Enter your credentials to access scheduled tests, practice drills, and scorecards.
               </p>
             </div>
+
+            {/* Dynamic Server Wake-Up Live Notification Banner */}
+            {serverStatus === 'waking' && (
+              <div className="mb-3 p-3 bg-amber-50/90 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 rounded-xl flex items-center justify-between gap-3 animate-in fade-in duration-200 shadow-2xs font-sans">
+                <div className="flex items-center gap-2.5">
+                  <div className="relative flex h-3 w-3 shrink-0">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-amber-900 dark:text-amber-200 leading-tight">
+                      Examination server is waking up...
+                    </p>
+                    <p className="text-[11px] text-amber-700 dark:text-amber-300 mt-0.5 leading-snug">
+                      Standby instance is warming up (~20-40s). We will notify you the moment it is ready.
+                    </p>
+                  </div>
+                </div>
+                <Loader2 size={16} className="animate-spin text-amber-600 dark:text-amber-400 shrink-0" />
+              </div>
+            )}
+
+            {/* Server Awake Notification */}
+            {serverStatus === 'online' && wasWaking && (
+              <div className="mb-3 p-3 bg-emerald-50/90 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 rounded-xl flex items-center justify-between gap-2.5 animate-in fade-in slide-in-from-top-1 duration-200 shadow-2xs font-sans">
+                <div className="flex items-center gap-2.5">
+                  <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <div>
+                    <p className="text-xs font-bold text-emerald-900 dark:text-emerald-200 leading-tight">
+                      Examination server is awake and ready!
+                    </p>
+                    <p className="text-[11px] text-emerald-700 dark:text-emerald-300 mt-0.5 leading-snug">
+                      Connection established. You can now log in to your examination desk.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleLogin}
+                  className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold rounded-lg transition-colors cursor-pointer shrink-0 shadow-2xs"
+                >
+                  Log In Now
+                </button>
+              </div>
+            )}
 
             {/* Inline Error Message Banner (Only for genuine credential failure) */}
             {errorMessage && (
@@ -294,11 +442,15 @@ function Login() {
                 </div>
               </div>
 
-              {/* Sign In CTA (Royal Amethyst to Deep Indigo & Sky Azure) */}
+              {/* Sign In CTA */}
               <button
                 type="submit"
                 disabled={isLoggingIn}
-                className="w-full min-h-[40px] sm:min-h-[42px] py-2 px-4 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-sky-500 hover:from-indigo-700 hover:to-sky-600 active:scale-[0.99] text-white font-sans font-bold text-xs shadow-md hover:shadow-indigo-500/25 transition-all duration-150 flex items-center justify-center gap-2 mt-1 disabled:opacity-60 cursor-pointer focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#6366F1] outline-none"
+                className={`w-full min-h-[40px] sm:min-h-[42px] py-2 px-4 rounded-xl text-white font-sans font-bold text-xs shadow-md transition-all duration-150 flex items-center justify-center gap-2 mt-1 disabled:opacity-60 cursor-pointer focus-visible:ring-2 focus-visible:ring-offset-2 outline-none ${
+                  serverStatus === 'online' && wasWaking
+                    ? 'bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-700 hover:to-teal-600 focus-visible:ring-emerald-500 shadow-emerald-500/25'
+                    : 'bg-gradient-to-r from-indigo-600 via-indigo-500 to-sky-500 hover:from-indigo-700 hover:to-sky-600 focus-visible:ring-[#6366F1] shadow-indigo-500/25'
+                }`}
               >
                 {isLoggingIn ? (
                   <div className="flex items-center gap-2">
@@ -307,7 +459,7 @@ function Login() {
                   </div>
                 ) : (
                   <>
-                    <span>Enter Examination Hall</span>
+                    <span>{serverStatus === 'online' && wasWaking ? 'Server Online • Enter Examination Hall' : 'Enter Examination Hall'}</span>
                     <ArrowRight size={13} />
                   </>
                 )}

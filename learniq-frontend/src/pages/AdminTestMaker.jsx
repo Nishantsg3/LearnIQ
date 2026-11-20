@@ -98,22 +98,43 @@ const AdminTestMaker = () => {
           setExistingTests(testsRes.data);
         }
 
-        if (isMounted && countsRes && countsRes.data && typeof countsRes.data === 'object') {
-          const normalized = {};
+        let normalized = {};
+        if (countsRes && countsRes.data && typeof countsRes.data === 'object') {
           Object.entries(countsRes.data).forEach(([key, val]) => {
             normalized[key.toUpperCase()] = typeof val === 'number' ? val : Number(val) || 0;
           });
-          setCategoryCounts(normalized);
-        } else {
-          const fallbackRes = await api.get('/questions/bank').catch(() => null);
-          if (isMounted && fallbackRes && Array.isArray(fallbackRes.data)) {
-            const counts = {};
-            fallbackRes.data.forEach(q => {
-              const cat = (q.category || q.tag || 'UNCATEGORIZED').toUpperCase();
-              counts[cat] = (counts[cat] || 0) + 1;
-            });
-            setCategoryCounts(counts);
+        }
+
+        // Defensive check: if core standard categories show 0, or if countsRes was empty/failed,
+        // cross-check with /questions/bank so real repository inventory is never obscured
+        const standardCats = ['JAVA', 'PYTHON', 'APTITUDE', 'ASP.NET', 'DBMS', 'CLOUD'];
+        const hasZeroAnomaly = standardCats.some(cat => !normalized[cat]);
+
+        if (hasZeroAnomaly) {
+          try {
+            const fallbackRes = await api.get('/questions/bank');
+            if (isMounted && fallbackRes && Array.isArray(fallbackRes.data) && fallbackRes.data.length > 0) {
+              const derived = {};
+              fallbackRes.data.forEach(q => {
+                const cat = (q.category || q.tag || 'UNCATEGORIZED').toUpperCase();
+                derived[cat] = (derived[cat] || 0) + 1;
+              });
+              standardCats.forEach(cat => {
+                if (derived[cat]) {
+                  normalized[cat] = derived[cat];
+                }
+              });
+              if (!normalized.TOTAL) {
+                normalized.TOTAL = fallbackRes.data.length;
+              }
+            }
+          } catch {
+            // retain existing counts
           }
+        }
+
+        if (isMounted) {
+          setCategoryCounts(normalized);
         }
       } catch {
         // Graceful fallback

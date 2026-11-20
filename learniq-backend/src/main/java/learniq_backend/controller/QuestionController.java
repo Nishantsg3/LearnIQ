@@ -43,7 +43,7 @@ public class QuestionController {
     public Map<String, Long> getCategoryCounts() {
         Map<String, Long> counts = new HashMap<>();
         for (String cat : ALLOWED_CATEGORIES) {
-            counts.put(cat, questionRepository.countByCategoryAndIsDeletedFalse(cat));
+            counts.put(cat, questionRepository.countByCategoryIgnoreCaseAndIsDeletedFalse(cat));
         }
         counts.put("TOTAL", questionRepository.countByIsDeletedFalse());
         return counts;
@@ -54,23 +54,22 @@ public class QuestionController {
     @GetMapping("/bank-filtered")
     public ResponseEntity<List<Question>> getBankQuestions(@RequestParam(required = false) String category) {
         if (category != null && !category.isBlank()) {
-            return ResponseEntity.ok(questionRepository.findByCategoryAndIsDeletedFalse(category));
+            return ResponseEntity.ok(questionRepository.findByCategoryIgnoreCaseAndIsDeletedFalse(category.trim()));
         }
         return ResponseEntity.ok(questionRepository.findAllByIsDeletedFalse());
     }
 
     private static final List<String> ALLOWED_CATEGORIES = List.of("JAVA", "PYTHON", "APTITUDE", "ASP.NET", "DBMS", "CLOUD");
-    private static final int MAX_PER_CATEGORY = 50;
-    private static final int TOTAL_LIMIT = 300;
+    private static final int MAX_BANK_CAPACITY = 10000;
 
     @PostMapping("/bank")
     public ResponseEntity<?> createBankQuestion(@RequestBody Question question) {
         long countBefore = questionRepository.countByIsDeletedFalse();
         System.out.println("[AUDIT] CREATE REQUEST - Questions Before: " + countBefore);
 
-        // 1. Total Limit Check
-        if (countBefore >= TOTAL_LIMIT) {
-            return ResponseEntity.badRequest().body(Map.of("message", "SCHEMA VIOLATION: Total Question Bank capacity reached (300/300)."));
+        // 1. High-water safety ceiling
+        if (countBefore >= MAX_BANK_CAPACITY) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Repository upper capacity reached (" + MAX_BANK_CAPACITY + " items)."));
         }
 
         // 2. Category Validation & Normalization
@@ -84,13 +83,7 @@ public class QuestionController {
         }
         question.setCategory(normalizedCategory);
 
-        // 3. Category Limit Check
-        long categoryCount = questionRepository.countByCategoryAndIsDeletedFalse(normalizedCategory);
-        if (categoryCount >= MAX_PER_CATEGORY) {
-            return ResponseEntity.badRequest().body(Map.of("message", "SCHEMA VIOLATION: Category '" + normalizedCategory + "' has reached its 50-question quota."));
-        }
-
-        // 4. Question Text & Uniqueness Check
+        // 3. Question Text & Uniqueness Check
         if (question.getQuestionText() == null && question.getTitle() != null) {
             question.setQuestionText(question.getTitle());
         }
