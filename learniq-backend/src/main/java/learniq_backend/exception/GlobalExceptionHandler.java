@@ -67,6 +67,13 @@ public class GlobalExceptionHandler {
                 .body(Map.of("message", "Method not allowed"));
     }
 
+    @ExceptionHandler({org.springframework.dao.DataAccessException.class, java.sql.SQLException.class, jakarta.persistence.PersistenceException.class})
+    public ResponseEntity<Map<String, String>> handleDatabaseExceptions(Exception ex) {
+        System.err.println("[GlobalExceptionHandler] Database exception: " + ex.getClass().getName() + " - " + ex.getMessage());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("message", "A database error occurred. Please try again later."));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, String>> handleAllExceptions(Exception ex) {
         System.err.println("[GlobalExceptionHandler] Caught unhandled: " + ex.getClass().getName() + " - " + ex.getMessage());

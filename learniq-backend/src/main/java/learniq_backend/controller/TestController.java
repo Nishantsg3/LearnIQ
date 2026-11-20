@@ -1,6 +1,7 @@
 package learniq_backend.controller;
 
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
 import learniq_backend.model.Question;
@@ -26,6 +27,14 @@ public class TestController {
     private final learniq_backend.repository.AttemptAnswerRepository attemptAnswerRepository;
     private final TestLifecycleService testLifecycleService;
     private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
+    private static final Set<BigDecimal> VALID_PENALTIES = Set.of(
+            BigDecimal.ZERO, new BigDecimal("0.25"), new BigDecimal("0.50"), BigDecimal.ONE);
+
+    private static boolean isValidNegativeMarking(BigDecimal value) {
+        if (value == null) return true;
+        return VALID_PENALTIES.stream().anyMatch(v -> v.compareTo(value) == 0);
+    }
 
     // ─── GET COUNTS (Lightweight summary for Dashboard) ─────────────────────────
 
@@ -70,11 +79,46 @@ public class TestController {
     // ─── GET ALL ────────────────────────────────────────────────────────────────
 
     @GetMapping
-    @Transactional(readOnly = true)
-    public ResponseEntity<List<Test>> getAllTests() {
+    @Transactional
+    public ResponseEntity<List<Test>> getAllTests(
+            @RequestParam(required = false) String testType,
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) String status,
+            Authentication authentication) {
         try {
             List<Test> tests = testRepository.findAll();
-            return ResponseEntity.ok(tests != null ? tests : Collections.emptyList());
+            if (tests == null) {
+                return ResponseEntity.ok(Collections.emptyList());
+            }
+
+            for (Test t : tests) {
+                testLifecycleService.syncTestLifecycle(t);
+            }
+
+            boolean admin = isAdmin(authentication);
+            String requestedType = testType != null ? testType : type;
+
+            List<Test> result = tests.stream()
+                    .filter(t -> {
+                        // Draft tests must remain hidden from students
+                        if (!admin && "DRAFT".equalsIgnoreCase(t.getStatus())) {
+                            return false;
+                        }
+                        if (requestedType != null && !requestedType.isBlank()) {
+                            if (!requestedType.equalsIgnoreCase(t.getTestType())) {
+                                return false;
+                            }
+                        }
+                        if (status != null && !status.isBlank()) {
+                            if (!status.equalsIgnoreCase(t.getStatus())) {
+                                return false;
+                            }
+                        }
+                        return true;
+                    })
+                    .toList();
+
+            return ResponseEntity.ok(result);
         } catch (Exception e) {
             System.err.println("[TestController] Error fetching tests: " + e.getMessage());
             return ResponseEntity.ok(Collections.emptyList());
@@ -115,7 +159,7 @@ public class TestController {
         if (request.title() == null || request.title().isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("message", "Title is required"));
         }
-        
+
         String testType = request.testType() != null ? request.testType().toUpperCase() : "PRACTICE";
         
         // 1. Validation Logic
@@ -123,6 +167,24 @@ public class TestController {
             if (request.startTime() == null) {
                 return ResponseEntity.badRequest().body(Map.of("message", "Start time is required for MAIN tests"));
             }
+            // M-2: Enforce MAIN exam constraints — exactly 50 questions and 60 minutes
+            if (request.totalQuestions() != null && request.totalQuestions() != 50) {
+                return ResponseEntity.badRequest().body(Map.of("message", "MAIN examinations must have exactly 50 questions"));
+            }
+            if (request.duration() != null && request.duration() != 60) {
+                return ResponseEntity.badRequest().body(Map.of("message", "MAIN examinations must have exactly 60 minutes duration"));
+            }
+        }
+
+        // M-1: Validate negative marking value
+        BigDecimal negativeMarking = request.negativeMarking();
+        if (!isValidNegativeMarking(negativeMarking)) {
+            return ResponseEntity.badRequest().body(Map.of("message",
+                    "Invalid negative marking value. Allowed values: 0, 0.25, 0.50, 1.00"));
+        }
+
+        if (testRepository.existsByTitleIgnoreCase(request.title().trim())) {
+            return ResponseEntity.badRequest().body(Map.of("message", "An assessment with this title already exists. Please choose a unique title."));
         }
 
         try {
@@ -138,14 +200,24 @@ public class TestController {
                 test.setStartTime(null);
             }
 
-            int count = request.totalQuestions() != null ? request.totalQuestions() : 10;
-            test.setQuestionCount(count);
-            
-            if (request.duration() != null && request.duration() > 0) {
-                test.setDurationMinutes(request.duration());
+            int count;
+            if ("MAIN".equals(testType)) {
+                // M-2: MAIN exams always use 50 questions and 60 minutes
+                count = 50;
+                test.setQuestionCount(50);
+                test.setDurationMinutes(60);
             } else {
-                test.setDurationMinutes(count > 0 ? (int) Math.ceil(count * 1.5) : 60);
+                count = request.totalQuestions() != null ? request.totalQuestions() : 10;
+                test.setQuestionCount(count);
+                if (request.duration() != null && request.duration() > 0) {
+                    test.setDurationMinutes(request.duration());
+                } else {
+                    test.setDurationMinutes(count > 0 ? (int) Math.ceil(count * 1.5) : 60);
+                }
             }
+
+            // M-1: Set negative marking (defaults to 0 if not provided)
+            test.setNegativeMarking(negativeMarking != null ? negativeMarking : BigDecimal.ZERO);
 
             if ("MAIN".equals(testType) && test.getStartTime() != null) {
                 int duration = test.getDurationMinutes() > 0 ? test.getDurationMinutes() : 60;
@@ -306,6 +378,32 @@ public class TestController {
                         return ResponseEntity.badRequest().body(Map.of("message", "Cannot update an archived test."));
                     }
 
+                    if (request.negativeMarking() != null) {
+                        if (!isValidNegativeMarking(request.negativeMarking())) {
+                            return ResponseEntity.badRequest().body(Map.of("message",
+                                    "Invalid negative marking value. Allowed values: 0, 0.25, 0.50, 1.00"));
+                        }
+                    }
+
+                    String effectiveType = request.testType() != null
+                            ? request.testType().toUpperCase()
+                            : (test.getTestType() != null ? test.getTestType().toUpperCase() : "PRACTICE");
+
+                    if ("MAIN".equalsIgnoreCase(effectiveType)) {
+                        int actualQuestions = (test.getQuestions() != null && !test.getQuestions().isEmpty())
+                                ? test.getQuestions().size()
+                                : (test.getId() != null ? questionRepository.findByTestId(test.getId()).size() : 0);
+
+                        if (actualQuestions != 50) {
+                            return ResponseEntity.badRequest().body(Map.of("message", "MAIN examinations must have exactly 50 questions"));
+                        }
+
+                        int effectiveDuration = request.duration() != null ? request.duration() : test.getDurationMinutes();
+                        if (effectiveDuration != 60) {
+                            return ResponseEntity.badRequest().body(Map.of("message", "MAIN examinations must have exactly 60 minutes duration"));
+                        }
+                    }
+
                     if (request.title() != null) test.setTitle(request.title());
                     if (request.category() != null) {
                         test.setCategory(request.category().replace("_", ".").toUpperCase());
@@ -317,7 +415,11 @@ public class TestController {
                     if (request.description() != null) test.setDescription(request.description());
                     if (request.testType() != null) test.setTestType(request.testType().toUpperCase());
                     if (request.status() != null) test.setStatus(request.status().toUpperCase());
+
                     if (request.duration() != null && request.duration() > 0) test.setDurationMinutes(request.duration());
+                    if (request.negativeMarking() != null) {
+                        test.setNegativeMarking(request.negativeMarking());
+                    }
 
                     if ("PRACTICE".equalsIgnoreCase(test.getTestType())) {
                         test.setStartTime(null);

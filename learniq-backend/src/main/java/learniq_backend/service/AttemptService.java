@@ -84,14 +84,14 @@ public class AttemptService {
             System.err.println("[CRITICAL] MAIN INITIALIZATION FAILED: Test " + testId + " has NO questions.");
             throw new RuntimeException("This assessment has no questions assigned yet. Please contact your administrator.");
         }
-        
+
         System.out.println("[ATTEMPT] Initializing lifecycle for " + userEmail + " on Test: " + test.getTitle() + " (Type: " + test.getTestType() + ")");
 
         // 2. Comprehensive check for existing IN_PROGRESS attempt
         // We check by both UserId (modern) and UserEmail (legacy/safety fallback)
         Optional<TestAttempt> existingOpt = testAttemptRepository
                 .findFirstByUserIdAndTestIdAndStatus(user.getId(), testId, TestAttempt.Status.IN_PROGRESS);
-        
+
         if (existingOpt.isEmpty()) {
             existingOpt = testAttemptRepository
                 .findFirstByUserEmailAndTestIdAndStatusOrderByStartedAtDesc(userEmail, testId, TestAttempt.Status.IN_PROGRESS);
@@ -106,21 +106,26 @@ public class AttemptService {
             // Check for individual session expiration
             if (active.getEndTime() != null && LocalDateTime.now().isAfter(active.getEndTime())) {
                 System.out.println("[AUTO-SUBMIT] Active attempt " + active.getId() + " expired on resume. Finalizing...");
-                return finalizeAndSubmit(active, null);
-            }
-
-            // Resume Logic: If Main, we handle "Timer Resume"
-            if ("MAIN".equalsIgnoreCase(test.getTestType())) {
-                if (active.getRemainingSeconds() != null) {
-                    active.setEndTime(LocalDateTime.now().plusSeconds(active.getRemainingSeconds()));
-                    active.setRemainingSeconds(null); 
-                    TestAttempt savedAttempt = testAttemptRepository.save(active);
-                    System.out.println("[DIAGNOSTIC] Resume attempt: attemptId=" + savedAttempt.getId() + ", testId=" + testId + ", userEmail=" + userEmail + ", timestamp=" + java.time.LocalDateTime.now());
-                    return savedAttempt;
+                TestAttempt finalized = finalizeAndSubmit(active, null);
+                if (!"MAIN".equalsIgnoreCase(test.getTestType())) {
+                    System.out.println("[PRACTICE RETAKE] Previous attempt " + active.getId() + " expired. Creating a fresh attempt for practice drill " + testId);
+                } else {
+                    return finalized;
                 }
+            } else {
+                // Resume Logic: If Main, we handle "Timer Resume"
+                if ("MAIN".equalsIgnoreCase(test.getTestType())) {
+                    if (active.getRemainingSeconds() != null) {
+                        active.setEndTime(LocalDateTime.now().plusSeconds(active.getRemainingSeconds()));
+                        active.setRemainingSeconds(null);
+                        TestAttempt savedAttempt = testAttemptRepository.save(active);
+                        System.out.println("[DIAGNOSTIC] Resume attempt: attemptId=" + savedAttempt.getId() + ", testId=" + testId + ", userEmail=" + userEmail + ", timestamp=" + java.time.LocalDateTime.now());
+                        return savedAttempt;
+                    }
+                }
+                System.out.println("[DIAGNOSTIC] Resume attempt: attemptId=" + active.getId() + ", testId=" + testId + ", userEmail=" + userEmail + ", timestamp=" + java.time.LocalDateTime.now());
+                return active;
             }
-            System.out.println("[DIAGNOSTIC] Resume attempt: attemptId=" + active.getId() + ", testId=" + testId + ", userEmail=" + userEmail + ", timestamp=" + java.time.LocalDateTime.now());
-            return active;
         }
 
         // 3. New Attempt Validation logic
@@ -140,11 +145,11 @@ public class AttemptService {
             // Use Instant for deterministic comparison
             Instant now = Instant.now();
             ZoneId istZone = ZoneId.of("Asia/Kolkata");
-            
+
             // Start Window Logic: Treat rawStart as IST local time
             LocalDateTime rawStart = test.getStartTime() != null ? test.getStartTime() : (test.getScheduledAt() != null ? test.getScheduledAt() : test.getCreatedAt());
             Instant startInstant = rawStart != null ? rawStart.atZone(istZone).toInstant() : now;
-            
+
             // End Window Logic: Treat rawEnd as IST local time
             LocalDateTime rawEnd = test.getEndTime();
             if (rawEnd == null && rawStart != null) {
@@ -170,7 +175,7 @@ public class AttemptService {
         attempt.setUserName(user.getName());
         attempt.setTest(test);
         attempt.setStartedAt(nowLocal);
-        
+
         // Individual duration
         int duration = test.getDurationMinutes() > 0 ? test.getDurationMinutes() : 60;
         attempt.setEndTime(nowLocal.plusMinutes(duration));
@@ -190,14 +195,14 @@ public class AttemptService {
     public void abandonAttempt(Long attemptId) {
         TestAttempt attempt = testAttemptRepository.findByIdWithLock(attemptId)
                 .orElseThrow(() -> new RuntimeException("Attempt not found"));
-        
+
         if (attempt.getStatus() != TestAttempt.Status.IN_PROGRESS) {
             System.out.println("[WARNING] Blocked abandonAttempt for non-IN_PROGRESS attempt: " + attemptId);
             return;
         }
-        
+
         Test test = attempt.getTest();
-        
+
         if ("PRACTICE".equalsIgnoreCase(test.getTestType())) {
             // Rule 3 & 4: Practice abandoned = Wipe
             System.out.println("[ABANDON] Wiping Practice Attempt " + attemptId);
@@ -345,7 +350,12 @@ public class AttemptService {
         }
 
         int total = questions.size();
-        int score = total > 0 ? (int) Math.round((correctCount * 100.0) / total) : 0;
+        // M-1: Apply negative marking penalty to score calculation
+        java.math.BigDecimal penalty = attempt.getTest() != null && attempt.getTest().getNegativeMarking() != null
+                ? attempt.getTest().getNegativeMarking() : java.math.BigDecimal.ZERO;
+        double rawScore = correctCount - (wrongCount * penalty.doubleValue());
+        double effectiveScore = total > 0 ? Math.max(0.0, (rawScore * 100.0) / total) : 0.0;
+        int score = (int) Math.round(effectiveScore);
 
         attempt.setTotalQuestions(total);
         attempt.setCorrectCount(correctCount);
@@ -368,8 +378,8 @@ public class AttemptService {
             try {
                 // Calculate Rank
                 long betterAttempts = testAttemptRepository.countByTestIdAndScorePercentGreaterThanAndStatus(
-                        attempt.getTest().getId(), 
-                        attempt.getScorePercent(), 
+                        attempt.getTest().getId(),
+                        attempt.getScorePercent(),
                         TestAttempt.Status.SUBMITTED
                 );
                 int rank = (int) betterAttempts + 1;
@@ -378,14 +388,14 @@ public class AttemptService {
                 LocalDateTime end = attempt.getSubmittedAt();
                 LocalDateTime start = attempt.getStartedAt();
                 if (start == null) start = end.minusMinutes(1); // Safety fallback
-                
+
                 Duration duration = Duration.between(start, end);
                 long minutes = Math.max(0, duration.toMinutes());
                 long seconds = Math.max(0, duration.minusMinutes(minutes).getSeconds());
-                
+
                 // If 0:00 (race condition), show at least 1s for UX
                 if (minutes == 0 && seconds == 0) seconds = 1;
-                
+
                 String timeString = String.format("%dm %ds", minutes, seconds);
 
                 String analysisLink = frontendUrl + "/results/" + attempt.getId();
@@ -652,8 +662,8 @@ public class AttemptService {
 
         if (attempt.getTest() != null && "MAIN".equalsIgnoreCase(attempt.getTest().getTestType()) && attempt.getStatus() == TestAttempt.Status.SUBMITTED) {
             long betterAttempts = testAttemptRepository.countByTestIdAndScorePercentGreaterThanAndStatus(
-                    attempt.getTest().getId(), 
-                    attempt.getScorePercent(), 
+                    attempt.getTest().getId(),
+                    attempt.getScorePercent(),
                     TestAttempt.Status.SUBMITTED
             );
             res.setRank((int) betterAttempts + 1);

@@ -240,12 +240,45 @@ public class AuthController {
         }
 
         return userRepository.findByEmail(authentication.getName())
-                .map(user -> ResponseEntity.ok(Map.of(
-                        "name", user.getName(),
-                        "email", user.getEmail(),
-                        "role", user.getRole().name()
-                )))
+                .map(user -> {
+                    Map<String, Object> resp = new LinkedHashMap<>();
+                    resp.put("id", user.getId() != null ? user.getId() : 0L);
+                    resp.put("name", user.getName());
+                    resp.put("email", user.getEmail());
+                    resp.put("role", user.getRole().name());
+                    resp.put("avatar", user.getAvatar() != null ? user.getAvatar() : "");
+                    return ResponseEntity.ok(resp);
+                })
                 .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "User not found")));
+    }
+
+    @PutMapping("/profile")
+    public ResponseEntity<?> updateProfile(Authentication authentication, @RequestBody Map<String, String> body) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Not authenticated"));
+        }
+
+        Optional<User> userOpt = userRepository.findByEmail(authentication.getName());
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "User not found"));
+        }
+
+        User user = userOpt.get();
+        if (body.containsKey("name") && body.get("name") != null && !body.get("name").trim().isEmpty()) {
+            user.setName(body.get("name").trim());
+        }
+        if (body.containsKey("avatar")) {
+            user.setAvatar(body.get("avatar"));
+        }
+        userRepository.save(user);
+
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("id", user.getId());
+        resp.put("name", user.getName());
+        resp.put("email", user.getEmail());
+        resp.put("role", user.getRole().name());
+        resp.put("avatar", user.getAvatar() != null ? user.getAvatar() : "");
+        return ResponseEntity.ok(resp);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -323,6 +356,7 @@ public class AuthController {
         responseData.put("name", user.getName());
         responseData.put("email", user.getEmail());
         responseData.put("id", user.getId() != null ? user.getId() : 0L);
+        responseData.put("avatar", user.getAvatar() != null ? user.getAvatar() : "");
         return ResponseEntity.ok(responseData);
     }
     

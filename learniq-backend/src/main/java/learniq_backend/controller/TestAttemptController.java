@@ -2,8 +2,11 @@ package learniq_backend.controller;
 
 import learniq_backend.dto.StartAttemptRequest;
 import learniq_backend.dto.TestAttemptResponse;
+import learniq_backend.model.Test;
 import learniq_backend.model.TestAttempt;
 import learniq_backend.model.User;
+import learniq_backend.repository.QuestionRepository;
+import learniq_backend.repository.TestRepository;
 import learniq_backend.repository.UserRepository;
 import learniq_backend.service.AttemptService;
 import lombok.RequiredArgsConstructor;
@@ -18,12 +21,33 @@ import java.util.*;
 
 @RestController
 @RequestMapping("/api/v1/attempts")
-@RequiredArgsConstructor
 public class TestAttemptController {
 
     private final AttemptService attemptService;
     private final learniq_backend.repository.TestAttemptRepository testAttemptRepository;
     private final UserRepository userRepository;
+    private final TestRepository testRepository;
+    private final QuestionRepository questionRepository;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public TestAttemptController(AttemptService attemptService,
+                                 learniq_backend.repository.TestAttemptRepository testAttemptRepository,
+                                 UserRepository userRepository,
+                                 TestRepository testRepository,
+                                 QuestionRepository questionRepository) {
+        this.attemptService = attemptService;
+        this.testAttemptRepository = testAttemptRepository;
+        this.userRepository = userRepository;
+        this.testRepository = testRepository;
+        this.questionRepository = questionRepository;
+    }
+
+    // Backward-compatible constructor for isolated unit tests
+    public TestAttemptController(AttemptService attemptService,
+                                 learniq_backend.repository.TestAttemptRepository testAttemptRepository,
+                                 UserRepository userRepository) {
+        this(attemptService, testAttemptRepository, userRepository, null, null);
+    }
 
     private boolean isAuthorizedForAttempt(TestAttempt attempt, Authentication auth) {
         if (attempt == null || auth == null) return false;
@@ -49,12 +73,49 @@ public class TestAttemptController {
             return ResponseEntity.badRequest().body(Map.of("message", "Test ID is required"));
         }
 
+        String userEmail = authentication.getName();
+
+        // 1. Fetch test details first to check test type
+        Optional<Test> testOpt = (testRepository != null) ? testRepository.findById(request.getTestId()) : Optional.empty();
+        boolean isMain = testOpt.map(t -> "MAIN".equalsIgnoreCase(t.getTestType())).orElse(false);
+
+        // 2. If test is MAIN and already submitted, block re-attempt with 409 Conflict immediately.
+        // Practice drills allow infinite retakes!
+        if (isMain) {
+            Optional<User> userOpt = userRepository.findByEmail(userEmail);
+            Optional<TestAttempt> submittedOpt = userOpt.flatMap(u ->
+                    testAttemptRepository.findFirstByUserIdAndTestIdAndStatus(u.getId(), request.getTestId(), TestAttempt.Status.SUBMITTED));
+            if (submittedOpt.isEmpty()) {
+                submittedOpt = testAttemptRepository
+                        .findFirstByUserEmailAndTestIdAndStatusOrderByStartedAtDesc(userEmail, request.getTestId(), TestAttempt.Status.SUBMITTED);
+            }
+            if (submittedOpt.isPresent()) {
+                return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                        "message", "You have already completed this test.",
+                        "attemptId", submittedOpt.get().getId()
+                ));
+            }
+        }
+
+        // 3. M-2: Enforce MAIN exam invariants on attempt start (exactly 50 questions and 60 minutes)
+        if (testOpt.isPresent() && isMain) {
+            Test test = testOpt.get();
+            int actualQuestions = (test.getQuestions() != null && !test.getQuestions().isEmpty())
+                    ? test.getQuestions().size()
+                    : (test.getId() != null && questionRepository != null ? questionRepository.findByTestId(test.getId()).size() : 0);
+            if (actualQuestions != 50) {
+                return ResponseEntity.badRequest().body(Map.of("message", "MAIN examinations must have exactly 50 questions"));
+            }
+            if (test.getDurationMinutes() != 60) {
+                return ResponseEntity.badRequest().body(Map.of("message", "MAIN examinations must have exactly 60 minutes duration"));
+            }
+        }
+
         try {
-            String userEmail = authentication.getName();
             TestAttempt attempt = attemptService.startOrResumeAttempt(userEmail, request.getTestId());
             
-            // If already submitted, block re-attempt and return existing attempt ID with 409 CONFLICT
-            if (attempt.getStatus() == TestAttempt.Status.SUBMITTED || attempt.isSubmitted()) {
+            // If already submitted and is MAIN, block re-attempt and return existing attempt ID with 409 CONFLICT
+            if (isMain && (attempt.getStatus() == TestAttempt.Status.SUBMITTED || attempt.isSubmitted())) {
                 return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
                     "message", "You have already completed this test.",
                     "attemptId", attempt.getId()

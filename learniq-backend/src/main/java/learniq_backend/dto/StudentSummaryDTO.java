@@ -17,7 +17,8 @@ public record StudentSummaryDTO(
     User.Role role,
     LocalDateTime createdAt,
     @JsonProperty("isVerified")
-    boolean isVerified
+    boolean isVerified,
+    String avatar
 ) {
     public static StudentSummaryDTO fromEntity(User user) {
         if (user == null) {
@@ -29,7 +30,8 @@ public record StudentSummaryDTO(
             user.getEmail(),
             user.getRole(),
             user.getCreatedAt(),
-            user.isVerified()
+            user.isVerified(),
+            user.getAvatar()
         );
     }
 }

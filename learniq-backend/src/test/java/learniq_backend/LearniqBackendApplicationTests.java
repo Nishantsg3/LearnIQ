@@ -42,7 +42,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@TestPropertySource(properties = "app.jwt.secret=test-only-jwt-secret-not-for-production-minimum-32-chars-long")
+@TestPropertySource(properties = {
+		"spring.datasource.url=jdbc:h2:mem:learniq_app_test;DB_CLOSE_DELAY=-1",
+		"spring.datasource.driverClassName=org.h2.Driver",
+		"spring.datasource.username=sa",
+		"spring.datasource.password=",
+		"spring.jpa.hibernate.ddl-auto=create-drop",
+		"app.jwt.secret=test-only-jwt-secret-not-for-production-minimum-32-chars-long"
+})
 class LearniqBackendApplicationTests {
 
 	@Autowired
@@ -66,8 +73,20 @@ class LearniqBackendApplicationTests {
 	@Autowired
 	private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
+	@Autowired
+	private javax.sql.DataSource dataSource;
+
 	@Test
-	void contextLoads() {
+	@DisplayName("APP-00: Verify LearniqBackendApplicationTests runs on isolated in-memory H2 datasource")
+	void contextLoads() throws Exception {
+		try (java.sql.Connection conn = dataSource.getConnection()) {
+			String actualJdbcUrl = conn.getMetaData().getURL();
+			assertNotNull(actualJdbcUrl, "JDBC URL must not be null");
+			assertTrue(actualJdbcUrl.startsWith("jdbc:h2:mem:learniq_app_test"),
+					"Connection must point to isolated in-memory DB 'jdbc:h2:mem:learniq_app_test', but was: " + actualJdbcUrl);
+			assertFalse(actualJdbcUrl.contains("file:"),
+					"Connection must NOT connect to file-backed database: " + actualJdbcUrl);
+		}
 	}
 
 	@Test
@@ -75,8 +94,14 @@ class LearniqBackendApplicationTests {
 	void startupFailsFastWithoutJwtSecret() {
 		Exception ex = assertThrows(Exception.class, () -> {
 			new SpringApplicationBuilder(LearniqBackendApplication.class)
-					.properties("app.jwt.secret=", "server.port=0")
-					.run();
+					.web(org.springframework.boot.WebApplicationType.NONE)
+					.run(
+							"--app.jwt.secret=",
+							"--server.port=0",
+							"--spring.profiles.active=test",
+							"--spring.datasource.url=jdbc:h2:mem:failfast_test;DB_CLOSE_DELAY=-1",
+							"--spring.datasource.driver-class-name=org.h2.Driver"
+					);
 		});
 
 		Throwable rootCause = ex;
@@ -89,24 +114,29 @@ class LearniqBackendApplicationTests {
 
 	@Test
 	@DisplayName("REL-02: Production profile binds HikariCP connection pool settings accurately")
-	void testProductionProfileHikariPoolConfiguration() {
+	void testProductionProfileHikariPoolConfiguration() throws Exception {
 		try (org.springframework.context.ConfigurableApplicationContext context = new SpringApplicationBuilder(LearniqBackendApplication.class)
 				.web(org.springframework.boot.WebApplicationType.NONE)
-				.profiles("prod")
-				.properties(
-						"spring.datasource.url=jdbc:h2:mem:prodbindtest;DB_CLOSE_DELAY=-1",
-						"spring.datasource.driver-class-name=org.h2.Driver",
-						"spring.datasource.username=sa",
-						"spring.datasource.password=",
-						"spring.jpa.hibernate.ddl-auto=none",
-						"APP_JWT_SECRET=test-only-jwt-secret-not-for-production-minimum-32-chars-long",
-						"app.jwt.secret=test-only-jwt-secret-not-for-production-minimum-32-chars-long"
-				)
-				.run()) {
+				.run(
+						"--spring.profiles.active=prod",
+						"--spring.datasource.url=jdbc:h2:mem:prodbindtest;DB_CLOSE_DELAY=-1",
+						"--spring.datasource.driver-class-name=org.h2.Driver",
+						"--spring.datasource.username=sa",
+						"--spring.datasource.password=",
+						"--spring.jpa.hibernate.ddl-auto=create-drop",
+						"--APP_JWT_SECRET=test-only-jwt-secret-not-for-production-minimum-32-chars-long",
+						"--app.jwt.secret=test-only-jwt-secret-not-for-production-minimum-32-chars-long"
+				)) {
 
 			javax.sql.DataSource dataSource = context.getBean(javax.sql.DataSource.class);
 			assertInstanceOf(com.zaxxer.hikari.HikariDataSource.class, dataSource, "Expected HikariDataSource instance");
 			com.zaxxer.hikari.HikariDataSource hikariDataSource = (com.zaxxer.hikari.HikariDataSource) dataSource;
+
+			try (java.sql.Connection conn = hikariDataSource.getConnection()) {
+				String actualUrl = conn.getMetaData().getURL();
+				assertTrue(actualUrl.startsWith("jdbc:h2:mem:prodbindtest"),
+						"Production pool test must connect to in-memory DB: " + actualUrl);
+			}
 
 			assertEquals(5, hikariDataSource.getMaximumPoolSize(), "maximum-pool-size should be 5");
 			assertEquals(0, hikariDataSource.getMinimumIdle(), "minimum-idle should be 0");

@@ -38,13 +38,14 @@ public class CorsConfig {
         if (frontendUrl != null && !frontendUrl.isBlank()) {
             for (String url : frontendUrl.split(",")) {
                 String cleanUrl = url.trim().replaceAll("/+$", "");
-                if (!cleanUrl.isEmpty()) {
+                // Strict validation: Reject wildcards or empty values to prevent arbitrary subdomain matching
+                if (!cleanUrl.isEmpty() && !cleanUrl.contains("*")) {
                     origins.add(cleanUrl);
                 }
             }
         }
 
-        // Allowed Origins
+        // Allowed Origins (strictly matched exact origins; credentials enabled)
         configuration.setAllowedOrigins(new ArrayList<>(origins));
         
         // Allowed Methods

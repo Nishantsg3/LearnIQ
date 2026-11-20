@@ -34,18 +34,18 @@ public class QuestionController {
 
     @GetMapping("/bank")
     public List<Question> getAllQuestions() {
-        long count = questionRepository.count();
+        long count = questionRepository.countByIsDeletedFalse();
         System.out.println("[AUDIT] ACCESS - Total Questions Available: " + count);
-        return questionRepository.findAll();
+        return questionRepository.findAllByIsDeletedFalse();
     }
 
-    @GetMapping("/debug/counts")
-    public Map<String, Long> getDebugCounts() {
+    @GetMapping("/category-counts")
+    public Map<String, Long> getCategoryCounts() {
         Map<String, Long> counts = new HashMap<>();
         for (String cat : ALLOWED_CATEGORIES) {
-            counts.put(cat, (long) questionRepository.findByCategory(cat).size());
+            counts.put(cat, questionRepository.countByCategoryAndIsDeletedFalse(cat));
         }
-        counts.put("TOTAL", questionRepository.count());
+        counts.put("TOTAL", questionRepository.countByIsDeletedFalse());
         return counts;
     }
 
@@ -54,9 +54,9 @@ public class QuestionController {
     @GetMapping("/bank-filtered")
     public ResponseEntity<List<Question>> getBankQuestions(@RequestParam(required = false) String category) {
         if (category != null && !category.isBlank()) {
-            return ResponseEntity.ok(questionRepository.findByCategory(category));
+            return ResponseEntity.ok(questionRepository.findByCategoryAndIsDeletedFalse(category));
         }
-        return ResponseEntity.ok(questionRepository.findAll());
+        return ResponseEntity.ok(questionRepository.findAllByIsDeletedFalse());
     }
 
     private static final List<String> ALLOWED_CATEGORIES = List.of("JAVA", "PYTHON", "APTITUDE", "ASP.NET", "DBMS", "CLOUD");
@@ -65,7 +65,7 @@ public class QuestionController {
 
     @PostMapping("/bank")
     public ResponseEntity<?> createBankQuestion(@RequestBody Question question) {
-        long countBefore = questionRepository.count();
+        long countBefore = questionRepository.countByIsDeletedFalse();
         System.out.println("[AUDIT] CREATE REQUEST - Questions Before: " + countBefore);
 
         // 1. Total Limit Check
@@ -85,7 +85,7 @@ public class QuestionController {
         question.setCategory(normalizedCategory);
 
         // 3. Category Limit Check
-        long categoryCount = questionRepository.findByCategory(normalizedCategory).size();
+        long categoryCount = questionRepository.countByCategoryAndIsDeletedFalse(normalizedCategory);
         if (categoryCount >= MAX_PER_CATEGORY) {
             return ResponseEntity.badRequest().body(Map.of("message", "SCHEMA VIOLATION: Category '" + normalizedCategory + "' has reached its 50-question quota."));
         }
@@ -338,6 +338,21 @@ public class QuestionController {
     @PostMapping("/test/{testId}/start-attempt")
     public ResponseEntity<?> startAttempt(@PathVariable Long testId, Authentication authentication) {
         String userEmail = authentication.getName();
+        Optional<Test> testOpt = testRepository.findById(testId);
+        if (testOpt.isPresent()) {
+            Test test = testOpt.get();
+            if ("MAIN".equalsIgnoreCase(test.getTestType())) {
+                int actualQuestions = (test.getQuestions() != null && !test.getQuestions().isEmpty())
+                        ? test.getQuestions().size()
+                        : (test.getId() != null ? questionRepository.findByTestId(test.getId()).size() : 0);
+                if (actualQuestions != 50) {
+                    return ResponseEntity.badRequest().body(Map.of("message", "MAIN examinations must have exactly 50 questions"));
+                }
+                if (test.getDurationMinutes() != 60) {
+                    return ResponseEntity.badRequest().body(Map.of("message", "MAIN examinations must have exactly 60 minutes duration"));
+                }
+            }
+        }
         try {
             TestAttempt attempt = attemptService.startOrResumeAttempt(userEmail, testId);
             String msg = attempt.getSubmittedAt() == null ? "Attempt initialized" : "Attempt resumed";

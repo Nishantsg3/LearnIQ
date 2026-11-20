@@ -17,5 +17,6 @@ public record CreateTestRequest(
     java.time.LocalDateTime scheduledAt,
     java.time.LocalDateTime startTime,
     java.time.LocalDateTime endTime,
-    Boolean active
+    Boolean active,
+    java.math.BigDecimal negativeMarking
 ) {}

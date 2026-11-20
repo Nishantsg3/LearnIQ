@@ -3,6 +3,7 @@ package learniq_backend.model;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -45,6 +46,10 @@ public class Test {
     @Column(nullable = false)
     private int durationMinutes;
 
+    @Builder.Default
+    @Column(name = "negative_marking", precision = 4, scale = 2, columnDefinition = "decimal(4,2) default 0.00")
+    private BigDecimal negativeMarking = BigDecimal.ZERO;
+
     // When the test is scheduled to start (admin sets this for SCHEDULED tests)
     private LocalDateTime scheduledAt;
 
@@ -77,6 +82,8 @@ public class Test {
 
     public int getDurationMinutes() { return durationMinutes; }
     public void setDurationMinutes(int durationMinutes) { this.durationMinutes = durationMinutes; }
+    public BigDecimal getNegativeMarking() { return negativeMarking != null ? negativeMarking : BigDecimal.ZERO; }
+    public void setNegativeMarking(BigDecimal negativeMarking) { this.negativeMarking = negativeMarking; }
     public String getTestType() { return testType; }
     public String getType() { return testType; }
     public void setTestType(String testType) { this.testType = testType; }
@@ -90,7 +97,7 @@ public class Test {
     public void setStatus(String status) { 
         if (status != null) {
             String s = status.toUpperCase();
-            if (s.equals("ACTIVE") || s.equals("ARCHIVED")) {
+            if (s.equals("ACTIVE") || s.equals("ARCHIVED") || s.equals("DRAFT") || s.equals("SCHEDULED")) {
                 this.status = s;
             } else if (s.equals("LIVE")) {
                 this.status = "ACTIVE";
@@ -103,7 +110,7 @@ public class Test {
     @PrePersist
     @PreUpdate
     public void validateStatus() {
-        if (status == null || (!status.equals("ACTIVE") && !status.equals("ARCHIVED"))) {
+        if (status == null || (!status.equals("ACTIVE") && !status.equals("ARCHIVED") && !status.equals("DRAFT") && !status.equals("SCHEDULED"))) {
             // Default to ACTIVE for safety if invalid
             this.status = "ACTIVE";
         }

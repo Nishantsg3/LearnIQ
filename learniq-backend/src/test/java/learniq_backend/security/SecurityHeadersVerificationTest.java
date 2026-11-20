@@ -9,6 +9,10 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
+import javax.sql.DataSource;
+import java.sql.Connection;
+
+import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -17,6 +21,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @TestPropertySource(properties = {
+        "spring.datasource.url=jdbc:h2:mem:security_headers_test;DB_CLOSE_DELAY=-1",
+        "spring.datasource.driverClassName=org.h2.Driver",
+        "spring.datasource.username=sa",
+        "spring.datasource.password=",
+        "spring.jpa.hibernate.ddl-auto=create-drop",
         "app.jwt.secret=test-only-jwt-secret-not-for-production-minimum-32-chars-long",
         "app.frontend.url=http://localhost:5173"
 })
@@ -24,6 +33,22 @@ public class SecurityHeadersVerificationTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private DataSource dataSource;
+
+    @Test
+    @DisplayName("SEC-00: Verify SecurityHeadersVerificationTest runs on isolated in-memory H2 datasource")
+    void verifyIsolatedInMemoryDatasource() throws Exception {
+        try (Connection conn = dataSource.getConnection()) {
+            String actualJdbcUrl = conn.getMetaData().getURL();
+            assertNotNull(actualJdbcUrl, "JDBC URL must not be null");
+            assertTrue(actualJdbcUrl.startsWith("jdbc:h2:mem:security_headers_test"),
+                    "Connection must point to isolated in-memory DB 'jdbc:h2:mem:security_headers_test', but was: " + actualJdbcUrl);
+            assertFalse(actualJdbcUrl.contains("file:"),
+                    "Connection must NOT connect to file-backed database: " + actualJdbcUrl);
+        }
+    }
 
     @Test
     @DisplayName("Verify baseline security headers on response (nosniff, DENY frame options, XSS protection 0)")
@@ -55,6 +80,16 @@ public class SecurityHeadersVerificationTest {
                 .andExpect(status().isOk())
                 .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "https://learniq-frontend-7oyn.onrender.com"))
                 .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true"));
+    }
+
+    @Test
+    @DisplayName("CORS Preflight OPTIONS /api/v1/tests rejects unapproved preview origin")
+    void testCorsPreflightRejectsUnapprovedPreviewOrigin() throws Exception {
+        mockMvc.perform(options("/api/v1/tests")
+                        .header(HttpHeaders.ORIGIN, "https://learniq-frontend-preview.onrender.com")
+                        .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "GET"))
+                .andExpect(status().isForbidden())
+                .andExpect(header().doesNotExist(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN));
     }
 
     @Test

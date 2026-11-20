@@ -4,6 +4,7 @@ import learniq_backend.model.*;
 import learniq_backend.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
 
 @Service
+@Profile("!prod")
 @RequiredArgsConstructor
 public class DataSeederService {
 
@@ -31,24 +33,6 @@ public class DataSeederService {
 
     @Value("${app.seed.admin.name}")
     private String adminName;
-
-    @Transactional
-    public void resetAndSeed() {
-        try {
-            seedUsers();
-            
-            // 🚀 NUCLEAR RESET: Wipe everything for a clean slate
-            System.out.println("[NUCLEAR] Wiping all test history and active records...");
-            jdbcTemplate.update("DELETE FROM attempt_answers");
-            jdbcTemplate.update("DELETE FROM test_attempts");
-            jdbcTemplate.update("DELETE FROM test_questions");
-            jdbcTemplate.update("DELETE FROM test");
-            
-            System.out.println("[SEEDER] System wipe complete. Ready for fresh start.");
-        } catch (Exception e) {
-            System.err.println("[SEEDER] Reset failure: " + e.getMessage());
-        }
-    }
 
     private void seedUsers() {
         // 1. SEED ADMIN

@@ -13,6 +13,7 @@ import java.util.Optional;
 public interface TestRepository extends JpaRepository<Test, Long> {
     List<Test> findByStatus(String status);
     long countByStatus(String status);
+    boolean existsByTitleIgnoreCase(String title);
 
     @Lock(LockModeType.PESSIMISTIC_READ)
     @Query("select t from Test t where t.id = :id")
